@@ -1,10 +1,9 @@
 "use client";
-
 import { motion } from "framer-motion";
 import { Github, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ContributionField } from "@/components/landing/contribution-field";
-
+import { signInWithGithub } from "@/lib/supabase/auth-actions";
 const container = {
   hidden: {},
   show: {
@@ -14,12 +13,16 @@ const container = {
 
 const item = {
   hidden: { opacity: 0, y: 22 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] },
+  },
 };
 
 export function Hero() {
   return (
-    <section className="relative flex min-h-[92vh] w-full flex-col items-center justify-center overflow-hidden px-6">
+    <section className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-6 py-24">
       <ContributionField />
 
       <motion.div
@@ -49,23 +52,32 @@ export function Hero() {
           variants={item}
           className="mt-6 max-w-xl text-balance font-sans text-base leading-relaxed text-muted sm:text-lg"
         >
-          Time Machine turns years of commits, repos, and late-night pushes
-          into a cinematic replay of how you became the developer you are —
-          one contribution graph square at a time.
+          Time Machine turns years of commits, repos, and late-night pushes into
+          a cinematic replay of how you became the developer you are — one
+          contribution graph square at a time.
         </motion.p>
 
-        <motion.div variants={item} className="mt-10 flex flex-col items-center gap-4 sm:flex-row">
-          <Button size="lg" className="group font-medium">
-            <Github className="mr-2 h-[18px] w-[18px]" />
-            Continue with GitHub
-            <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
-          </Button>
+        <motion.div
+          variants={item}
+          className="mt-10 flex flex-col items-center gap-4 sm:flex-row"
+        >
+          <form action={signInWithGithub}>
+            <Button size="lg" className="group font-medium" type="submit">
+              <Github className="mr-2 h-[18px] w-[18px]" />
+              Continue with GitHub
+              <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+            </Button>
+          </form>
+
           <Button size="lg" variant="outline" className="font-mono text-sm">
             see a sample replay
           </Button>
         </motion.div>
 
-        <motion.p variants={item} className="mt-5 font-mono text-xs text-muted/70">
+        <motion.p
+          variants={item}
+          className="mt-5 font-mono text-xs text-muted/70"
+        >
           read-only access · nothing is ever pushed on your behalf
         </motion.p>
       </motion.div>
