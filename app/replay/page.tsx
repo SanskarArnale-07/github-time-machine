@@ -36,11 +36,13 @@ export default async function ReplayPageRoute() {
   }
 
   return (
-    <ReplayPage
-      initialUsername={username}
-      initialAvatar={avatarUrl}
-      initialEmail={email}
-      initialProfile={initialProfile}
-    />
+    <div className="h-[100dvh] w-full overflow-hidden">
+      <ReplayPage
+        initialUsername={username}
+        initialAvatar={avatarUrl}
+        initialEmail={email}
+        initialProfile={initialProfile}
+      />
+    </div>
   );
 }

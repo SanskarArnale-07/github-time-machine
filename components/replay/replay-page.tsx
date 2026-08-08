@@ -93,12 +93,12 @@ export function ReplayPage({
   }, [applyReplayData, cacheKey, loadCommitHistory]);
 
   return (
-    <div className="relative h-full min-h-[100dvh] w-full overflow-hidden">
+    <div className="relative h-[100dvh] w-full overflow-hidden">
       <ReplayBackground />
 
       <div className="relative z-10 h-full w-full">
         {error ? (
-          <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-4 px-6 text-center">
+          <div className="flex h-full flex-col items-center justify-center gap-4 px-6 text-center">
             <div className="rounded-xl border border-red-500/30 bg-red-950/20 px-6 py-4 text-sm text-red-300">
               {error}
             </div>
@@ -111,7 +111,7 @@ export function ReplayPage({
             </button>
           </div>
         ) : !hasLoaded ? (
-          <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-6">
+          <div className="flex h-full flex-col items-center justify-center gap-6">
             <div className="flex flex-col items-center gap-4">
               <div className="h-16 w-16 animate-pulse rounded-full border-2 border-brass/40" />
               <div className="h-4 w-48 animate-pulse rounded-md bg-white/5" />

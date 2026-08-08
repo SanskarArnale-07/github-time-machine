@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { ContributionWeek, GitHubCommit } from "@/lib/github/types";
 
 interface ContributionReplayProps {
@@ -11,7 +11,7 @@ export function ContributionReplay({
   contributions,
   commits,
 }: ContributionReplayProps) {
-  const [waveProgress, setWaveProgress] = useState(-1);
+  const [waveProgress, setWaveProgress] = useState(-4);
   const [isPlaying, setIsPlaying] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -26,10 +26,10 @@ export function ContributionReplay({
 
   useEffect(() => {
     if (isPlaying) {
-      if (waveProgress < contributions.length + 5) {
+      if (waveProgress < contributions.length + 4) {
         timerRef.current = setTimeout(() => {
           setWaveProgress((prev) => prev + 1);
-        }, 40); // 40ms * 52 weeks ~= 2 seconds
+        }, 55);
       } else {
         setIsPlaying(false);
       }
@@ -59,9 +59,13 @@ export function ContributionReplay({
     }
   };
 
-  const currentTotalCommits = contributions.reduce((acc, week) => {
-    return acc + (week.days || []).reduce((sum, day) => sum + (day.count || 0), 0);
-  }, 0);
+  const currentTotalCommits = useMemo(
+    () =>
+      contributions.reduce((acc, week) => {
+        return acc + (week.days || []).reduce((sum, day) => sum + (day.count || 0), 0);
+      }, 0),
+    [contributions]
+  );
 
   const currentYear =
     contributions.length > 0 && contributions[contributions.length - 1]?.days?.[0]?.date
@@ -104,7 +108,7 @@ export function ContributionReplay({
         </div>
       </div>
 
-      <div className="relative overflow-x-auto pb-4">
+      <div className="relative overflow-x-auto rounded-xl border border-[#2A2520]/80 bg-[#0B0A09]/45 p-4 pb-5 shadow-inner">
         <div className="flex min-w-[760px]">
           {/* Day labels */}
           <div className="flex flex-col gap-[3px] pr-2 pt-5 font-mono text-[10px] text-muted">
@@ -133,17 +137,27 @@ export function ContributionReplay({
 
                 {(week.days || []).map((day, dayIndex) => {
                   const level = day.level;
-                  const isWave = isPlaying && weekIndex >= waveProgress - 2 && weekIndex <= waveProgress;
+                  const waveDistance = waveProgress - weekIndex;
+                  const isWave = isPlaying && waveDistance >= -1 && waveDistance <= 1;
+                  const hasBloomed = waveDistance >= 0;
+                  const isFading = waveDistance > 1 && waveDistance <= 5;
                   const active = isWave && level > 0;
+                  const mutedColor = "#211E1A";
+                  const cellColor = hasBloomed ? getCellColor(level) : mutedColor;
+                  const glowOpacity = active ? 0.7 : isFading && level > 0 ? Math.max(0.12, 0.45 - waveDistance * 0.06) : 0;
                   
                   return (
                     <div
                       key={`${weekIndex}-${dayIndex}`}
-                      className="h-[11px] w-[11px] rounded-[2px] transition-all duration-300 ease-out sm:h-[13px] sm:w-[13px]"
+                      className="h-[11px] w-[11px] rounded-[2px] transition-[background-color,box-shadow,transform,filter] duration-700 ease-out sm:h-[13px] sm:w-[13px]"
                       style={{
-                        backgroundColor: getCellColor(level),
-                        transform: active ? "scale(1.15)" : "scale(1)",
-                        boxShadow: active ? `0 0 10px ${getCellColor(level)}` : "none",
+                        backgroundColor: cellColor,
+                        filter: active ? "brightness(1.25)" : "brightness(1)",
+                        transform: active ? "scale(1.2)" : hasBloomed && level > 0 ? "scale(1.04)" : "scale(1)",
+                        boxShadow:
+                          glowOpacity > 0
+                            ? `0 0 ${active ? 14 : 9}px rgba(216,181,108,${glowOpacity})`
+                            : "none",
                         zIndex: active ? 10 : 1,
                       }}
                       title={`${day.count} contribution${day.count === 1 ? "" : "s"} on ${day.date}`}

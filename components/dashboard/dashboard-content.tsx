@@ -210,8 +210,8 @@ export function DashboardContent({
         </div>
       ) : (
         /* Loaded state — progressive full documentary dashboard */
-        <div className="flex flex-col gap-4">
-          <div className="mb-[-8px]">
+        <div className="flex flex-col gap-10 py-4 sm:gap-12 sm:py-6">
+          <div>
             <ProfileCard
               profile={profile}
               fallbackUsername={initialUsername}
@@ -221,13 +221,13 @@ export function DashboardContent({
           </div>
 
           {/* Cinematic Movie Title Card Hero */}
-          <div className="relative z-10">
+          <div className="relative z-10 mt-10 mb-16">
             {/* Stronger breathing glow (cinematic lighting) behind the hero card */}
-            <div className="absolute -inset-2 rounded-3xl bg-brass/30 blur-2xl opacity-80 animate-pulse" />
-            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#0E0D0B]/60 p-5 shadow-2xl">
-              <div className="absolute inset-0 bg-gradient-to-br from-brass/10 via-black/40 to-black/90" />
-              <div className="absolute right-0 top-0 h-64 w-64 -translate-y-1/2 translate-x-1/3 rounded-full bg-brass/20 blur-[100px] animate-pulse" />
-              <div className="relative z-10 flex flex-col md:flex-row items-end justify-between gap-4">
+            <div className="absolute -inset-3 rounded-[2rem] bg-brass/20 blur-3xl opacity-70" />
+            <div className="relative min-h-[33vh] overflow-hidden rounded-3xl border border-brass/20 bg-[#0E0D0B]/75 p-7 shadow-[0_30px_90px_rgba(0,0,0,0.52)] sm:p-10 lg:min-h-[35vh] lg:p-12">
+              <div className="absolute inset-0 bg-gradient-to-br from-brass/12 via-[#141210]/70 to-[#0B0A09]" />
+              <div className="absolute right-0 top-0 h-72 w-72 -translate-y-1/3 translate-x-1/4 rounded-full bg-brass/20 blur-[120px] motion-safe:animate-pulse" />
+              <div className="relative z-10 flex min-h-[calc(33vh-3.5rem)] flex-col items-start justify-center lg:min-h-[calc(35vh-6rem)]">
                 <div className="max-w-2xl pb-2">
                   <p className="font-mono text-xs font-bold uppercase tracking-widest text-brass-light mb-2 opacity-90">Current Chapter</p>
                   <h2 className="font-display text-4xl md:text-6xl font-bold text-ivory leading-tight drop-shadow-2xl mb-3">
@@ -255,7 +255,7 @@ export function DashboardContent({
           </div>
 
           {/* Tab navigation bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3 mt-4">
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-3 border-b border-[#2A2520] pb-5 sm:mt-4">
             <div className="glass-card flex items-center gap-1 p-1">
               {tabs.map((tab) => (
                 <button

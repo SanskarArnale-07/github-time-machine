@@ -112,7 +112,7 @@ export function RepoSection({ repos }: RepoSectionProps) {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <div>
           <h2 className="font-display text-3xl font-bold text-ivory">The Archive</h2>
@@ -183,18 +183,19 @@ export function RepoSection({ repos }: RepoSectionProps) {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-10 md:grid-cols-2 xl:grid-cols-3">
             {displayedRepos.map((repo) => (
               <div
                 key={repo.id}
-                className="cinematic-depth-card group relative flex min-h-[220px] flex-col justify-between overflow-hidden rounded-2xl border border-[#2A2520]/60 bg-[#0E0D0B]/50 p-5 shadow-2xl transition-all duration-500 hover:-translate-y-1 hover:border-[#C9A86A]/40 hover:shadow-[0_0_30px_rgba(201,168,106,0.12)]"
+                className="cinematic-depth-card group relative flex min-h-[250px] flex-col justify-between overflow-hidden rounded-2xl border border-[#3A332B]/80 bg-[#141210]/80 p-8 shadow-[0_24px_60px_rgba(0,0,0,0.5)] transition-all duration-500 hover:-translate-y-1.5 hover:border-[#C9A86A]/55 hover:shadow-[0_24px_70px_rgba(0,0,0,0.5),0_0_50px_rgba(201,168,106,0.18)]"
                 style={{ transformStyle: 'preserve-3d', perspective: '1000px' }}
               >
                 {/* Cinematic Cover Background (subtle) */}
                 <div 
-                  className="absolute inset-0 opacity-10 transition-opacity duration-500 group-hover:opacity-20"
+                  className="absolute inset-0 opacity-[0.12] transition-opacity duration-500 group-hover:opacity-25"
                   style={{ background: getCoverGradient(repo.name, repo.language || '') }}
                 />
+                <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-brass/0 blur-3xl transition-colors duration-500 group-hover:bg-brass/15" />
                 
                 {/* Content */}
                 <div className="relative z-10 flex flex-col h-full">
@@ -224,7 +225,7 @@ export function RepoSection({ repos }: RepoSectionProps) {
                     </div>
                   </div>
 
-                  <div className="mt-5 flex flex-col gap-3">
+                  <div className="mt-7 flex flex-col gap-3">
                     <div className="flex items-center justify-between border-t border-white/5 pt-3">
                       <div className="flex items-center gap-3">
                         {repo.language && (

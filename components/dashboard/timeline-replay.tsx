@@ -271,14 +271,14 @@ export function TimelineReplay({
       className={`relative transition-opacity duration-1000 ease-in-out ${
         isFullscreen
           ? "bg-[#09090B] flex flex-col items-center justify-center fixed inset-0 z-[100] h-[100dvh] w-screen font-sans"
-          : "glass-card-glow relative w-full flex flex-col min-h-[750px] pb-8 md:pb-12"
+          : "glass-card-glow relative w-full h-full flex flex-col"
       }`}
     >
       {/* 16:9 Cinematic Inner Container for Fullscreen */}
       <div className={`${
         isFullscreen
-          ? "relative w-full aspect-video max-h-screen max-w-[calc(100vh*16/9)] mx-auto flex flex-col justify-between px-12 py-8 pb-16"
-          : "relative w-full flex-1 flex flex-col justify-between p-6 sm:p-8 sm:pb-12 overflow-hidden"
+          ? "relative w-full aspect-video max-h-screen max-w-[calc(100vh*16/9)] mx-auto flex flex-col justify-between px-12 py-8 pb-24"
+          : "relative w-full h-full flex flex-col justify-between p-6 sm:p-8 pb-28 overflow-hidden"
       }`}>
       {/* 1. Ambient cosmic glow */}
       <div
@@ -337,7 +337,7 @@ export function TimelineReplay({
                 {engine.isPlaying ? "Playing 1x" : "Paused"}
               </span>
             </div>
-            <h2 className={`font-display tracking-tight text-ivory ${isFullscreen ? 'text-3xl sm:text-4xl mt-1' : 'text-xl sm:text-2xl font-semibold'}`}>
+            <h2 className="font-display tracking-tight text-ivory text-4xl sm:text-5xl lg:text-6xl font-semibold mt-1">
               {currentChapter?.name || "The Developer Journey"}
             </h2>
           </div>
@@ -533,9 +533,9 @@ export function TimelineReplay({
       )}
 
       {/* Varied AI Narration Caption Bar - Editorial placement above the card */}
-      <div className="flex-1 flex flex-col justify-center items-center py-4">
+      <div className="flex-1 flex flex-col justify-center items-center py-6 gap-8">
         {currentChapter?.narrative && (
-          <div className={`text-center max-w-3xl mx-auto mb-8 px-4 relative z-10 ${isFullscreen ? 'mt-4' : ''}`}>
+          <div className={`text-center max-w-3xl mx-auto px-4 relative z-10 ${isFullscreen ? 'mt-4' : ''}`}>
             <p className="font-serif italic text-zinc-300 text-base sm:text-lg md:text-xl leading-relaxed drop-shadow-md">
               “{currentChapter.narrative}”
             </p>
@@ -543,7 +543,7 @@ export function TimelineReplay({
         )}
 
       {/* 2. Main Hero Replay Cinema Stage (Centered and scaled at 80% width) */}
-      <div className="relative z-10 flex flex-col items-center justify-center w-full my-4 flex-1">
+      <div className="relative z-10 flex flex-col items-center justify-center w-full flex-1">
         {isAtEnd ? (
           /* Netflix-style Ending Scene */
           <div className="glass-card-glow relative w-[80%] max-w-4xl p-8 text-center sm:p-12 border-zinc-800 bg-zinc-900/90 shadow-2xl">
@@ -594,8 +594,8 @@ export function TimelineReplay({
         ) : (
           /* Minimalist, Clean Replay Card (Centered at 65-70% Frame with Details panel) */
           <div
-            className={`glass-card cinematic-depth-card relative w-[90%] sm:w-[80%] md:w-[70%] lg:w-[65%] max-w-4xl mx-auto overflow-hidden transition-opacity duration-1000 ease-in-out shadow-2xl flex flex-col justify-between border-zinc-800 bg-[#161618]/95 ${
-              isFullscreen ? 'p-12 min-h-[340px] sm:min-h-[380px]' : 'p-8 sm:p-10 min-h-[280px] sm:min-h-[320px]'
+            className={`glass-card cinematic-depth-card relative w-[75vw] max-w-[1200px] mx-auto overflow-hidden transition-opacity duration-1000 ease-in-out shadow-2xl flex flex-col justify-between border-zinc-800 bg-[#161618]/95 ${
+              isFullscreen ? 'p-12 min-h-[40vh]' : 'p-8 sm:p-10 min-h-[40vh]'
             }`}
             style={{ borderColor: engine.eraColor.border }}
           >
@@ -707,31 +707,32 @@ export function TimelineReplay({
           </div>
         )}
       </div>
-    </div>
 
-      {/* 3. Cinematic Chapter Timeline & Indicator */}
-      <div className={`mt-auto pt-6 flex flex-col items-center justify-center text-center transition-opacity duration-500 ease-in-out pb-4 ${isFullscreen ? 'w-[85%] mx-auto' : 'w-full'}`}>
-        <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-500 mb-3 transition-all duration-500 ease-in-out">
-          Chapter {engine.chapters.findIndex(c => c.id === currentChapter?.id) + 1} of {engine.chapters.length}
-          <span className="mx-2 text-zinc-700">•</span>
-          <span className="text-brass-light transition-all duration-500 ease-in-out">{currentEvent?.monthName} {currentEvent?.year}</span>
-        </div>
-        
-        {/* Timeline Progress Bar */}
-        <div className="w-full max-w-2xl h-1 bg-zinc-800/50 rounded-full overflow-hidden mb-3">
-          <div 
-            className="h-full bg-brass transition-all duration-1000 ease-out" 
-            style={{ width: `${(engine.currentIndex / Math.max(1, engine.total - 1)) * 100}%` }}
-          />
+        {/* 3. Cinematic Chapter Timeline & Indicator */}
+        <div className={`mt-2 flex flex-col items-center justify-center text-center transition-opacity duration-500 ease-in-out w-full max-w-3xl mx-auto`}>
+          <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-500 mb-3 transition-all duration-500 ease-in-out">
+            Chapter {engine.chapters.findIndex(c => c.id === currentChapter?.id) + 1} of {engine.chapters.length}
+            <span className="mx-2 text-zinc-700">•</span>
+            <span className="text-brass-light transition-all duration-500 ease-in-out">{currentEvent?.monthName} {currentEvent?.year}</span>
+          </div>
+          
+          {/* Timeline Progress Bar */}
+          <div className="w-full h-1 bg-zinc-800/50 rounded-full overflow-hidden mb-3">
+            <div 
+              className="h-full bg-brass transition-all duration-1000 ease-out" 
+              style={{ width: `${(engine.currentIndex / Math.max(1, engine.total - 1)) * 100}%` }}
+            />
+          </div>
+
+          <div className="font-sans text-xs text-zinc-400 transition-all duration-500 ease-in-out">
+            {engine.total - engine.currentIndex - 1} meaningful milestones remaining
+          </div>
         </div>
 
-        <div className="font-sans text-xs text-zinc-400 mb-4 transition-all duration-500 ease-in-out">
-          {engine.total - engine.currentIndex - 1} meaningful milestones remaining
-        </div>
       </div>
 
       {/* 4. Streamlined Centerpiece Playback Bar */}
-      <div className="glass-card flex flex-wrap items-center justify-between gap-4 p-3.5 mb-8 md:mb-12 w-full max-w-5xl mx-auto z-20">
+      <div className="glass-card flex flex-wrap items-center justify-between gap-4 p-3.5 fixed bottom-6 left-1/2 -translate-x-1/2 w-[90vw] max-w-5xl z-50 shadow-2xl">
         {/* Speed Controls */}
         <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-ink-surface p-1">
           <span className="px-2 font-mono text-[10px] uppercase text-muted">

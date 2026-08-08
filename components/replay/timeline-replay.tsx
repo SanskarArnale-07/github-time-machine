@@ -63,7 +63,7 @@ function ReplayMilestoneCard({
 }: ReplayMilestoneCardProps) {
   if (isFinal) {
     return (
-      <article className="replay-milestone-card relative w-full max-w-3xl overflow-hidden rounded-2xl border border-brass/35 bg-[#1A1714]/90 p-5 text-center shadow-[0_24px_70px_rgba(0,0,0,0.45)] backdrop-blur-xl sm:p-6">
+      <article className="replay-milestone-card relative w-[74vw] max-w-[70rem] overflow-hidden rounded-2xl border border-brass/35 bg-[#1A1714]/95 p-7 text-center shadow-[0_30px_95px_rgba(0,0,0,0.58)] backdrop-blur-xl max-sm:w-[calc(100vw-2rem)] sm:p-8">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brass to-transparent" />
         <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.24em] text-brass-light">
           Documentary finale
@@ -100,7 +100,7 @@ function ReplayMilestoneCard({
 
   return (
     <article
-      className="replay-milestone-card relative w-full max-w-3xl overflow-hidden rounded-2xl border bg-[#1A1714]/90 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.48)] backdrop-blur-xl sm:p-6"
+      className="replay-milestone-card relative w-[74vw] max-w-[70rem] overflow-hidden rounded-2xl border bg-[#1A1714]/95 p-7 shadow-[0_30px_95px_rgba(0,0,0,0.6)] backdrop-blur-xl max-sm:w-[calc(100vw-2rem)] sm:p-8"
       style={{ borderColor: border }}
     >
       <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.055),transparent_42%)]" />
@@ -109,7 +109,7 @@ function ReplayMilestoneCard({
         style={{ backgroundColor: accent, opacity: 0.12 }}
       />
 
-      <div className="relative flex h-full min-h-[146px] flex-col justify-between gap-4">
+      <div className="relative flex h-full min-h-[210px] flex-col justify-between gap-5">
         <div className="flex items-center justify-between gap-3 border-b border-[#3A332B]/70 pb-3">
           <span className="inline-flex min-w-0 items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.15em] text-brass-light">
             {isRepository ? <FolderGit2 className="h-3.5 w-3.5 shrink-0" /> : <Clock3 className="h-3.5 w-3.5 shrink-0" />}
@@ -119,8 +119,8 @@ function ReplayMilestoneCard({
         </div>
 
         <div>
-          <h2 className="line-clamp-2 font-display text-2xl leading-tight text-ivory sm:text-3xl">{title}</h2>
-          <p className="mt-2 line-clamp-2 max-w-2xl text-sm leading-relaxed text-muted sm:text-[15px]">{description}</p>
+          <h2 className="line-clamp-2 font-display text-3xl leading-tight text-ivory sm:text-4xl">{title}</h2>
+          <p className="mt-3 line-clamp-2 max-w-3xl text-[15px] leading-relaxed text-muted sm:text-base">{description}</p>
         </div>
 
         <div className="flex min-h-4 items-center justify-between gap-3 border-t border-[#3A332B]/70 pt-3 font-mono text-[10px] text-muted">
@@ -413,15 +413,15 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
         </header>
 
         <main className="replay-main relative z-10">
-          <div className="w-full max-w-3xl text-center">
+          <div className="w-full max-w-4xl text-center">
             <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.26em] text-brass-light">
               Chapter {String(chapterIndex + 1).padStart(2, "0")} · {engine.currentYear}
             </p>
-            <h1 className="mt-1 font-display text-3xl leading-none text-ivory sm:text-4xl lg:text-5xl">
+            <h1 className="replay-chapter-title mt-2 font-display text-4xl leading-none text-ivory sm:text-5xl xl:text-6xl">
               {engine.currentChapter?.name || "The Developer Journey"}
             </h1>
             {engine.currentChapter?.narrative ? (
-              <p className="mx-auto mt-3 max-w-2xl text-balance font-display text-base italic leading-relaxed text-[#D6CEC1] sm:text-lg">
+              <p className="mx-auto mt-5 max-w-3xl text-balance font-display text-lg italic leading-relaxed text-[#D6CEC1] sm:text-xl">
                 “{engine.currentChapter.narrative}”
               </p>
             ) : null}
@@ -436,21 +436,21 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
             repoCount={repos.length}
             yearsSpan={yearsSpan}
           />
-        </main>
 
-        <section className="relative z-10 w-full justify-self-center pb-2 text-center">
-          <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted">
-            Chapter {chapterIndex + 1} of {engine.chapters.length}
-            <span className="mx-2 text-[#4A4035]">·</span>
-            <span className="text-brass-light">{engine.currentMonthName} {engine.currentYear}</span>
-          </div>
-          <div className="mx-auto mt-2 h-px w-full max-w-3xl overflow-hidden rounded-full bg-[#3A332B]">
-            <div className="h-full bg-gradient-to-r from-[#8E6B35] via-brass to-brass-light transition-[width] duration-700 ease-out" style={{ width: `${engine.progress}%` }} />
-          </div>
-          <p className="mt-2 text-xs text-muted">
-            {engine.stats.remainingEvents} meaningful milestone{engine.stats.remainingEvents === 1 ? "" : "s"} remaining
-          </p>
-        </section>
+          <section className="replay-progress w-[74vw] max-w-[70rem] text-center max-sm:w-[calc(100vw-2rem)]">
+            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted">
+              Chapter {chapterIndex + 1} of {engine.chapters.length}
+              <span className="mx-2 text-[#4A4035]">·</span>
+              <span className="text-brass-light">{engine.currentMonthName} {engine.currentYear}</span>
+            </div>
+            <div className="mx-auto mt-3 h-px w-full overflow-hidden rounded-full bg-[#3A332B]">
+              <div className="h-full bg-gradient-to-r from-[#8E6B35] via-brass to-brass-light transition-[width] duration-700 ease-out" style={{ width: `${engine.progress}%` }} />
+            </div>
+            <p className="mt-3 text-xs text-muted">
+              {engine.stats.remainingEvents} meaningful milestone{engine.stats.remainingEvents === 1 ? "" : "s"} remaining
+            </p>
+          </section>
+        </main>
 
         <section className="relative z-10 flex w-full items-center justify-center">
           <div className="replay-transport">
