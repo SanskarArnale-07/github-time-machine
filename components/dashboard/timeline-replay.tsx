@@ -276,7 +276,7 @@ export function TimelineReplay({
   return (
     <div
       ref={containerRef}
-      className={`relative transition-all duration-700 ${
+      className={`relative transition-opacity duration-1000 ${
         isFullscreen
           ? "bg-[#09090B] flex flex-col items-center justify-center fixed inset-0 z-[100] h-screen w-screen overflow-hidden font-sans"
           : "glass-card-glow relative w-full p-8 sm:p-12 overflow-y-auto"
@@ -601,8 +601,8 @@ export function TimelineReplay({
         ) : (
           /* Minimalist, Clean Replay Card (Centered at 80% Frame with Details panel) */
           <div
-            className={`glass-card relative w-[80%] max-w-4xl overflow-hidden transition-all duration-700 ease-out shadow-2xl flex flex-col justify-between border-zinc-800 bg-[#161618]/95 ${
-              isFullscreen ? 'p-10 min-h-[360px] sm:min-h-[400px]' : 'p-6 sm:p-8 min-h-[280px] sm:min-h-[320px]'
+            className={`glass-card relative w-[80%] max-w-4xl overflow-hidden transition-opacity duration-1000 ease-in-out shadow-2xl flex flex-col justify-between border-zinc-800 bg-[#161618]/95 ${
+              isFullscreen ? 'p-12 min-h-[360px] sm:min-h-[400px]' : 'p-8 sm:p-10 min-h-[280px] sm:min-h-[320px]'
             }`}
             style={{ borderColor: engine.eraColor.border }}
           >
@@ -654,82 +654,39 @@ export function TimelineReplay({
                 </div>
               </div>
             ) : (
-              /* Clean Commit View with Only: Repo Name, Prominent Serif Commit Headline, Date, and Subtle Progress */
-              <div className="relative z-10 flex flex-col gap-4 select-text">
-                <div className="flex items-center justify-between gap-3 border-b border-zinc-800/60 pb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-2.5 py-0.5 font-mono text-xs font-semibold text-zinc-400">
-                      <GitCommit className="h-3.5 w-3.5" />
+              /* Summarized Chapter Commit Card: Repo Badge, Date, Title, 1-sentence summary */
+              <div className="relative z-10 flex flex-col gap-5 select-text">
+                <div className="flex items-center justify-between gap-3 border-b border-zinc-800/50 pb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="inline-flex items-center gap-1.5 rounded-md border border-zinc-700/50 bg-zinc-800/40 px-3 py-1 font-mono text-xs font-semibold text-zinc-300">
+                      <FolderGit2 className="h-3.5 w-3.5" />
                       {currentEvent?.repoName}
                     </span>
-
-                    {currentEvent?.commitSha && (
-                      <a
-                        href={
-                          commit?.htmlUrl ||
-                          `https://github.com/${currentEvent.repoName}/commit/${currentEvent.commitSha}`
-                        }
-                        target="_blank"
-                        rel="noreferrer"
-                        className="group inline-flex items-center gap-1 font-mono text-xs text-zinc-500 hover:text-brass-light"
-                      >
-                        <span>#{currentEvent.commitShortSha}</span>
-                        <ExternalLink className="h-3 w-3 opacity-60 group-hover:translate-x-0.5" />
-                      </a>
-                    )}
                   </div>
-
                   <div className="flex items-center gap-3">
-                    <span className="font-mono text-xs text-zinc-500">{formattedDate}</span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowDetails(true)}
-                      className="h-7 border-zinc-800 bg-zinc-900/60 font-mono text-[10px] text-zinc-450 hover:text-ivory px-2.5"
-                    >
-                      Logs
-                    </Button>
+                    <span className="font-mono text-xs text-zinc-400">{formattedDate}</span>
+                    {currentEvent?.commitSha && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowDetails(true)}
+                        className="h-7 font-mono text-[10px] text-zinc-500 hover:text-ivory px-2"
+                      >
+                        Details
+                      </Button>
+                    )}
                   </div>
                 </div>
 
-                {/* Prominent Serif Commit Headline - Truncated to 2 lines max to avoid breakage */}
-                <div className="py-2">
-                  <h3 className={`font-display font-medium leading-relaxed tracking-tight text-ivory line-clamp-2 overflow-hidden text-ellipsis ${isFullscreen ? 'text-3xl sm:text-4xl' : 'text-xl sm:text-2xl'}`}>
+                <div className="py-3">
+                  <h3 className={`font-display font-medium leading-snug tracking-tight text-ivory line-clamp-2 ${isFullscreen ? 'text-4xl' : 'text-2xl sm:text-3xl'}`}>
                     {currentEvent?.title}
                   </h3>
                 </div>
 
-                {/* Subtle Narrative Caption / Milestone - Limited line height */}
-                {currentEvent?.impactDescription && (
-                  <div className="rounded-xl border border-zinc-850 bg-zinc-950/80 p-3 text-xs font-sans text-zinc-300">
-                    <span className="font-mono text-[9px] font-bold uppercase text-brass-light">
-                      ✦ Milestone:{" "}
-                    </span>
-                    {currentEvent.impactDescription}
-                  </div>
-                )}
-
-                {/* Subtle Author & Progress */}
-                <div className="flex items-center justify-between border-t border-zinc-800/80 pt-3 font-mono text-xs text-zinc-500">
-                  <div className="flex items-center gap-2">
-                    {currentEvent?.authorAvatar ? (
-                      <div className="relative h-4 w-4 overflow-hidden rounded-full border border-zinc-800">
-                        <Image
-                          src={currentEvent.authorAvatar}
-                          alt={currentEvent.authorName || "Author"}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <span className="h-2 w-2 rounded-full bg-brass" />
-                    )}
-                    <span>{currentEvent?.authorName || "Developer"}</span>
-                  </div>
-
-                  <span className="text-brass-light">
-                    {engine.currentIndex + 1} / {engine.total}
-                  </span>
+                {/* 1-sentence summary */}
+                <div className="text-sm font-sans text-zinc-400 leading-relaxed">
+                  {currentEvent?.impactDescription || (commit?.message ? commit.message.split('\n')[0] : "Codebase updated.")}
                 </div>
               </div>
             )}
@@ -782,11 +739,11 @@ export function TimelineReplay({
       {/* 3. Minimalist Timeline Scrubber */}
       <div className={`my-5 flex flex-col gap-1.5 ${isFullscreen ? 'w-[85%] mx-auto' : ''}`}>
         <div className="flex items-center justify-between font-mono text-[11px] text-muted">
-          <span>{engine.startYear} Inception</span>
-          <span className="text-ivory font-medium">
-            {Math.round(engine.progress)}%
+          <span>{engine.startYear}</span>
+          <span className="text-ivory font-medium tracking-wide">
+            {currentEvent ? `${currentEvent.monthName} ${currentEvent.year}` : "Timeline"}
           </span>
-          <span>{engine.endYear} Present</span>
+          <span>{engine.endYear}</span>
         </div>
 
         <div

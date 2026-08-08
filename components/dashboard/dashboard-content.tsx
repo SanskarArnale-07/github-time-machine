@@ -161,7 +161,7 @@ export function DashboardContent({
               </div>
 
               <h2 className="mt-6 font-display text-3xl text-ivory sm:text-4xl">
-                Your developer story begins here
+                Continue your developer documentary
               </h2>
 
               <p className="mt-3 text-balance text-sm leading-relaxed text-muted sm:text-base">
@@ -234,6 +234,19 @@ export function DashboardContent({
               </div>
             ))}
           </div>
+
+          {/* Featured Insight Block */}
+          {analytics && (
+            <div className="glass-card flex flex-col md:flex-row items-center gap-4 p-5 border-l-4 border-l-brass">
+              <Sparkles className="h-6 w-6 text-brass flex-shrink-0" />
+              <div>
+                <h3 className="font-display text-lg font-semibold text-ivory">Featured Insight</h3>
+                <p className="text-sm text-muted">
+                  You've been most active in {analytics.mostActiveYear || "recent years"}, pushing out {analytics.totalCommits || 0} commits across {analytics.totalRepos || 0} repositories. Keep the momentum going!
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Tab navigation bar */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">

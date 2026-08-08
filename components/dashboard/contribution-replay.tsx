@@ -20,7 +20,7 @@ export function ContributionReplay({
 
   useEffect(() => {
     if (isPlaying && visibleWeeks < contributions.length) {
-      const delay = speed === 1 ? 160 : speed === 2 ? 80 : 30;
+      const delay = speed === 1 ? 180 : speed === 2 ? 120 : 60;
       timerRef.current = setTimeout(() => {
         setVisibleWeeks((prev) => prev + 1);
       }, delay);
@@ -141,16 +141,17 @@ export function ContributionReplay({
 
                 {(week.days || []).map((day, dayIndex) => {
                   const isVisible = weekIndex < visibleWeeks;
-                  const level = isVisible ? day.level : 0;
+                  const level = day.level;
+                  const active = isVisible && level > 0;
                   return (
                     <div
                       key={`${weekIndex}-${dayIndex}`}
-                      className="h-[11px] w-[11px] rounded-[2px] transition-all duration-300 ease-in-out sm:h-[13px] sm:w-[13px]"
+                      className="h-[11px] w-[11px] rounded-[2px] transition-all duration-500 ease-out sm:h-[13px] sm:w-[13px]"
                       style={{
-                        backgroundColor: getCellColor(level),
-                        opacity: isVisible ? 1 : 0.2,
-                        transform:
-                          isVisible && level > 0 ? "scale(1)" : "scale(0.95)",
+                        backgroundColor: getCellColor(isVisible ? level : 0),
+                        transform: active ? "scale(1.15)" : "scale(0.85)",
+                        boxShadow: active ? `0 0 8px ${getCellColor(level)}` : "none",
+                        zIndex: active ? 10 : 1,
                       }}
                       title={`${day.count} contribution${day.count === 1 ? "" : "s"} on ${day.date}`}
                     />

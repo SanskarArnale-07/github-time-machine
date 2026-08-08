@@ -90,9 +90,9 @@ class AmbientSoundEngine {
   /**
    * Plays a warm, soft acoustic piano note with gentle harmonic envelope.
    */
-  private playPianoNote(freq: number, duration: number = 3.0, velocity: number = 0.07, isPad: boolean = false) {
+  private playPianoNote(freq: number, duration: number = 3.0, velocity: number = 0.07, isPad: boolean = false, startTime?: number) {
     if (!this.ctx || !this.masterGain) return;
-    const now = this.ctx.currentTime;
+    const now = startTime ?? this.ctx.currentTime;
 
     const osc1 = this.ctx.createOscillator();
     const osc2 = this.ctx.createOscillator();
@@ -125,6 +125,46 @@ class AmbientSoundEngine {
     osc2.stop(now + duration);
   }
 
+  private nextNoteTime = 0;
+  private chordStep = 0;
+  private scheduleAheadTime = 0.5; // seconds
+  private currentVolume = 0.22;
+
+  public setVolume(vol: number) {
+    this.currentVolume = Math.max(0, Math.min(1, vol));
+    if (this.ctx && this.masterGain && this.isPlaying) {
+      this.masterGain.gain.cancelScheduledValues(this.ctx.currentTime);
+      this.masterGain.gain.linearRampToValueAtTime(this.currentVolume, this.ctx.currentTime + 0.5);
+    }
+  }
+
+  private scheduleNote(time: number) {
+    const currentSelectedTheme = this.themes[this.currentTheme];
+    const chords = currentSelectedTheme.chords;
+    const currentChord = chords[this.chordStep % chords.length];
+
+    // Play soft warm chord pad in background
+    currentChord.forEach((freq) => {
+      this.playPianoNote(freq * 0.5, 4.2, 0.03, true, time);
+    });
+
+    // Play light arpeggiated piano melody notes
+    currentChord.forEach((freq, idx) => {
+      this.playPianoNote(freq, 3.2, 0.06, false, time + idx * 0.48);
+    });
+  }
+
+  private scheduler = () => {
+    if (!this.isPlaying || !this.ctx) return;
+    // Schedule notes if we are close to the next note time
+    while (this.nextNoteTime < this.ctx.currentTime + this.scheduleAheadTime) {
+      this.scheduleNote(this.nextNoteTime);
+      this.nextNoteTime += 2.9; // 2900ms interval
+      this.chordStep++;
+    }
+    this.intervalTimer = window.setTimeout(this.scheduler, 100);
+  };
+
   /**
    * Starts the adaptive cinematic soundtrack.
    */
@@ -144,41 +184,16 @@ class AmbientSoundEngine {
     this.currentTheme =
       themeOverride || themeKeys[Math.floor(Math.random() * themeKeys.length)];
 
-    const selectedTheme = this.themes[this.currentTheme];
     const now = this.ctx.currentTime;
 
-    // Master volume set to comfortable, warm 22% level
+    // Master volume fade in
     this.masterGain.gain.cancelScheduledValues(now);
     this.masterGain.gain.setValueAtTime(0, now);
-    this.masterGain.gain.linearRampToValueAtTime(0.22, now + 2.5);
+    this.masterGain.gain.linearRampToValueAtTime(this.currentVolume, now + 2.5);
 
-    let chordStep = 0;
-
-    const playProgression = () => {
-      if (!this.isPlaying || !this.ctx) return;
-      const currentSelectedTheme = this.themes[this.currentTheme];
-      const chords = currentSelectedTheme.chords;
-      const currentChord = chords[chordStep % chords.length];
-
-      // Play soft warm chord pad in background
-      currentChord.forEach((freq) => {
-        this.playPianoNote(freq * 0.5, 4.2, 0.03, true);
-      });
-
-      // Play light arpeggiated piano melody notes
-      currentChord.forEach((freq, idx) => {
-        setTimeout(() => {
-          if (this.isPlaying) {
-            this.playPianoNote(freq, 3.2, 0.06, false);
-          }
-        }, idx * 480);
-      });
-
-      chordStep++;
-    };
-
-    playProgression();
-    this.intervalTimer = setInterval(playProgression, 2900);
+    this.chordStep = 0;
+    this.nextNoteTime = now + 0.1; // start slightly in the future
+    this.scheduler();
   }
 
   /**
@@ -200,13 +215,12 @@ class AmbientSoundEngine {
     this.masterGain.gain.linearRampToValueAtTime(0, now + 1.2);
 
     if (this.intervalTimer) {
-      clearInterval(this.intervalTimer);
+      clearTimeout(this.intervalTimer);
       this.intervalTimer = null;
     }
 
-    setTimeout(() => {
-      this.isPlaying = false;
-    }, 1300);
+    // Set playing to false immediately so scheduler stops
+    this.isPlaying = false;
   }
 
   /**

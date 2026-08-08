@@ -55,7 +55,9 @@ export function filterMeaningfulMilestones(rawEvents: ReplayEvent[]): ReplayEven
   const seenMessages = new Set<string>();
 
   for (let i = 0; i < rawEvents.length; i++) {
-    const ev = rawEvents[i];
+    const originalEv = rawEvents[i];
+    // Clone to avoid mutating original source
+    const ev = { ...originalEv };
 
     // Always keep repo creations & year milestones
     if (ev.type === "repo_created" || ev.type === "year_milestone") {
@@ -71,15 +73,34 @@ export function filterMeaningfulMilestones(rawEvents: ReplayEvent[]): ReplayEven
     }
     seenMessages.add(msg);
 
+    // Robust heuristic filtering: drop merges, chores, tiny tweaks
+    const isNoise =
+      msg.startsWith("bump ") ||
+      msg.startsWith("merge ") ||
+      msg.startsWith("chore") ||
+      msg.startsWith("ci") ||
+      msg.startsWith("test") ||
+      msg.includes("wip") ||
+      msg.includes("dummy") ||
+      msg.includes("lint") ||
+      msg === "update readme.md" ||
+      msg === "initial commit" ||
+      msg === "update" ||
+      msg.length < 5;
+
     // Skip tiny trivial bumps if we have plenty of commits
-    if (
-      (msg.startsWith("bump ") || msg === "update readme.md" || msg === "initial commit") &&
-      i > 0 &&
-      i < rawEvents.length - 1 &&
-      filtered.length > 10
-    ) {
+    if (isNoise && i > 0 && i < rawEvents.length - 1 && filtered.length > 10) {
       continue;
     }
+
+    // Try to extract core action for the title
+    let coreAction = ev.title || "";
+    const splitMatch = coreAction.match(/^(?:feat|fix|docs|style|refactor|perf|test|chore|ci)(?:\([^)]+\))?:\s*(.+)$/i);
+    if (splitMatch && splitMatch[1]) {
+      coreAction = splitMatch[1].trim();
+      coreAction = coreAction.charAt(0).toUpperCase() + coreAction.slice(1);
+    }
+    ev.title = coreAction;
 
     filtered.push(ev);
   }

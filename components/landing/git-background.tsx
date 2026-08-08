@@ -16,7 +16,7 @@ interface Particle {
 
 export function GitBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const mouseRef = useRef({ x: 0, y: 0, isActive: false });
+  const mouseRef = useRef({ x: 0, y: 0, targetX: 0, targetY: 0, isActive: false });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -32,7 +32,7 @@ export function GitBackground() {
 
     const initParticles = () => {
       particles = [];
-      const particleCount = Math.min(window.innerWidth / 15, 80); // Responsive count
+      const particleCount = Math.min(window.innerWidth / 20, 60); // slightly fewer for cinematic
 
       for (let i = 0; i < particleCount; i++) {
         const x = Math.random() * window.innerWidth;
@@ -42,9 +42,9 @@ export function GitBackground() {
           y,
           baseX: x,
           baseY: y,
-          vx: (Math.random() - 0.5) * 0.2,
-          vy: (Math.random() - 0.5) * 0.2,
-          radius: Math.random() > 0.8 ? 3 : 1.5,
+          vx: (Math.random() - 0.5) * 0.1, // slower drift
+          vy: (Math.random() - 0.5) * 0.1,
+          radius: Math.random() > 0.85 ? 3 : 1.5,
           isCommit: Math.random() > 0.85,
           hash: generateHash(),
         });
@@ -61,7 +61,9 @@ export function GitBackground() {
     resizeCanvas();
 
     const handleMouseMove = (e: MouseEvent) => {
-      mouseRef.current = { x: e.clientX, y: e.clientY, isActive: true };
+      mouseRef.current.targetX = e.clientX;
+      mouseRef.current.targetY = e.clientY;
+      mouseRef.current.isActive = true;
     };
 
     const handleMouseLeave = () => {
@@ -72,25 +74,30 @@ export function GitBackground() {
     window.addEventListener("mouseleave", handleMouseLeave);
 
     const draw = () => {
-      // Clear canvas with very dark charcoal background
-      ctx.fillStyle = "#09090B";
+      // Smooth mouse interpolation
+      if (mouseRef.current.isActive) {
+        mouseRef.current.x += (mouseRef.current.targetX - mouseRef.current.x) * 0.05;
+        mouseRef.current.y += (mouseRef.current.targetY - mouseRef.current.y) * 0.05;
+      }
+
+      // Clear canvas with deep charcoal background
+      ctx.fillStyle = "#050507";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Draw faint grid
-      ctx.strokeStyle = "rgba(63, 63, 70, 0.15)";
+      // Draw faint grid with very slow parallax
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.02)";
       ctx.lineWidth = 1;
-      const gridSize = 40;
+      const gridSize = 50;
       
-      // We apply subtle parallax to the grid based on mouse
-      const pX = mouseRef.current.isActive ? (mouseRef.current.x - canvas.width / 2) * 0.02 : 0;
-      const pY = mouseRef.current.isActive ? (mouseRef.current.y - canvas.height / 2) * 0.02 : 0;
+      const pX = mouseRef.current.isActive ? (mouseRef.current.x - canvas.width / 2) * 0.015 : 0;
+      const pY = mouseRef.current.isActive ? (mouseRef.current.y - canvas.height / 2) * 0.015 : 0;
 
       ctx.beginPath();
-      for (let x = (pX % gridSize); x < canvas.width; x += gridSize) {
+      for (let x = (pX % gridSize) - gridSize; x < canvas.width + gridSize; x += gridSize) {
         ctx.moveTo(x, 0);
         ctx.lineTo(x, canvas.height);
       }
-      for (let y = (pY % gridSize); y < canvas.height; y += gridSize) {
+      for (let y = (pY % gridSize) - gridSize; y < canvas.height + gridSize; y += gridSize) {
         ctx.moveTo(0, y);
         ctx.lineTo(canvas.width, y);
       }
@@ -108,7 +115,7 @@ export function GitBackground() {
         if (p.baseY < 0) p.baseY = canvas.height;
         if (p.baseY > canvas.height) p.baseY = 0;
 
-        // Parallax cursor reactivity
+        // Parallax cursor reactivity (gentle push)
         let targetX = p.baseX;
         let targetY = p.baseY;
 
@@ -117,17 +124,16 @@ export function GitBackground() {
           const dy = mouseRef.current.y - p.baseY;
           const dist = Math.sqrt(dx * dx + dy * dy);
           
-          if (dist < 200) {
-            // Push away slightly
-            const force = (200 - dist) / 200;
-            targetX -= dx * force * 0.1;
-            targetY -= dy * force * 0.1;
+          if (dist < 300) {
+            const force = (300 - dist) / 300;
+            targetX -= dx * force * 0.05;
+            targetY -= dy * force * 0.05;
           }
         }
 
-        // Smooth interpolation for mouse effect
-        p.x += (targetX - p.x) * 0.1;
-        p.y += (targetY - p.y) * 0.1;
+        // Smooth interpolation
+        p.x += (targetX - p.x) * 0.05;
+        p.y += (targetY - p.y) * 0.05;
 
         // Draw connections
         for (let j = i + 1; j < particles.length; j++) {
@@ -136,14 +142,14 @@ export function GitBackground() {
           const dy = p.y - p2.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
 
-          if (dist < 120) {
+          if (dist < 150) {
             ctx.beginPath();
             ctx.moveTo(p.x, p.y);
             ctx.lineTo(p2.x, p2.y);
             // Dynamic opacity based on distance
-            const opacity = (1 - dist / 120) * 0.25;
-            ctx.strokeStyle = `rgba(63, 63, 70, ${opacity})`;
-            ctx.lineWidth = 1.2;
+            const opacity = (1 - dist / 150) * 0.15;
+            ctx.strokeStyle = `rgba(161, 161, 170, ${opacity})`;
+            ctx.lineWidth = 1;
             ctx.stroke();
           }
         }
@@ -154,41 +160,34 @@ export function GitBackground() {
         
         if (p.isCommit) {
           ctx.fillStyle = "#D4A853"; // Warm Gold accent
-          ctx.shadowColor = "#D4A853";
-          ctx.shadowBlur = 8;
+          ctx.shadowColor = "rgba(212, 168, 83, 0.8)";
+          ctx.shadowBlur = 15;
         } else {
-          ctx.fillStyle = "rgba(250, 250, 250, 0.22)";
+          ctx.fillStyle = "rgba(245, 242, 234, 0.3)";
           ctx.shadowBlur = 0;
         }
         ctx.fill();
 
         // Draw hash text for commit nodes
         if (p.isCommit) {
-          ctx.font = "9px monospace";
-          ctx.fillStyle = "rgba(161, 161, 170, 0.4)";
-          ctx.fillText(p.hash, p.x + 8, p.y + 3);
+          ctx.font = "10px var(--font-mono, monospace)";
+          ctx.fillStyle = "rgba(245, 242, 234, 0.4)";
+          ctx.fillText(p.hash, p.x + 10, p.y + 4);
         }
       });
 
-      // Draw atmospheric light gradients
-      const bgGrad1 = ctx.createRadialGradient(
-        canvas.width * 0.2, canvas.height * 0.8, 0,
-        canvas.width * 0.2, canvas.height * 0.8, canvas.width * 0.6
-      );
-      bgGrad1.addColorStop(0, 'rgba(212, 168, 83, 0.04)'); // Warm amber
-      bgGrad1.addColorStop(1, 'rgba(9, 9, 11, 0)');
-      
-      const bgGrad2 = ctx.createRadialGradient(
-        canvas.width * 0.8, canvas.height * 0.2, 0,
-        canvas.width * 0.8, canvas.height * 0.2, canvas.width * 0.6
-      );
-      bgGrad2.addColorStop(0, 'rgba(99, 102, 241, 0.03)'); // Indigo hue
-      bgGrad2.addColorStop(1, 'rgba(9, 9, 11, 0)');
-
-      ctx.fillStyle = bgGrad1;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = bgGrad2;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // Draw atmospheric mouse spotlight
+      if (mouseRef.current.isActive) {
+        const spotLight = ctx.createRadialGradient(
+          mouseRef.current.x, mouseRef.current.y, 0,
+          mouseRef.current.x, mouseRef.current.y, 600
+        );
+        spotLight.addColorStop(0, 'rgba(212, 168, 83, 0.03)'); // subtle gold glow
+        spotLight.addColorStop(1, 'rgba(5, 5, 7, 0)');
+        
+        ctx.fillStyle = spotLight;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
 
       animationFrameId = requestAnimationFrame(draw);
     };
@@ -206,8 +205,8 @@ export function GitBackground() {
   return (
     <canvas
       ref={canvasRef}
-      className="absolute inset-0 -z-10 h-full w-full"
-      style={{ background: "#09090B" }}
+      className="absolute inset-0 -z-10 h-full w-full opacity-60"
+      style={{ background: "#050507" }}
     />
   );
 }

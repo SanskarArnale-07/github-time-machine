@@ -41,13 +41,13 @@
 @layer components {
   /* Editorial refined dark surfaces */
   .glass-card {
-    @apply relative overflow-hidden rounded-2xl border border-zinc-800/80 bg-ink-surface/85 backdrop-blur-xl;
-    box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.7);
+    @apply relative overflow-hidden rounded-3xl border border-zinc-700/30 bg-ink-surface/60 backdrop-blur-3xl;
+    box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.05), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.2), 0 20px 40px -10px rgba(0, 0, 0, 0.8);
   }
 
   .glass-card-glow {
-    @apply relative overflow-hidden rounded-3xl border border-brass/35 bg-zinc-900/90 backdrop-blur-2xl;
-    box-shadow: 0 0 50px -15px rgba(212, 168, 83, 0.12), 0 25px 50px -20px rgba(0, 0, 0, 0.8);
+    @apply relative overflow-hidden rounded-3xl border border-brass/30 bg-zinc-900/70 backdrop-blur-3xl;
+    box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.1), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.4), 0 0 50px -15px rgba(212, 168, 83, 0.15), 0 25px 50px -20px rgba(0, 0, 0, 0.8);
   }
 
   /* Subtle GitHub Grid Pattern */

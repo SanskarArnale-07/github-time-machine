@@ -45,7 +45,7 @@ const config: Config = {
           dim: "#8A6D2F",
           glow: "rgba(212, 168, 83, 0.2)",
         },
-        ivory: "#FAFAFA",
+        ivory: "#F5F2EA", // Warm off-white
         muted: "#A1A1AA",
       },
       fontFamily: {
