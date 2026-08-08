@@ -6,11 +6,18 @@ import { NextResponse, type NextRequest } from "next/server";
  * unauthenticated access to /dashboard. Called from middleware.ts.
  */
 export async function updateSession(request: NextRequest) {
+  const isProtectedRoute = request.nextUrl.pathname.startsWith("/dashboard");
+
+  // For public routes, pass through immediately to prevent unnecessary auth network latency & reloads
+  if (!isProtectedRoute) {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
       cookies: {
         getAll() {
@@ -29,15 +36,11 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  // IMPORTANT: this call refreshes the session token if it's expired.
-  // Do not add logic between createServerClient and this call.
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isProtectedRoute = request.nextUrl.pathname.startsWith("/dashboard");
-
-  if (isProtectedRoute && !user) {
+  if (!user) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/";
     redirectUrl.searchParams.set("error", "auth_required");
