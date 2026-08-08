@@ -13,6 +13,7 @@
 
   body {
     @apply bg-ink text-ivory antialiased;
+    background-color: #0B1020;
   }
 
   ::selection {
@@ -21,22 +22,47 @@
   }
 
   ::-webkit-scrollbar {
-    width: 10px;
+    width: 8px;
+    height: 8px;
   }
   ::-webkit-scrollbar-track {
-    background: #0b0d0f;
+    background: #0B1020;
   }
   ::-webkit-scrollbar-thumb {
-    background: #20242a;
+    background: #1E293B;
     border-radius: 999px;
-    border: 2px solid #0b0d0f;
+    border: 2px solid #0B1020;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #2c3038;
+    background: #334155;
   }
 }
 
 @layer components {
+  /* Glassmorphism Frosted Surfaces */
+  .glass-card {
+    @apply relative overflow-hidden rounded-2xl border border-white/10 bg-ink-surface/75 backdrop-blur-xl shadow-2xl;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+  }
+
+  .glass-card-glow {
+    @apply relative overflow-hidden rounded-3xl border border-brass/30 bg-ink-surface/80 backdrop-blur-2xl shadow-2xl;
+    box-shadow: 0 0 45px -10px rgba(212, 168, 83, 0.2), 0 20px 40px -15px rgba(0, 0, 0, 0.7);
+  }
+
+  /* Subtle GitHub Grid Pattern */
+  .bg-grid-pattern {
+    background-size: 32px 32px;
+    background-image: 
+      linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  }
+
+  /* Soft Vignette */
+  .vignette-overlay {
+    background: radial-gradient(circle at 50% 50%, transparent 40%, rgba(7, 10, 20, 0.85) 100%);
+  }
+
   /* Skeleton loading shimmer */
   .skeleton {
     @apply relative overflow-hidden rounded-lg bg-ink-surface;
@@ -47,7 +73,7 @@
     background: linear-gradient(
       90deg,
       transparent,
-      rgba(255, 255, 255, 0.04),
+      rgba(255, 255, 255, 0.05),
       transparent
     );
     animation: shimmer 2s ease-in-out infinite;
@@ -62,21 +88,24 @@
     width: 100%;
   }
   input[type="range"]::-webkit-slider-runnable-track {
-    @apply h-1.5 rounded-full bg-ink-border;
+    @apply h-2 rounded-full bg-ink-border;
   }
   input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
-    @apply -mt-1 h-3.5 w-3.5 rounded-full border-2 border-brass bg-ivory shadow-md;
-    transition: transform 0.15s ease;
+    @apply -mt-1.5 h-5 w-5 rounded-full border-2 border-brass bg-ivory shadow-lg;
+    box-shadow: 0 0 12px rgba(212, 168, 83, 0.6);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
   }
   input[type="range"]::-webkit-slider-thumb:hover {
-    transform: scale(1.2);
+    transform: scale(1.25);
+    box-shadow: 0 0 18px rgba(212, 168, 83, 0.9);
   }
   input[type="range"]::-moz-range-track {
-    @apply h-1.5 rounded-full bg-ink-border;
+    @apply h-2 rounded-full bg-ink-border;
   }
   input[type="range"]::-moz-range-thumb {
-    @apply h-3.5 w-3.5 rounded-full border-2 border-brass bg-ivory shadow-md;
+    @apply h-5 w-5 rounded-full border-2 border-brass bg-ivory shadow-lg;
+    box-shadow: 0 0 12px rgba(212, 168, 83, 0.6);
   }
 }
 

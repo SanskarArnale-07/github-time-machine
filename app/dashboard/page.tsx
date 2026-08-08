@@ -24,7 +24,7 @@ export default async function DashboardPage() {
     "developer";
   const email: string | undefined = user.email;
 
-  // Attempt to pre-fetch profile on the server
+  // Pre-fetch profile on the server
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -38,15 +38,15 @@ export default async function DashboardPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col bg-ink">
-      {/* Top navigation */}
-      <header className="sticky top-0 z-30 border-b border-ink-border bg-ink/90 backdrop-blur-md">
+    <main className="relative flex min-h-screen flex-col bg-[#0B1020]">
+      {/* Top navigation with frosted glassmorphism */}
+      <header className="sticky top-0 z-30 border-b border-white/10 bg-[#0B1020]/80 backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-3.5 sm:px-8">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-ink-border bg-ink-surface">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-[#131C31]">
               <GitCommitHorizontal className="h-4 w-4 text-commit-300" />
             </div>
-            <span className="text-sm font-medium text-ivory">
+            <span className="font-mono text-sm font-medium text-ivory">
               time-machine<span className="text-brass-light">.git</span>
             </span>
           </div>
@@ -65,8 +65,8 @@ export default async function DashboardPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-ink-border py-6 text-center text-xs text-muted/50">
-        GitHub Time Machine · Built for developers who forgot how far they've come
+      <footer className="border-t border-white/10 py-6 text-center font-mono text-xs text-muted/60">
+        GitHub Time Machine · Built for developers who forgot how far they&apos;ve come
       </footer>
     </main>
   );

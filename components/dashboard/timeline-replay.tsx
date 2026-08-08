@@ -26,8 +26,8 @@ import {
   VolumeX,
   Video,
   Award,
-  Layers,
   BarChart2,
+  Image as ImageIcon,
 } from "lucide-react";
 import {
   GitHubCommit,
@@ -42,6 +42,7 @@ import {
   copyShareableReplayLink,
   downloadReplaySummaryPDF,
   exportReplayVideoFormat,
+  generateSocialThumbnailImage,
 } from "@/lib/github/export-utils";
 import { DeveloperInsightsView } from "./developer-insights";
 
@@ -95,7 +96,7 @@ export function TimelineReplay({
 
   if (engine.total === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-2xl border border-ink-border bg-ink-surface p-12 text-center">
+      <div className="glass-card flex flex-col items-center justify-center p-12 text-center">
         <Clock className="h-10 w-10 text-muted/50" />
         <h3 className="mt-4 font-display text-xl text-ivory">
           No events available for replay
@@ -131,12 +132,29 @@ export function TimelineReplay({
     downloadReplaySummaryPDF(profile, engine.chapters, commits, repos);
   };
 
-  const handleExport = async (format: "landscape" | "vertical" | "gif") => {
+  const handleExportThumbnail = async () => {
+    setExportStatus("Generating high-resolution social preview image...");
+    await generateSocialThumbnailImage(
+      username,
+      commits.length,
+      repos.length,
+      Number(engine.startYear) || 2020,
+      Number(engine.endYear) || new Date().getFullYear()
+    );
+    setTimeout(() => {
+      setExportStatus(null);
+      setShowExportModal(false);
+    }, 1500);
+  };
+
+  const handleExportVideo = async (format: "landscape" | "vertical" | "gif") => {
     setExportingType(format);
-    setExportStatus(`Rendering ${format.toUpperCase()} documentary...`);
+    setExportStatus(`Recording full 1080p ${format.toUpperCase()} replay movie...`);
     await exportReplayVideoFormat(
-      `${username}'s Developer Odyssey`,
+      `${username}'s Developer Replay`,
       format,
+      engine.events,
+      engine.chapters,
       (msg) => setExportStatus(msg)
     );
     setTimeout(() => {
@@ -162,12 +180,12 @@ export function TimelineReplay({
       })
     : "";
 
-  // Distinct language count for summary
-  const langCount = new Set(repos.map((r) => r.language).filter(Boolean)).size || 3;
+  const langCount =
+    new Set(repos.map((r) => r.language).filter(Boolean)).size || 3;
 
   return (
-    <div className="relative w-full overflow-hidden rounded-3xl border border-ink-border bg-ink-surface/95 p-6 shadow-2xl backdrop-blur-xl transition-colors duration-700 sm:p-8">
-      {/* Ambient background glow shifting subtly per era with subtle parallax */}
+    <div className="glass-card-glow relative w-full overflow-hidden p-6 sm:p-9 transition-colors duration-700">
+      {/* Ambient background glow shifting subtly per era */}
       <div
         className="pointer-events-none absolute -left-24 -top-24 h-96 w-96 rounded-full blur-3xl transition-all duration-1000 ease-out"
         style={{
@@ -188,10 +206,10 @@ export function TimelineReplay({
       />
 
       {/* Top Chronometer Header */}
-      <div className="relative z-10 flex flex-col gap-4 border-b border-ink-border/80 pb-6 sm:flex-row sm:items-center sm:justify-between">
+      <div className="relative z-10 flex flex-col gap-4 border-b border-white/10 pb-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div
-            className="flex h-11 w-11 items-center justify-center rounded-xl border bg-ink/90 shadow-md transition-all duration-500"
+            className="flex h-12 w-12 items-center justify-center rounded-2xl border bg-[#0B1020]/90 shadow-lg transition-all duration-500"
             style={{
               borderColor: engine.eraColor.border,
               color: engine.eraColor.accent,
@@ -212,13 +230,13 @@ export function TimelineReplay({
                 className="font-mono text-xs font-semibold uppercase tracking-widest"
                 style={{ color: engine.eraColor.accent }}
               >
-                Documentary Replay
+                Cinematic Replay
               </span>
               <span
                 className={`inline-flex items-center rounded-full border px-2.5 py-0.5 font-mono text-[10px] font-medium transition-all ${
                   engine.isPlaying
-                    ? "border-commit-300/40 bg-commit-50/20 text-commit-300 shadow-[0_0_10px_rgba(57,211,83,0.3)]"
-                    : "border-ink-border bg-ink text-muted"
+                    ? "border-commit-300/40 bg-commit-50/30 text-commit-300 shadow-[0_0_12px_rgba(57,211,83,0.3)]"
+                    : "border-white/10 bg-ink text-muted"
                 }`}
               >
                 {engine.isPlaying ? "Playing Movie" : "Paused"}
@@ -235,10 +253,10 @@ export function TimelineReplay({
           {/* Ambient Soundtrack Toggle */}
           <button
             onClick={toggleSoundtrack}
-            className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 font-mono text-xs transition-all ${
+            className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 font-mono text-xs transition-all ${
               soundEnabled
-                ? "border-brass bg-brass/15 text-brass-light shadow-[0_0_15px_rgba(212,168,83,0.3)]"
-                : "border-ink-border bg-ink text-muted hover:text-ivory"
+                ? "border-brass bg-brass/20 text-brass-light shadow-[0_0_18px_rgba(212,168,83,0.35)]"
+                : "border-white/10 bg-ink-surface/80 text-muted hover:text-ivory"
             }`}
             title="Toggle cinematic ambient soundtrack"
           >
@@ -250,13 +268,13 @@ export function TimelineReplay({
             ) : (
               <>
                 <VolumeX className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Audio</span>
+                <span className="hidden sm:inline">Soundtrack</span>
               </>
             )}
           </button>
 
           {/* Date Odometer */}
-          <div className="flex items-center gap-3 rounded-2xl border border-ink-border bg-ink/90 px-4 py-2 shadow-inner">
+          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-ink-surface/85 px-4 py-2 shadow-inner backdrop-blur-md">
             <Calendar className="h-4 w-4 text-brass-light" />
             <div className="flex items-baseline gap-2">
               <span className="font-display text-2xl font-bold tracking-tight text-ivory sm:text-3xl">
@@ -266,13 +284,13 @@ export function TimelineReplay({
                 {engine.currentMonthName}
               </span>
             </div>
-            <span className="border-l border-ink-border/80 pl-2.5 font-mono text-xs text-muted/70">
+            <span className="border-l border-white/10 pl-2.5 font-mono text-xs text-muted/70">
               {formattedTime}
             </span>
           </div>
 
           {/* Export Actions Toolbar */}
-          <div className="flex items-center gap-1 rounded-2xl border border-ink-border bg-ink/90 p-1">
+          <div className="flex items-center gap-1 rounded-2xl border border-white/10 bg-ink-surface/85 p-1 backdrop-blur-md">
             <Button
               variant="ghost"
               size="sm"
@@ -309,7 +327,7 @@ export function TimelineReplay({
               className="h-8 px-2.5 font-mono text-xs text-brass-light hover:text-ivory"
             >
               <Video className="h-3.5 w-3.5 text-brass-light" />
-              <span className="ml-1 hidden md:inline">Export</span>
+              <span className="ml-1 hidden md:inline">Export Movie</span>
             </Button>
           </div>
         </div>
@@ -317,13 +335,13 @@ export function TimelineReplay({
 
       {/* Export Options Modal / Dropdown Bar */}
       {showExportModal && (
-        <div className="relative z-20 my-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brass-dim/60 bg-ink-soft p-4 shadow-xl">
+        <div className="glass-card relative z-20 my-4 flex flex-wrap items-center justify-between gap-3 p-5 shadow-2xl">
           <div>
-            <span className="font-mono text-xs font-semibold text-brass-light uppercase">
-              Choose Export Format
+            <span className="font-mono text-xs font-semibold uppercase tracking-wider text-brass-light">
+              Full Replay Video & Social Export
             </span>
             <p className="font-sans text-xs text-muted">
-              Download your developer documentary as a video, social reel, or summary.
+              Exports the entire 30–60s 1080p replay with frame-by-frame progression and intro/outro.
             </p>
           </div>
 
@@ -331,39 +349,38 @@ export function TimelineReplay({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handleExport("landscape")}
+              onClick={() => handleExportVideo("landscape")}
               disabled={!!exportingType}
-              className="font-mono text-xs"
+              className="border-white/10 font-mono text-xs"
             >
-              <Video className="mr-1.5 h-3.5 w-3.5" />
-              Landscape 1080p
+              <Video className="mr-1.5 h-3.5 w-3.5 text-brass-light" />
+              1080p Landscape MP4
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handleExport("vertical")}
+              onClick={() => handleExportVideo("vertical")}
               disabled={!!exportingType}
-              className="font-mono text-xs"
+              className="border-white/10 font-mono text-xs"
             >
               <Flame className="mr-1.5 h-3.5 w-3.5 text-brass-light" />
-              9:16 Social Reel
+              9:16 Social Reel (1080x1920)
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handleExport("gif")}
-              disabled={!!exportingType}
-              className="font-mono text-xs"
+              onClick={handleExportThumbnail}
+              className="border-white/10 font-mono text-xs"
             >
-              <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-              GIF Preview
+              <ImageIcon className="mr-1.5 h-3.5 w-3.5" />
+              Social Card PNG
             </Button>
           </div>
         </div>
       )}
 
       {exportStatus && (
-        <div className="mt-3 flex items-center justify-between rounded-xl border border-brass/40 bg-brass/10 px-4 py-2 font-mono text-xs text-brass-light">
+        <div className="mt-3 flex items-center justify-between rounded-xl border border-brass/40 bg-brass/10 px-4 py-2.5 font-mono text-xs text-brass-light shadow-sm">
           <span>{exportStatus}</span>
           <span className="h-2 w-2 animate-pulse rounded-full bg-brass" />
         </div>
@@ -393,7 +410,7 @@ export function TimelineReplay({
                   className={`flex flex-shrink-0 items-center gap-2 rounded-xl border px-3.5 py-1.5 font-sans text-xs transition-all ${
                     isChapterActive
                       ? "border-brass bg-brass text-ink font-semibold shadow-md scale-[1.02]"
-                      : "border-ink-border bg-ink-surface/70 text-muted hover:border-brass/40 hover:text-ivory"
+                      : "border-white/10 bg-ink-surface/70 text-muted hover:border-brass/40 hover:text-ivory"
                   }`}
                 >
                   <BookOpen className="h-3 w-3" />
@@ -410,7 +427,7 @@ export function TimelineReplay({
 
       {/* AI Story Generation Narrative Banner */}
       {currentChapter?.narrative && (
-        <div className="relative mt-4 overflow-hidden rounded-2xl border border-brass-dim/40 bg-gradient-to-r from-brass-dim/15 via-ink-surface to-ink p-4 shadow-sm">
+        <div className="glass-card relative mt-4 overflow-hidden p-4 shadow-sm">
           <div className="flex items-start gap-3">
             <Sparkles className="mt-0.5 h-4 w-4 flex-shrink-0 text-brass-light animate-pulse" />
             <div className="flex flex-col">
@@ -428,14 +445,14 @@ export function TimelineReplay({
       {/* Main Cinema Screen / Spotlight Card or Final Documentary Ending Screen */}
       {isAtEnd ? (
         /* 8. Final Documentary Ending Screen */
-        <div className="relative my-6 overflow-hidden rounded-3xl border-2 border-brass bg-gradient-to-b from-ink via-ink-surface to-ink p-8 text-center shadow-[0_0_50px_rgba(212,168,83,0.25)] sm:p-12">
+        <div className="glass-card-glow relative my-6 overflow-hidden p-8 text-center sm:p-12">
           <div className="pointer-events-none absolute inset-0 bg-scan-line opacity-5" />
           <div className="relative z-10 mx-auto flex max-w-2xl flex-col items-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-brass bg-brass/10 text-brass-light shadow-lg">
               <Award className="h-8 w-8 animate-bounce" />
             </div>
 
-            <span className="mt-6 font-mono text-xs uppercase tracking-[0.25em] text-brass-light">
+            <span className="mt-6 font-mono text-xs uppercase tracking-[0.25em] text-brass-light font-bold">
               Documentary Finale
             </span>
 
@@ -444,7 +461,7 @@ export function TimelineReplay({
               built one commit at a time.
             </h3>
 
-            <div className="my-8 grid grid-cols-2 gap-4 rounded-2xl border border-ink-border bg-ink-soft/90 p-6 sm:grid-cols-4">
+            <div className="my-8 grid grid-cols-2 gap-4 rounded-2xl border border-white/10 bg-[#0B1020]/90 p-6 sm:grid-cols-4">
               <div>
                 <span className="font-display text-3xl font-bold text-ivory">
                   {stats.commitsReplayed}
@@ -472,7 +489,7 @@ export function TimelineReplay({
               <div>
                 <span className="font-display text-3xl font-bold text-ivory">1</span>
                 <span className="block font-mono text-[10px] uppercase text-muted">
-                  Evolving Developer
+                  Evolving Dev
                 </span>
               </div>
             </div>
@@ -493,7 +510,7 @@ export function TimelineReplay({
                 variant="outline"
                 size="lg"
                 onClick={handleDownloadPDF}
-                className="rounded-full font-mono text-xs"
+                className="rounded-full border-white/10 font-mono text-xs"
               >
                 <FileText className="mr-2 h-4 w-4" /> Download PDF Chronicle
               </Button>
@@ -501,9 +518,9 @@ export function TimelineReplay({
           </div>
         </div>
       ) : (
-        /* Spotlight Event Screen */
+        /* Spotlight Event Screen with Glassmorphism */
         <div
-          className="relative my-6 overflow-hidden rounded-2xl border-2 bg-gradient-to-b from-ink/95 via-ink-soft to-ink-surface p-6 shadow-2xl transition-all duration-500 sm:p-9"
+          className="glass-card relative my-6 overflow-hidden p-6 transition-all duration-500 sm:p-9"
           style={{ borderColor: engine.eraColor.border }}
         >
           {/* Filmstrip Scanline Effect */}
@@ -526,9 +543,9 @@ export function TimelineReplay({
             </div>
           ) : currentEvent?.type === "repo_created" ? (
             <div className="relative z-10 flex flex-col gap-4">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink-border/70 pb-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-lg border border-brass-dim/50 bg-brass/10 px-3 py-1 font-mono text-xs font-medium text-brass-light">
+                  <span className="inline-flex items-center gap-1.5 rounded-lg border border-brass-dim/50 bg-brass/15 px-3 py-1 font-mono text-xs font-medium text-brass-light">
                     <FolderGit2 className="h-3.5 w-3.5" />
                     New Repository Founded
                   </span>
@@ -549,16 +566,16 @@ export function TimelineReplay({
               </div>
 
               {/* 4. Impact Section for Repo */}
-              <div className="rounded-xl border border-brass-dim/40 bg-ink-soft p-3">
+              <div className="rounded-xl border border-brass-dim/40 bg-[#0B1020]/90 p-3.5">
                 <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-brass-light">
                   ✦ Impact: {currentEvent.impactBadge || "New Milestone"}
                 </span>
-                <p className="mt-0.5 font-sans text-xs text-ivory/80">
+                <p className="mt-0.5 font-sans text-xs text-ivory/85">
                   {currentEvent.impactDescription || "Expanded repository portfolio."}
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-ink-border/70 pt-3 font-mono text-xs text-muted">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-3 font-mono text-xs text-muted">
                 <div className="flex items-center gap-3">
                   {currentEvent.language && (
                     <span className="inline-flex items-center gap-1.5 text-ivory">
@@ -593,12 +610,23 @@ export function TimelineReplay({
           ) : (
             /* Standard Commit Card Screen with Impact Section */
             <div className="relative z-10 flex flex-col gap-4">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink-border/70 pb-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="inline-flex items-center gap-1.5 rounded-lg border border-commit-300/30 bg-commit-50/20 px-3 py-1 font-mono text-xs font-semibold text-commit-300">
                     <GitCommit className="h-3.5 w-3.5" />
                     {currentEvent?.repoName}
                   </span>
+
+                  {/* Relative Activity Indicator Badge */}
+                  {currentEvent?.relativeActivity === "breakthrough" ? (
+                    <span className="inline-flex items-center gap-1 rounded-md border border-brass-dim bg-brass/10 px-2 py-0.5 font-mono text-[10px] text-brass-light">
+                      <Zap className="h-3 w-3 text-brass-light" /> High Velocity
+                    </span>
+                  ) : currentEvent?.gapDays && currentEvent.gapDays > 25 ? (
+                    <span className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-ink px-2 py-0.5 font-mono text-[10px] text-muted">
+                      Post-Break Return
+                    </span>
+                  ) : null}
 
                   {currentEvent?.commitSha && (
                     <a
@@ -627,23 +655,23 @@ export function TimelineReplay({
 
               {/* 4. Impact Section on Every Event */}
               {currentEvent?.impactBadge && (
-                <div className="rounded-xl border border-ink-border bg-ink-soft/90 p-3.5">
+                <div className="rounded-xl border border-white/10 bg-[#0B1020]/90 p-3.5">
                   <div className="flex items-center gap-1.5">
                     <Zap className="h-3.5 w-3.5 text-brass-light" />
                     <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-brass-light">
                       Impact: {currentEvent.impactBadge}
                     </span>
                   </div>
-                  <p className="mt-1 font-sans text-xs leading-relaxed text-ivory/80">
+                  <p className="mt-1 font-sans text-xs leading-relaxed text-ivory/85">
                     {currentEvent.impactDescription}
                   </p>
                 </div>
               )}
 
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-ink-border/70 pt-3 font-mono text-xs text-muted">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-3 font-mono text-xs text-muted">
                 <div className="flex items-center gap-2">
                   {currentEvent?.authorAvatar ? (
-                    <div className="relative h-5 w-5 overflow-hidden rounded-full border border-ink-border">
+                    <div className="relative h-5 w-5 overflow-hidden rounded-full border border-white/10">
                       <Image
                         src={currentEvent.authorAvatar}
                         alt={currentEvent.authorName || "Author"}
@@ -681,7 +709,7 @@ export function TimelineReplay({
 
       {/* 2. Synchronized Contribution Graph Heatmap Replay with Intensity Indicator */}
       {contributions.length > 0 && (
-        <div className="mb-6 rounded-2xl border border-ink-border bg-ink/70 p-4">
+        <div className="glass-card mb-6 p-4">
           <div className="mb-2 flex items-center justify-between font-mono text-xs">
             <span className="text-muted">
               Heatmap Activity Progress (Week {Math.ceil((engine.progress / 100) * contributions.length)} of {contributions.length})
@@ -732,7 +760,7 @@ export function TimelineReplay({
 
       {/* Live Replay Statistics Ribbon */}
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
-        <div className="rounded-xl border border-ink-border bg-ink/70 p-3 text-center">
+        <div className="glass-card p-3 text-center">
           <span className="font-display text-lg font-bold text-ivory">
             {stats.currentYear}
           </span>
@@ -741,7 +769,7 @@ export function TimelineReplay({
           </span>
         </div>
 
-        <div className="rounded-xl border border-ink-border bg-ink/70 p-3 text-center">
+        <div className="glass-card p-3 text-center">
           <span className="block truncate font-mono text-sm font-bold text-brass-light">
             {stats.currentRepo}
           </span>
@@ -750,7 +778,7 @@ export function TimelineReplay({
           </span>
         </div>
 
-        <div className="rounded-xl border border-ink-border bg-ink/70 p-3 text-center">
+        <div className="glass-card p-3 text-center">
           <span className="font-display text-lg font-bold text-commit-300">
             {stats.currentStreak}d
           </span>
@@ -759,7 +787,7 @@ export function TimelineReplay({
           </span>
         </div>
 
-        <div className="rounded-xl border border-ink-border bg-ink/70 p-3 text-center">
+        <div className="glass-card p-3 text-center">
           <span className="font-display text-lg font-bold text-ivory">
             {stats.commitsReplayed}
           </span>
@@ -768,7 +796,7 @@ export function TimelineReplay({
           </span>
         </div>
 
-        <div className="rounded-xl border border-ink-border bg-ink/70 p-3 text-center">
+        <div className="glass-card p-3 text-center">
           <span className="font-display text-lg font-bold text-muted">
             {stats.remainingEvents}
           </span>
@@ -777,7 +805,7 @@ export function TimelineReplay({
           </span>
         </div>
 
-        <div className="rounded-xl border border-ink-border bg-ink/70 p-3 text-center">
+        <div className="glass-card p-3 text-center">
           <span className="font-mono text-sm font-bold text-brass-light">
             {stats.formattedDuration}
           </span>
@@ -787,7 +815,7 @@ export function TimelineReplay({
         </div>
       </div>
 
-      {/* Scrubbable Timeline Progress Bar */}
+      {/* Scrubbable Timeline Progress Bar with Light Trail Cursor */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between font-mono text-xs text-muted">
           <span className="text-brass-light">{engine.startYear} Inception</span>
@@ -797,33 +825,34 @@ export function TimelineReplay({
           <span>{engine.endYear} Present</span>
         </div>
 
-        {/* Interactive Scrub Track */}
+        {/* Interactive Scrub Track with Light Trail */}
         <div
           ref={progressBarRef}
           onClick={handleProgressBarClick}
           className="group relative flex h-4 w-full cursor-pointer items-center"
         >
-          <div className="h-2 w-full overflow-hidden rounded-full border border-ink-border bg-ink">
+          <div className="h-2 w-full overflow-hidden rounded-full border border-white/10 bg-[#0B1020]">
             <div
-              className="h-full transition-all duration-150 ease-out"
+              className="h-full transition-all duration-150 ease-out shadow-[0_0_12px_rgba(212,168,83,0.8)]"
               style={{
                 width: `${engine.progress}%`,
                 backgroundColor: engine.eraColor.accent,
               }}
             />
           </div>
+          {/* Light Trail Cursor */}
           <div
-            className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 h-4 w-4 rounded-full border-2 border-ivory bg-brass shadow-lg transition-transform group-hover:scale-125"
+            className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 h-5 w-5 rounded-full border-2 border-ivory bg-brass shadow-[0_0_16px_rgba(212,168,83,1)] transition-transform group-hover:scale-125"
             style={{ left: `${engine.progress}%` }}
           />
         </div>
       </div>
 
       {/* Controls Bar */}
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-ink-border bg-ink/80 p-4">
+      <div className="glass-card mt-6 flex flex-wrap items-center justify-between gap-4 p-4">
         {/* Left: Speed selector & Insights Toggle */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 rounded-xl border border-ink-border bg-ink-surface p-1">
+          <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-ink-surface p-1">
             <span className="px-2 font-mono text-[10px] uppercase tracking-wider text-muted">
               Speed
             </span>
@@ -860,7 +889,7 @@ export function TimelineReplay({
             size="sm"
             onClick={engine.replay}
             title="Replay from start (R)"
-            className="h-10 w-10 p-0 border-ink-border hover:border-brass hover:text-ivory"
+            className="h-10 w-10 p-0 border-white/10 hover:border-brass hover:text-ivory"
           >
             <RotateCcw className="h-4 w-4 text-muted" />
           </Button>
@@ -870,7 +899,7 @@ export function TimelineReplay({
             size="sm"
             onClick={() => engine.skipYear(-1)}
             title="Skip previous year (Shift + ←)"
-            className="h-10 w-10 p-0 border-ink-border"
+            className="h-10 w-10 p-0 border-white/10"
           >
             <SkipBack className="h-4 w-4 text-ivory" />
           </Button>
@@ -881,7 +910,7 @@ export function TimelineReplay({
             onClick={engine.stepBack}
             disabled={engine.currentIndex === 0}
             title="Step backward (←)"
-            className="h-10 w-10 p-0 border-ink-border"
+            className="h-10 w-10 p-0 border-white/10"
           >
             <ChevronLeft className="h-4 w-4 text-ivory" />
           </Button>
@@ -891,7 +920,7 @@ export function TimelineReplay({
             size="lg"
             onClick={engine.togglePlay}
             title="Play / Pause (Space)"
-            className="h-12 px-7 rounded-full bg-brass text-ink font-sans text-sm font-semibold shadow-[0_0_25px_rgba(212,168,83,0.4)] transition-all hover:bg-brass-light hover:scale-105"
+            className="h-12 px-7 rounded-full bg-brass text-ink font-sans text-sm font-semibold shadow-[0_0_25px_rgba(212,168,83,0.45)] transition-all hover:bg-brass-light hover:scale-105"
           >
             {engine.isPlaying ? (
               <>
@@ -901,7 +930,7 @@ export function TimelineReplay({
             ) : (
               <>
                 <Play className="mr-2 h-4 w-4 fill-current" />
-                {engine.currentIndex >= engine.total - 1 ? "Replay Movie" : "Play Movie"}
+                {engine.currentIndex >= engine.total - 1 ? "Replay Movie" : "Play Story"}
               </>
             )}
           </Button>
@@ -912,7 +941,7 @@ export function TimelineReplay({
             onClick={engine.stepForward}
             disabled={engine.currentIndex >= engine.total - 1}
             title="Step forward (→)"
-            className="h-10 w-10 p-0 border-ink-border"
+            className="h-10 w-10 p-0 border-white/10"
           >
             <ChevronRight className="h-4 w-4 text-ivory" />
           </Button>
@@ -922,7 +951,7 @@ export function TimelineReplay({
             size="sm"
             onClick={() => engine.skipYear(1)}
             title="Skip next year (Shift + →)"
-            className="h-10 w-10 p-0 border-ink-border"
+            className="h-10 w-10 p-0 border-white/10"
           >
             <SkipForward className="h-4 w-4 text-ivory" />
           </Button>
@@ -931,19 +960,19 @@ export function TimelineReplay({
         {/* Right: Keyboard Shortcuts Legend */}
         <div className="hidden font-mono text-[11px] text-muted/70 lg:flex lg:items-center lg:gap-3">
           <span>
-            <kbd className="rounded border border-ink-border bg-ink-surface px-1.5 py-0.5 text-ivory">
+            <kbd className="rounded border border-white/10 bg-ink-surface px-1.5 py-0.5 text-ivory">
               Space
             </kbd>{" "}
             Play
           </span>
           <span>
-            <kbd className="rounded border border-ink-border bg-ink-surface px-1.5 py-0.5 text-ivory">
+            <kbd className="rounded border border-white/10 bg-ink-surface px-1.5 py-0.5 text-ivory">
               ← / →
             </kbd>{" "}
             Scrub
           </span>
           <span>
-            <kbd className="rounded border border-ink-border bg-ink-surface px-1.5 py-0.5 text-ivory">
+            <kbd className="rounded border border-white/10 bg-ink-surface px-1.5 py-0.5 text-ivory">
               R
             </kbd>{" "}
             Replay
@@ -951,9 +980,9 @@ export function TimelineReplay({
         </div>
       </div>
 
-      {/* 6. Developer Insights Panel (Collapsible or Tabbed) */}
+      {/* 6. Developer Insights Panel */}
       {showInsights && (
-        <div className="mt-8 border-t border-ink-border pt-8">
+        <div className="mt-8 border-t border-white/10 pt-8">
           <DeveloperInsightsView
             insights={{
               bestCodingMonth: "October",

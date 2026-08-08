@@ -32,8 +32,8 @@ export function getLanguageColor(lang?: string | null): string {
 }
 
 /**
- * Parses user commit logs and repositories to generate 7 chronological narrative chapters
- * with personalized, evocative 2-4 sentence stories and event impact analysis.
+ * Parses user commit logs and repositories to generate the 7 requested cinematic chapters
+ * with personalized, emotionally evocative AI-style narrative summaries.
  */
 export function generateChaptersAndStories(
   events: ReplayEvent[],
@@ -56,7 +56,7 @@ export function generateChaptersAndStories(
         strongestComebackStreak: 0,
         fastestRepoGrowth: "N/A",
         mostFrequentlyUsedLanguage: "TypeScript",
-        commitConsistencyScore: 75,
+        commitConsistencyScore: 80,
         weekdayDistribution: [],
         timeOfDayDistribution: [],
       },
@@ -78,65 +78,64 @@ export function generateChaptersAndStories(
   const primaryLang = topLangs[0] || "Code";
   const secondaryLang = topLangs[1] || "Modern Web";
 
-  // Check for distinct language first-appearance
   const seenLanguages = new Set<string>();
 
-  // 7 Standard Cinematic Chapters
+  // 7 Standard Cinematic Chapters from User Spec
   const chapterDefinitions = [
     {
       id: "the-beginning",
       name: "The Beginning",
-      subtitle: "Inaugural Repositories & Genesis",
-      narrativeTemplate: (start: number, end: number, rNames: string[]) =>
-        `Your developer voyage commenced in ${start} with the inception of ${
-          rNames[0] || "your first repository"
-        }. Every developer remembers their first pushed commit—the initial step in turning ideas into executable code.`,
+      subtitle: "Inaugural Repositories & First Commits",
+      narrativeTemplate: (startMonthYear: string, rName: string) =>
+        `${startMonthYear}: Your developer journey commenced with the inception of ${
+          rName || "your first repository"
+        }. Those initial commits laid the groundwork for everything that followed.`,
     },
     {
-      id: "learning-the-basics",
-      name: "Learning the Basics",
-      subtitle: "Syntax Discovery & Early Experiments",
-      narrativeTemplate: (start: number, end: number, rNames: string[]) =>
-        `This was the season you began exploring foundational paradigms and branching into ${primaryLang}. Each commit was a test in debugging, understanding runtime environments, and establishing core instincts.`,
-    },
-    {
-      id: "dsa-grind",
-      name: "DSA Grind",
-      subtitle: "Algorithmic Precision & Problem Solving",
-      narrativeTemplate: (start: number, end: number, rNames: string[]) =>
-        `Your DSA consistency began here with methodical commits focused on algorithmic challenges. You moved from isolated tests to consistent problem solving across multiple codebases.`,
-    },
-    {
-      id: "first-real-projects",
-      name: "First Real Projects",
-      subtitle: "Full-Stack Breakthroughs & Architecture",
-      narrativeTemplate: (start: number, end: number, rNames: string[]) =>
-        `This repository became a turning point in your learning. Projects like ${
-          rNames.slice(0, 2).join(" and ") || "your cornerstone repositories"
-        } emerged with real user interfaces, modular architecture, and structured state management.`,
+      id: "first-real-project",
+      name: "First Real Project",
+      subtitle: "Foundational Code & Breakthroughs",
+      narrativeTemplate: (startMonthYear: string, rName: string) =>
+        `${startMonthYear}: You stopped experimenting and started building. ${
+          rName || "Your cornerstone repository"
+        } marked the beginning of a concrete, functional project architecture in ${primaryLang}.`,
     },
     {
       id: "building-consistency",
       name: "Building Consistency",
-      subtitle: "Unbroken Momentum & Daily Rhythm",
-      narrativeTemplate: (start: number, end: number, rNames: string[]) =>
-        `A defining milestone of uninterrupted velocity. You maintained an unbroken rhythm of contributions, turning programming from an occasional activity into a daily discipline.`,
+      subtitle: "Unbroken Momentum & Habit Formation",
+      narrativeTemplate: (startMonthYear: string, rName: string) =>
+        `${startMonthYear}: You maintained an unbroken rhythm of contributions across multiple weeks, turning programming from an occasional activity into an instinctive daily craft.`,
     },
     {
-      id: "expansion-phase",
-      name: "Expansion Phase",
-      subtitle: "Multi-Repository Engineering & Tooling",
-      narrativeTemplate: (start: number, end: number, rNames: string[]) =>
-        `After a focused foundation, your activity accelerated across ${
+      id: "dsa-era",
+      name: "DSA Era",
+      subtitle: "Algorithmic Precision & Practice",
+      narrativeTemplate: (startMonthYear: string, rName: string) =>
+        `${startMonthYear}: This was the season of algorithmic focus. You moved from isolated tests to consistent problem solving, refining data structures and runtime efficiency.`,
+    },
+    {
+      id: "project-expansion",
+      name: "Project Expansion",
+      subtitle: "Multi-Repository Architecture",
+      narrativeTemplate: (startMonthYear: string, rName: string) =>
+        `${startMonthYear}: After establishing your core foundation, your activity accelerated across ${
           repos.length || "multiple"
-        } codebases. You expanded into ${secondaryLang}, CI/CD automation, and multi-file engineering.`,
+        } repositories, branching into ${secondaryLang} and advanced tooling.`,
     },
     {
-      id: "current-era",
-      name: "Current Era",
+      id: "late-night-builder",
+      name: "Late Night Builder",
+      subtitle: "Midnight Refactors & Velocity",
+      narrativeTemplate: (startMonthYear: string, rName: string) =>
+        `${startMonthYear}: Concentrated velocity after twilight. Late-night pushes and architectural cleanups demonstrated deep focus and creative autonomy.`,
+    },
+    {
+      id: "present-day",
+      name: "Present Day",
       subtitle: "Mature Craftsmanship & Future Horizons",
-      narrativeTemplate: (start: number, end: number, rNames: string[]) =>
-        `From your first repository to your latest project, this journey was built one commit at a time. Your GitHub history is not just a graph—it is an authentic story of developer growth.`,
+      narrativeTemplate: (startMonthYear: string, rName: string) =>
+        `From your first repository to your latest project, this journey was built one commit at a time. Your GitHub history is not just a graph. It is an evolving story.`,
     },
   ];
 
@@ -154,14 +153,17 @@ export function generateChaptersAndStories(
         : Math.min(total - 1, (i + 1) * effectiveStep - 1);
 
     const slice = annotatedEvents.slice(startIndex, endIndex + 1);
-    const startYear = slice[0]?.year || 2020;
-    const endYear = slice[slice.length - 1]?.year || startYear;
+    const startEv = slice[0] || annotatedEvents[0];
+    const startMonthYear = `${startEv.monthName} ${startEv.year}`;
     const sliceRepos = Array.from(
       new Set(slice.map((s) => s.repoName).filter(Boolean))
     ) as string[];
 
     const def = chapterDefinitions[i % chapterDefinitions.length];
-    const narrative = def.narrativeTemplate(startYear, endYear, sliceRepos);
+    const narrative = def.narrativeTemplate(
+      startMonthYear,
+      sliceRepos[0] || repos[0]?.name || "your codebase"
+    );
 
     const chapter: Chapter = {
       id: def.id || `chapter-${i + 1}`,
@@ -191,7 +193,7 @@ export function generateChaptersAndStories(
     }
   }
 
-  // Detect Impact sections, major streaks, and inactive gaps
+  // Detect Impact sections on every event
   let currentStreakCounter = 0;
   let maxStreak = 0;
   let maxGap = 0;
@@ -234,7 +236,7 @@ export function generateChaptersAndStories(
       ev.relativeActivity = "steady";
       ev.streakCount = 1;
       ev.impactBadge = "Inaugural Commit";
-      ev.impactDescription = `The first recorded commit on your timeline in ${ev.year}.`;
+      ev.impactDescription = `The first recorded commit on your developer timeline in ${ev.year}.`;
       ev.impactType = "milestone";
       continue;
     }
@@ -256,7 +258,7 @@ export function generateChaptersAndStories(
       } else if (currentStreakCounter >= 3) {
         ev.relativeActivity = "breakthrough";
         ev.impactBadge = "High Velocity Surge";
-        ev.impactDescription = "Multiple consecutive days of concentrated commits.";
+        ev.impactDescription = "Multiple consecutive days of focused problem solving.";
         ev.impactType = "volume";
       }
     } else {
@@ -273,25 +275,29 @@ export function generateChaptersAndStories(
 
     // Repository creation impact
     if (ev.type === "repo_created") {
-      ev.impactBadge = "New Repository Founded";
+      ev.impactBadge = "New Repository Created";
       ev.impactDescription = `Initialized codebase for ${ev.repoName}.`;
       ev.impactType = "repository";
     }
 
-    // First language exploration impact
+    // Language debut impact
     if (ev.language && !seenLanguages.has(ev.language)) {
       seenLanguages.add(ev.language);
       ev.impactBadge = `First ${ev.language} Project`;
-      ev.impactDescription = `Initiated first project using ${ev.language} ecosystem.`;
+      ev.impactDescription = `Began first project exploration in the ${ev.language} ecosystem.`;
       ev.impactType = "language";
     }
 
     // Default impact if none was assigned
     if (!ev.impactBadge) {
-      if (ev.title.length > 50 || ev.title.includes("refactor")) {
+      if (ev.title.length > 50 || ev.title.toLowerCase().includes("refactor")) {
         ev.impactBadge = "Architecture Refactor";
         ev.impactDescription = "Significant codebase restructuring and clean up.";
         ev.impactType = "milestone";
+      } else if (ev.title.toLowerCase().includes("fix") || ev.title.toLowerCase().includes("bug")) {
+        ev.impactBadge = "Critical Debugging Fix";
+        ev.impactDescription = "Resolved edge case and restored stability.";
+        ev.impactType = "volume";
       } else {
         ev.impactBadge = "Feature Push";
         ev.impactDescription = `Pushed updates directly to ${ev.repoName || "repository"}.`;
@@ -319,23 +325,48 @@ export function generateChaptersAndStories(
     }
   }
 
-  const weekdayDistribution = Object.entries(weekdayCounts).map(([day, count]) => ({
-    day,
-    count,
-    percentage: total > 0 ? Math.round((count / total) * 100) : 0,
-  }));
+  const weekdayDistribution = Object.entries(weekdayCounts).map(
+    ([day, count]) => ({
+      day,
+      count,
+      percentage: total > 0 ? Math.round((count / total) * 100) : 0,
+    })
+  );
 
   const timeOfDayDistribution = [
-    { label: "Morning (5am-12pm)", count: hourCounts.Morning, percentage: total > 0 ? Math.round((hourCounts.Morning / total) * 100) : 0 },
-    { label: "Afternoon (12pm-5pm)", count: hourCounts.Afternoon, percentage: total > 0 ? Math.round((hourCounts.Afternoon / total) * 100) : 0 },
-    { label: "Evening (5pm-10pm)", count: hourCounts.Evening, percentage: total > 0 ? Math.round((hourCounts.Evening / total) * 100) : 0 },
-    { label: "Late Night (10pm-5am)", count: hourCounts.LateNight, percentage: total > 0 ? Math.round((hourCounts.LateNight / total) * 100) : 0 },
+    {
+      label: "Morning (5am-12pm)",
+      count: hourCounts.Morning,
+      percentage:
+        total > 0 ? Math.round((hourCounts.Morning / total) * 100) : 0,
+    },
+    {
+      label: "Afternoon (12pm-5pm)",
+      count: hourCounts.Afternoon,
+      percentage:
+        total > 0 ? Math.round((hourCounts.Afternoon / total) * 100) : 0,
+    },
+    {
+      label: "Evening (5pm-10pm)",
+      count: hourCounts.Evening,
+      percentage:
+        total > 0 ? Math.round((hourCounts.Evening / total) * 100) : 0,
+    },
+    {
+      label: "Late Night (10pm-5am)",
+      count: hourCounts.LateNight,
+      percentage:
+        total > 0 ? Math.round((hourCounts.LateNight / total) * 100) : 0,
+    },
   ];
 
-  const avgCommitsPerActiveWeek = Math.max(1, Math.round(total / Math.max(1, Math.ceil(total / 4))));
+  const avgCommitsPerActiveWeek = Math.max(
+    1,
+    Math.round(total / Math.max(1, Math.ceil(total / 4)))
+  );
   const commitConsistencyScore = Math.min(
     98,
-    Math.max(45, Math.round(60 + maxStreak * 3 - (maxGap > 45 ? 12 : 0)))
+    Math.max(50, Math.round(65 + maxStreak * 3 - (maxGap > 45 ? 12 : 0)))
   );
 
   const insights: DeveloperInsights = {

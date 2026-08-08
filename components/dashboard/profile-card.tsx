@@ -2,7 +2,7 @@
 import React from "react";
 import Image from "next/image";
 import { GitHubUserProfile } from "@/lib/github/types";
-import { MapPin, Building, Calendar, Users, BookOpen } from "lucide-react";
+import { MapPin, Building, Calendar } from "lucide-react";
 
 interface ProfileCardProps {
   profile: GitHubUserProfile | null;
@@ -32,9 +32,9 @@ export function ProfileCard({
     : null;
 
   return (
-    <div className="flex flex-col items-center justify-between gap-6 rounded-2xl border border-ink-border bg-ink-surface p-6 shadow-sm md:flex-row md:items-start text-center md:text-left">
+    <div className="glass-card flex flex-col items-center justify-between gap-6 p-6 md:flex-row md:items-start text-center md:text-left transition-all duration-300 hover:border-brass/30">
       <div className="flex w-full flex-col items-center gap-6 md:flex-row md:items-start">
-        <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-full border-2 border-brass bg-ink">
+        <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-full border-2 border-brass bg-[#0B1020] shadow-[0_0_20px_rgba(212,168,83,0.3)]">
           {avatarUrl ? (
             <Image
               src={avatarUrl}
@@ -91,7 +91,7 @@ export function ProfileCard({
       </div>
 
       <div className="grid w-full grid-cols-3 gap-3 md:mt-0 md:w-auto md:min-w-[320px]">
-        <div className="flex flex-col items-center justify-center rounded-xl border border-ink-border bg-ink-soft p-4">
+        <div className="flex flex-col items-center justify-center rounded-xl border border-white/10 bg-[#0B1020]/80 p-4 shadow-sm">
           <span className="font-display text-2xl font-bold text-ivory">
             {followers}
           </span>
@@ -99,7 +99,7 @@ export function ProfileCard({
             Followers
           </span>
         </div>
-        <div className="flex flex-col items-center justify-center rounded-xl border border-ink-border bg-ink-soft p-4">
+        <div className="flex flex-col items-center justify-center rounded-xl border border-white/10 bg-[#0B1020]/80 p-4 shadow-sm">
           <span className="font-display text-2xl font-bold text-ivory">
             {following}
           </span>
@@ -107,7 +107,7 @@ export function ProfileCard({
             Following
           </span>
         </div>
-        <div className="flex flex-col items-center justify-center rounded-xl border border-ink-border bg-ink-soft p-4">
+        <div className="flex flex-col items-center justify-center rounded-xl border border-white/10 bg-[#0B1020]/80 p-4 shadow-sm">
           <span className="font-display text-2xl font-bold text-ivory">
             {publicRepos}
           </span>
