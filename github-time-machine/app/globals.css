@@ -13,15 +13,13 @@
 
   body {
     @apply bg-ink text-ivory antialiased;
-    font-feature-settings: "ss01" on, "ss02" on;
   }
 
   ::selection {
-    background-color: rgba(217, 142, 57, 0.35);
-    color: #f2f4f5;
+    background-color: rgba(212, 168, 83, 0.35);
+    color: #f2f0eb;
   }
 
-  /* Slim, dark scrollbar to match the terminal-at-night feel */
   ::-webkit-scrollbar {
     width: 10px;
   }
@@ -35,6 +33,50 @@
   }
   ::-webkit-scrollbar-thumb:hover {
     background: #2c3038;
+  }
+}
+
+@layer components {
+  /* Skeleton loading shimmer */
+  .skeleton {
+    @apply relative overflow-hidden rounded-lg bg-ink-surface;
+  }
+  .skeleton::after {
+    content: "";
+    @apply absolute inset-0;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.04),
+      transparent
+    );
+    animation: shimmer 2s ease-in-out infinite;
+  }
+
+  /* Custom range input for replay slider */
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+    width: 100%;
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    @apply h-1.5 rounded-full bg-ink-border;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    @apply -mt-1 h-3.5 w-3.5 rounded-full border-2 border-brass bg-ivory shadow-md;
+    transition: transform 0.15s ease;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+  }
+  input[type="range"]::-moz-range-track {
+    @apply h-1.5 rounded-full bg-ink-border;
+  }
+  input[type="range"]::-moz-range-thumb {
+    @apply h-3.5 w-3.5 rounded-full border-2 border-brass bg-ivory shadow-md;
   }
 }
 

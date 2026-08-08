@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono, Instrument_Serif } from "next/font/google";
+import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -8,24 +8,18 @@ const inter = Inter({
   display: "swap",
 });
 
-const jetbrainsMono = JetBrains_Mono({
+const playfairDisplay = Playfair_Display({
   subsets: ["latin"],
-  variable: "--font-jetbrains-mono",
-  display: "swap",
-});
-
-const instrumentSerif = Instrument_Serif({
-  subsets: ["latin"],
-  weight: "400",
+  weight: ["400", "500", "600", "700"],
   style: ["normal", "italic"],
-  variable: "--font-instrument-serif",
+  variable: "--font-playfair",
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "GitHub Time Machine — Your GitHub journey has a story.",
+  title: "GitHub Time Machine — Replay your developer journey",
   description:
-    "Time Machine turns years of commits, repos, and late-night pushes into a cinematic replay of how you became the developer you are.",
+    "Turn years of commits, repos, and late-night pushes into a cinematic replay of how you became the developer you are.",
 };
 
 export default function RootLayout({
@@ -34,9 +28,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`dark ${inter.variable} ${jetbrainsMono.variable} ${instrumentSerif.variable}`}
+      className={`dark ${inter.variable} ${playfairDisplay.variable}`}
     >
-      <body>{children}</body>
+      <body className={inter.className}>{children}</body>
     </html>
   );
 }

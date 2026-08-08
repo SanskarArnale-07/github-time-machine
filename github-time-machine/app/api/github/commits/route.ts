@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import {
+  fetchGitHubProfile,
   fetchAllUserCommitHistory,
   groupCommitsByYearAndMonth,
-  fetchGitHubProfile,
+  generateContributionData,
+  calculateAnalytics,
 } from "@/lib/github/api";
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const supabase = await createClient();
     const {
@@ -14,10 +16,7 @@ export async function GET(request: Request) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json(
-        { error: "Unauthorized. Please sign in with GitHub." },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const metadata = user.user_metadata ?? {};
@@ -27,11 +26,12 @@ export async function GET(request: Request) {
       metadata.full_name ??
       "octocat";
 
-    // Attempt to get provider_token if Supabase stored it
+    // Try to get the provider token for authenticated API access
     const {
       data: { session },
     } = await supabase.auth.getSession();
-    const providerToken = (session as any)?.provider_token;
+    const providerToken: string | undefined =
+      (session as any)?.provider_token ?? undefined;
 
     const [profile, history] = await Promise.all([
       fetchGitHubProfile(username, providerToken).catch(() => null),
@@ -39,6 +39,8 @@ export async function GET(request: Request) {
     ]);
 
     const yearGroups = groupCommitsByYearAndMonth(history.commits);
+    const contributions = generateContributionData(history.commits);
+    const analytics = calculateAnalytics(history.commits, history.repos);
 
     return NextResponse.json({
       success: true,
@@ -47,12 +49,14 @@ export async function GET(request: Request) {
       repos: history.repos,
       commits: history.commits,
       yearGroups,
+      contributions,
+      analytics,
       totalCommits: history.commits.length,
     });
   } catch (error: any) {
     console.error("Error in /api/github/commits:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to fetch commit history" },
+      { error: error.message || "Internal Server Error" },
       { status: 500 }
     );
   }

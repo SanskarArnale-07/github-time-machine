@@ -1,99 +1,60 @@
 "use client";
-
-import { useState, useEffect, useRef } from "react";
-import {
-  Play,
-  Pause,
-  RotateCcw,
-  SkipBack,
-  SkipForward,
-  FastForward,
-  GitCommit,
-  ExternalLink,
-  Clock,
-  Sparkles,
-  Calendar,
-  Layers,
-} from "lucide-react";
-import { GitHubCommit } from "@/lib/github/types";
-import { Button } from "@/components/ui/button";
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { GitHubCommit } from '@/lib/github/types';
+import { Play, Pause, SkipBack, SkipForward, RotateCcw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface TimelineReplayProps {
   commits: GitHubCommit[];
 }
 
 export function TimelineReplay({ commits }: TimelineReplayProps) {
-  // Chronological order for replay (from earliest commit to latest)
-  const chronologicalCommits = useRef<GitHubCommit[]>([]);
-
-  useEffect(() => {
-    chronologicalCommits.current = [...commits].sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-    );
+  const sortedCommits = useMemo(() => {
+    return [...commits].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [commits]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState<1 | 2 | 5>(1);
-
-  // Speed intervals in milliseconds
-  const intervalMap: Record<1 | 2 | 5, number> = {
-    1: 1400,
-    2: 700,
-    5: 280,
-  };
-
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Stop playback when reaching the end
+  const currentCommit = sortedCommits[currentIndex];
+  const progress = sortedCommits.length > 1 ? (currentIndex / (sortedCommits.length - 1)) * 100 : 0;
+  
+  const startYear = sortedCommits.length > 0 ? new Date(sortedCommits[0].date).getFullYear() : '';
+  const endYear = sortedCommits.length > 0 ? new Date(sortedCommits[sortedCommits.length - 1].date).getFullYear() : '';
+  const currentYear = currentCommit ? new Date(currentCommit.date).getFullYear() : '';
+
   useEffect(() => {
-    if (isPlaying) {
-      timerRef.current = setInterval(() => {
-        setCurrentIndex((prev) => {
-          if (prev >= (chronologicalCommits.current.length || 1) - 1) {
-            setIsPlaying(false);
-            return prev;
-          }
-          return prev + 1;
-        });
-      }, intervalMap[speed]);
-    } else if (timerRef.current) {
-      clearInterval(timerRef.current);
+    if (isPlaying && currentIndex < sortedCommits.length - 1) {
+      const delay = speed === 1 ? 1500 : speed === 2 ? 750 : 300;
+      timerRef.current = setTimeout(() => {
+        setCurrentIndex(prev => prev + 1);
+      }, delay);
+    } else if (isPlaying && currentIndex >= sortedCommits.length - 1) {
+      setIsPlaying(false);
     }
-
+    
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+      if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [isPlaying, speed]);
+  }, [isPlaying, currentIndex, speed, sortedCommits.length]);
 
-  const activeList = chronologicalCommits.current.length > 0
-    ? chronologicalCommits.current
-    : commits;
-
-  const currentCommit = activeList[currentIndex] || activeList[0];
-  const total = activeList.length;
-  const progressPercent = total > 1 ? (currentIndex / (total - 1)) * 100 : 100;
-
-  const handlePlayToggle = () => {
-    if (!isPlaying && currentIndex >= total - 1) {
-      setCurrentIndex(0);
-    }
-    setIsPlaying(!isPlaying);
-  };
-
-  const handleStepBack = () => {
-    setIsPlaying(false);
-    setCurrentIndex((prev) => Math.max(0, prev - 1));
-  };
-
-  const handleStepForward = () => {
-    setIsPlaying(false);
-    setCurrentIndex((prev) => Math.min(total - 1, prev + 1));
-  };
-
-  const handleReset = () => {
+  const togglePlay = () => setIsPlaying(!isPlaying);
+  
+  const reset = () => {
     setIsPlaying(false);
     setCurrentIndex(0);
+  };
+  
+  const stepBack = () => {
+    setIsPlaying(false);
+    setCurrentIndex(prev => Math.max(0, prev - 1));
+  };
+  
+  const stepForward = () => {
+    setIsPlaying(false);
+    setCurrentIndex(prev => Math.min(sortedCommits.length - 1, prev + 1));
   };
 
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -101,207 +62,91 @@ export function TimelineReplay({ commits }: TimelineReplayProps) {
     setCurrentIndex(Number(e.target.value));
   };
 
-  if (!currentCommit || total === 0) {
-    return null;
+  if (sortedCommits.length === 0) {
+    return <div className="text-center p-8 text-muted">No commits available for replay.</div>;
   }
 
-  const commitDate = new Date(currentCommit.date);
-  const formattedFullDate = commitDate.toLocaleDateString("en-US", {
-    weekday: "short",
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-  const formattedTime = commitDate.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-brass/30 bg-ink-surface/95 p-6 shadow-[0_0_50px_rgba(217,142,57,0.08)] backdrop-blur-xl sm:p-8">
-      {/* Top Chronometer Header */}
-      <div className="flex flex-col gap-4 border-b border-ink-border pb-6 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-brass-dim/60 bg-brass/10 text-brass-light">
-            <Clock className="h-5 w-5 animate-spin [animation-duration:12s]" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-xs uppercase tracking-[0.25em] text-brass-light">
-                Chronological Time Machine
-              </span>
-              <span className="inline-flex items-center rounded-full border border-commit-300/30 bg-commit-50/20 px-2 py-0.5 font-mono text-[10px] text-commit-300">
-                {isPlaying ? "Replaying History..." : "Replay Paused"}
-              </span>
-            </div>
-            <h2 className="font-display text-xl text-ivory sm:text-2xl">
-              Playback Odyssey
-            </h2>
-          </div>
-        </div>
-
-        {/* Vintage Odometer / Date Display */}
-        <div className="flex items-center gap-3 rounded-xl border border-ink-border bg-ink/80 px-4 py-2 font-mono">
-          <Calendar className="h-4 w-4 text-brass-light" />
-          <div className="flex items-baseline gap-2">
-            <span className="text-base font-bold text-brass-light">
-              {currentCommit.year}
-            </span>
-            <span className="text-xs text-muted">
-              {currentCommit.monthName.slice(0, 3)} {commitDate.getDate()}
-            </span>
-          </div>
-          <span className="border-l border-ink-border pl-2 text-xs text-muted/80">
-            {formattedTime}
-          </span>
+    <div className="bg-ink-surface border border-ink-border rounded-2xl p-6 md:p-8 flex flex-col items-center w-full max-w-4xl mx-auto space-y-8 shadow-sm">
+      <div className="w-full flex justify-between items-center mb-2">
+        <h2 className="font-display text-2xl text-ivory">Journey Through Time</h2>
+        <div className="bg-ink-soft px-4 py-1.5 rounded-full border border-ink-border">
+          <span className="font-mono text-brass font-medium">{currentYear}</span>
         </div>
       </div>
 
-      {/* Spotlight Commit Card Display */}
-      <div className="relative my-8 overflow-hidden rounded-xl border-2 border-brass-light/40 bg-gradient-to-b from-ink/90 via-ink-soft to-ink-surface p-6 sm:p-8">
-        {/* Glow pulse behind commit card */}
-        <div className="pointer-events-none absolute -left-10 -top-10 h-36 w-36 rounded-full bg-brass/15 blur-2xl" />
-        <div className="pointer-events-none absolute -bottom-10 -right-10 h-36 w-36 rounded-full bg-commit-300/10 blur-2xl" />
-
-        <div className="relative flex flex-col gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-ink-border/80 pb-3">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-md border border-ink-border bg-ink-surface px-2.5 py-1 font-mono text-xs text-commit-300">
-                <GitCommit className="h-3.5 w-3.5" />
-                {currentCommit.repoName}
-              </span>
-              <a
-                href={currentCommit.htmlUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex items-center gap-1 font-mono text-xs text-muted transition-colors hover:text-brass-light"
-              >
-                <span>#{currentCommit.shortSha}</span>
-                <ExternalLink className="h-3 w-3 opacity-60 transition-transform group-hover:translate-x-0.5" />
-              </a>
-            </div>
-
+      <div className="w-full bg-ink border border-ink-border rounded-xl p-6 min-h-[160px] flex flex-col justify-center relative overflow-hidden group">
+        <div className="absolute top-0 left-0 w-full h-1 bg-ink-border">
+          <div className="h-full bg-brass transition-all duration-300 ease-out" style={{ width: `${progress}%` }}></div>
+        </div>
+        
+        <div className="space-y-4 relative z-10">
+          <div className="flex items-center gap-3">
+            <span className="bg-commit-100/10 text-commit-300 border border-commit-300/20 px-2.5 py-1 rounded-md text-xs font-semibold tracking-wide uppercase">
+              {currentCommit.repoName}
+            </span>
             <span className="font-mono text-xs text-muted">
-              {formattedFullDate}
+              {currentCommit.sha.slice(0, 7)}
             </span>
           </div>
-
-          <div className="py-2">
-            <h3 className="font-display text-2xl leading-snug text-ivory sm:text-3xl">
-              {currentCommit.message}
-            </h3>
-          </div>
-
-          <div className="flex items-center justify-between pt-2 font-mono text-xs text-muted">
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-brass-light" />
-              <span>Authored by <strong className="text-ivory">{currentCommit.authorName}</strong></span>
-            </div>
-            <div className="flex items-center gap-1 text-brass-light">
-              <Sparkles className="h-3.5 w-3.5" />
-              <span>Event {currentIndex + 1} of {total}</span>
-            </div>
+          
+          <p className="font-display text-xl md:text-2xl text-ivory leading-snug">
+            {currentCommit.message}
+          </p>
+          
+          <div className="flex items-center gap-4 text-xs text-muted pt-2 border-t border-ink-border/50">
+            <span>{new Date(currentCommit.date).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</span>
+            <span>By {currentCommit.authorName}</span>
           </div>
         </div>
       </div>
 
-      {/* Scrubbable Progress Bar & Controls */}
-      <div className="flex flex-col gap-6">
-        {/* Progress bar with timestamp indicators */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between font-mono text-xs text-muted">
-            <span className="text-brass-light">
-              {activeList[0]?.year} Initial Commit
-            </span>
-            <span className="font-semibold text-ivory">
-              {Math.round(progressPercent)}% Journey
-            </span>
-            <span>
-              {activeList[total - 1]?.year} Present
-            </span>
-          </div>
-
-          <div className="relative flex items-center">
-            <input
-              type="range"
-              min={0}
-              max={total - 1}
-              value={currentIndex}
-              onChange={handleSliderChange}
-              className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-ink border border-ink-border accent-brass-light focus:outline-none"
-            />
+      <div className="w-full space-y-6">
+        <div className="relative pt-1">
+          <input
+            type="range"
+            min={0}
+            max={sortedCommits.length - 1}
+            value={currentIndex}
+            onChange={handleSliderChange}
+            className="w-full h-2 bg-ink-soft rounded-lg appearance-none cursor-pointer accent-brass focus:outline-none focus:ring-2 focus:ring-brass/30"
+          />
+          <div className="flex justify-between text-xs text-muted mt-2 font-mono">
+            <span>{startYear}</span>
+            <span>{Math.round(progress)}% complete</span>
+            <span>{endYear}</span>
           </div>
         </div>
 
-        {/* Playback Controls Toolbar */}
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-ink-border bg-ink/60 p-4">
-          {/* Transport buttons */}
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleReset}
-              title="Jump to beginning"
-              className="h-10 w-10 p-0 border-ink-border"
-            >
-              <RotateCcw className="h-4 w-4 text-muted" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleStepBack}
-              disabled={currentIndex === 0}
-              title="Previous commit"
-              className="h-10 w-10 p-0 border-ink-border"
-            >
-              <SkipBack className="h-4 w-4 text-ivory" />
-            </Button>
-            <Button
-              onClick={handlePlayToggle}
-              className="h-11 px-6 font-mono text-sm font-semibold tracking-wide bg-brass hover:bg-brass-light text-ink shadow-[0_0_20px_rgba(217,142,57,0.4)]"
-            >
-              {isPlaying ? (
-                <>
-                  <Pause className="mr-2 h-4 w-4 fill-current" />
-                  Pause
-                </>
-              ) : (
-                <>
-                  <Play className="mr-2 h-4 w-4 fill-current" />
-                  {currentIndex >= total - 1 ? "Replay" : "Play"}
-                </>
-              )}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleStepForward}
-              disabled={currentIndex >= total - 1}
-              title="Next commit"
-              className="h-10 w-10 p-0 border-ink-border"
-            >
-              <SkipForward className="h-4 w-4 text-ivory" />
-            </Button>
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6 w-full">
+          <div className="flex bg-ink-soft rounded-lg border border-ink-border p-1">
+            <button onClick={() => setSpeed(1)} className={`px-3 py-1 text-xs rounded-md transition-colors ${speed === 1 ? 'bg-ink text-ivory shadow-sm' : 'text-muted hover:text-ivory'}`}>1x</button>
+            <button onClick={() => setSpeed(2)} className={`px-3 py-1 text-xs rounded-md transition-colors ${speed === 2 ? 'bg-ink text-ivory shadow-sm' : 'text-muted hover:text-ivory'}`}>2x</button>
+            <button onClick={() => setSpeed(5)} className={`px-3 py-1 text-xs rounded-md transition-colors ${speed === 5 ? 'bg-ink text-ivory shadow-sm' : 'text-muted hover:text-ivory'}`}>5x</button>
           </div>
 
-          {/* Speed Controls */}
-          <div className="flex items-center gap-1.5 rounded-lg border border-ink-border bg-ink-surface p-1">
-            <span className="px-2 font-mono text-[11px] uppercase tracking-wider text-muted">
-              Speed
-            </span>
-            {([1, 2, 5] as const).map((s) => (
-              <button
-                key={s}
-                onClick={() => setSpeed(s)}
-                className={`rounded px-3 py-1 font-mono text-xs font-semibold transition-all ${
-                  speed === s
-                    ? "bg-brass text-ink shadow-sm"
-                    : "text-muted hover:text-ivory"
-                }`}
-              >
-                {s}x
-              </button>
-            ))}
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm" onClick={reset} disabled={currentIndex === 0} className="text-muted hover:text-ivory">
+              <RotateCcw className="w-4 h-4" />
+            </Button>
+            <Button variant="outline" size="sm" onClick={stepBack} disabled={currentIndex === 0}>
+              <SkipBack className="w-4 h-4" />
+            </Button>
+            <Button 
+              variant="default" 
+              size="lg" 
+              className="bg-brass text-ink hover:bg-brass-light rounded-full w-12 h-12 p-0 flex items-center justify-center shadow-md shadow-brass/20"
+              onClick={togglePlay}
+            >
+              {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-1" />}
+            </Button>
+            <Button variant="outline" size="sm" onClick={stepForward} disabled={currentIndex === sortedCommits.length - 1}>
+              <SkipForward className="w-4 h-4" />
+            </Button>
+          </div>
+          
+          <div className="w-[120px] text-right text-sm text-muted font-mono hidden md:block">
+            {currentIndex + 1} / {sortedCommits.length}
           </div>
         </div>
       </div>

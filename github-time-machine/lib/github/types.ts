@@ -24,10 +24,11 @@ export interface GitHubRepo {
   stargazers_count: number;
   forks_count: number;
   updated_at: string;
-  pushed_at: string | null;
+  pushed_at: string;
   created_at: string;
-  default_branch?: string;
+  default_branch: string;
   private: boolean;
+  fork: boolean;
 }
 
 export interface GitHubCommit {
@@ -35,15 +36,15 @@ export interface GitHubCommit {
   shortSha: string;
   message: string;
   authorName: string;
-  authorLogin?: string;
-  authorAvatar?: string;
-  date: string; // ISO 8601
+  authorLogin: string;
+  authorAvatar: string | null;
+  date: string;
   repoName: string;
   repoFullName: string;
   repoUrl: string;
   htmlUrl: string;
   year: number;
-  month: number; // 0-11
+  month: number;
   monthName: string;
 }
 
@@ -60,7 +61,30 @@ export interface TimelineYearGroup {
   months: TimelineMonthGroup[];
 }
 
-export interface ReplayPlaybackState {
+export interface ContributionDay {
+  date: string;
+  count: number;
+  level: 0 | 1 | 2 | 3 | 4;
+}
+
+export interface ContributionWeek {
+  days: ContributionDay[];
+}
+
+export interface AnalyticsData {
+  totalCommits: number;
+  totalRepos: number;
+  mostActiveYear: number | null;
+  mostActiveMonth: string | null;
+  longestStreak: number;
+  avgCommitsPerWeek: number;
+  topLanguages: { name: string; count: number; percentage: number }[];
+  lateNightPercentage: number;
+  weekendPercentage: number;
+  commitsByYear: Record<number, number>;
+}
+
+export interface ReplayState {
   isPlaying: boolean;
   currentIndex: number;
   speed: 1 | 2 | 5;

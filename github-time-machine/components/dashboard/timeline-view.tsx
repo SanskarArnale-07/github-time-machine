@@ -1,16 +1,7 @@
 "use client";
-
-import { useState } from "react";
-import {
-  GitCommit,
-  ExternalLink,
-  Calendar,
-  Search,
-  Filter,
-  Layers,
-  FolderGit2,
-} from "lucide-react";
-import { TimelineYearGroup, GitHubCommit, GitHubRepo } from "@/lib/github/types";
+import React, { useState, useMemo } from "react";
+import { TimelineYearGroup, GitHubRepo } from "@/lib/github/types";
+import { Search, GitCommit } from "lucide-react";
 
 interface TimelineViewProps {
   yearGroups: TimelineYearGroup[];
@@ -23,214 +14,153 @@ export function TimelineView({
   repos,
   totalCommits,
 }: TimelineViewProps) {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedRepo, setSelectedRepo] = useState<string>("ALL");
+  const [search, setSearch] = useState("");
+  const [selectedRepo, setSelectedRepo] = useState<string>("all");
 
-  // Filter commits based on search and repository selection
-  const filteredGroups = yearGroups
-    .map((yearGroup) => {
-      const filteredMonths = yearGroup.months
-        .map((monthGroup) => {
-          const filteredCommits = monthGroup.commits.filter((commit) => {
-            const matchesSearch =
-              !searchTerm ||
-              commit.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
-              commit.repoName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-              commit.shortSha.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredData = useMemo(() => {
+    return yearGroups
+      .map((yearGroup) => {
+        const filteredMonths = yearGroup.months
+          .map((month) => {
+            const filteredCommits = month.commits.filter((commit) => {
+              const matchesSearch =
+                commit.message.toLowerCase().includes(search.toLowerCase()) ||
+                commit.repoName.toLowerCase().includes(search.toLowerCase()) ||
+                commit.sha.toLowerCase().includes(search.toLowerCase());
+              const matchesRepo =
+                selectedRepo === "all" || commit.repoName === selectedRepo;
+              return matchesSearch && matchesRepo;
+            });
+            return { ...month, commits: filteredCommits };
+          })
+          .filter((month) => month.commits.length > 0);
 
-            const matchesRepo =
-              selectedRepo === "ALL" ||
-              commit.repoName.toLowerCase() === selectedRepo.toLowerCase();
+        return { ...yearGroup, months: filteredMonths };
+      })
+      .filter((yearGroup) => yearGroup.months.length > 0);
+  }, [yearGroups, search, selectedRepo]);
 
-            return matchesSearch && matchesRepo;
-          });
-
-          return {
-            ...monthGroup,
-            commits: filteredCommits,
-          };
-        })
-        .filter((monthGroup) => monthGroup.commits.length > 0);
-
-      const totalFiltered = filteredMonths.reduce(
-        (sum, m) => sum + m.commits.length,
-        0
-      );
-
-      return {
-        ...yearGroup,
-        totalCommits: totalFiltered,
-        months: filteredMonths,
-      };
-    })
-    .filter((yearGroup) => yearGroup.months.length > 0);
-
-  const distinctRepos = Array.from(
-    new Set(repos.map((r) => r.name))
-  ).filter(Boolean);
+  const getRelativeTime = (dateString: string) => {
+    try {
+      const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+      const diff = new Date().getTime() - new Date(dateString).getTime();
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      if (days < 30) return rtf.format(-Math.max(1, days), "day");
+      const months = Math.floor(days / 30);
+      if (months < 12) return rtf.format(-months, "month");
+      return rtf.format(-Math.floor(months / 12), "year");
+    } catch {
+      return "recently";
+    }
+  };
 
   return (
-    <div className="flex flex-col gap-8">
-      {/* Search and Repository Filter Header */}
-      <div className="flex flex-col gap-4 rounded-2xl border border-ink-border bg-ink-surface/80 p-5 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between">
-        {/* Search input */}
-        <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-          <input
-            type="text"
-            placeholder="Search commits by message, SHA, or repository..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full rounded-xl border border-ink-border bg-ink/90 py-2.5 pl-10 pr-4 font-mono text-sm text-ivory placeholder-muted focus:border-brass focus:outline-none focus:ring-1 focus:ring-brass"
-          />
+    <div className="space-y-8">
+      <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+        <div>
+          <h2 className="font-display text-2xl text-ivory">Commit History</h2>
+          <p className="mt-1 text-xs text-muted">
+            {totalCommits} commits grouped by year and month
+          </p>
         </div>
 
-        {/* Repository selector */}
-        <div className="flex items-center gap-2">
-          <FolderGit2 className="h-4 w-4 text-brass-light" />
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+            <input
+              type="text"
+              placeholder="Search commits..."
+              className="w-full rounded-lg border border-ink-border bg-ink-soft py-2 pl-9 pr-4 text-sm text-ivory placeholder-muted focus:border-brass focus:outline-none md:w-64"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
           <select
+            className="cursor-pointer rounded-lg border border-ink-border bg-ink-soft px-4 py-2 text-sm text-ivory focus:border-brass focus:outline-none"
             value={selectedRepo}
             onChange={(e) => setSelectedRepo(e.target.value)}
-            aria-label="Filter timeline by repository"
-            className="rounded-xl border border-ink-border bg-ink/90 px-3 py-2 font-mono text-xs text-ivory focus:border-brass focus:outline-none"
+            aria-label="Filter by repository"
           >
-            <option value="ALL">All Repositories ({repos.length})</option>
-            {distinctRepos.map((repo) => (
-              <option key={repo} value={repo}>
-                {repo}
+            <option value="all">All repositories</option>
+            {repos.map((repo) => (
+              <option key={repo.name} value={repo.name}>
+                {repo.name}
               </option>
             ))}
           </select>
         </div>
       </div>
 
-      {filteredGroups.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-ink-border bg-ink-surface/50 p-12 text-center">
-          <Layers className="h-10 w-10 text-muted/50" />
-          <h3 className="mt-4 font-display text-xl text-ivory">
-            No matching commits found
-          </h3>
-          <p className="mt-1 font-mono text-xs text-muted">
-            Try adjusting your search query or selecting &quot;All Repositories&quot;.
-          </p>
-        </div>
-      ) : (
-        /* Year by Year Chronological Timeline */
-        <div className="relative flex flex-col gap-12">
-          {/* Vertical connecting line */}
-          <div className="absolute bottom-6 left-6 top-6 -z-0 w-[2px] bg-gradient-to-b from-brass via-commit-300 to-ink-border sm:left-8" />
-
-          {filteredGroups.map((yearGroup) => (
-            <div key={yearGroup.year} className="relative z-10 flex flex-col gap-6">
-              {/* Year Badge Divider */}
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-brass bg-ink shadow-[0_0_20px_rgba(217,142,57,0.3)] sm:h-14 sm:w-14">
-                  <span className="font-display text-xl font-bold text-brass-light sm:text-2xl">
-                    {yearGroup.year}
-                  </span>
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <h3 className="font-display text-2xl text-ivory">
-                    Year {yearGroup.year}
-                  </h3>
-                  <span className="font-mono text-xs text-brass-light/80">
-                    ({yearGroup.totalCommits} commits)
-                  </span>
-                </div>
-              </div>
-
-              {/* Month Sections */}
-              <div className="ml-6 flex flex-col gap-6 border-l-2 border-transparent pl-4 sm:ml-8 sm:pl-6">
-                {yearGroup.months.map((monthGroup) => (
-                  <div
-                    key={`${yearGroup.year}-${monthGroup.month}`}
-                    className="flex flex-col gap-3"
-                  >
-                    {/* Month Label */}
-                    <div className="inline-flex items-center gap-2">
-                      <Calendar className="h-3.5 w-3.5 text-commit-300" />
-                      <span className="font-mono text-xs uppercase tracking-[0.2em] text-muted">
-                        {monthGroup.monthName} {yearGroup.year}
-                      </span>
-                      <div className="h-[1px] flex-1 bg-ink-border/60" />
-                    </div>
-
-                    {/* Commit Cards List */}
-                    <div className="flex flex-col gap-3">
-                      {monthGroup.commits.map((commit) => {
-                        const dateObj = new Date(commit.date);
-                        const formattedDate = dateObj.toLocaleDateString(
-                          "en-US",
-                          {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          }
-                        );
-                        const formattedTime = dateObj.toLocaleTimeString(
-                          "en-US",
-                          {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          }
-                        );
-
-                        return (
-                          <div
-                            key={commit.sha}
-                            className="group relative flex flex-col gap-3 rounded-xl border border-ink-border bg-ink-surface/70 p-4 transition-all duration-200 hover:border-brass/40 hover:bg-ink-surface sm:flex-row sm:items-center sm:justify-between"
-                          >
-                            {/* Left: Commit info & message */}
-                            <div className="flex flex-col gap-1.5 sm:max-w-2xl">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span className="inline-flex items-center gap-1 rounded border border-commit-100/40 bg-commit-50/20 px-2 py-0.5 font-mono text-[11px] text-commit-300">
-                                  <GitCommit className="h-3 w-3" />
-                                  {commit.repoName}
-                                </span>
-                                <a
-                                  href={commit.htmlUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="font-mono text-[11px] text-muted transition-colors hover:text-brass-light"
-                                >
-                                  #{commit.shortSha}
-                                </a>
-                              </div>
-
-                              <p className="font-sans text-sm font-medium leading-snug text-ivory group-hover:text-brass-light transition-colors">
-                                {commit.message}
-                              </p>
-                            </div>
-
-                            {/* Right: Date and GitHub link */}
-                            <div className="flex items-center justify-between gap-4 sm:flex-col sm:items-end sm:justify-center">
-                              <div className="flex flex-col font-mono text-[11px] text-muted sm:text-right">
-                                <span>{formattedDate}</span>
-                                <span className="text-[10px] text-muted/60">
-                                  {formattedTime}
-                                </span>
-                              </div>
-                              <a
-                                href={commit.htmlUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                title="View on GitHub"
-                                className="rounded-lg border border-ink-border bg-ink/70 p-1.5 text-muted transition-all hover:border-brass hover:text-ivory"
-                              >
-                                <ExternalLink className="h-3.5 w-3.5" />
-                              </a>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
+      <div className="relative ml-4 space-y-12 border-l border-ink-border pl-6 md:ml-6 md:pl-10">
+        {filteredData.map((year) => (
+          <div key={year.year} className="relative">
+            <div className="absolute -left-[43px] top-0 flex h-10 w-10 items-center justify-center rounded-full border-2 border-brass bg-ink shadow-lg md:-left-[59px]">
+              <span className="font-display text-sm font-bold text-brass">
+                {year.year.toString().slice(-2)}&apos;
+              </span>
             </div>
-          ))}
-        </div>
-      )}
+
+            <div className="mb-6 flex items-center gap-4">
+              <h3 className="font-display text-3xl font-bold text-ivory">
+                {year.year}
+              </h3>
+              <span className="rounded-full border border-ink-border bg-ink-soft px-3 py-1 font-mono text-xs text-muted">
+                {year.months.reduce((acc, m) => acc + m.commits.length, 0)}{" "}
+                commits
+              </span>
+            </div>
+
+            <div className="space-y-10">
+              {year.months.map((month) => (
+                <div key={month.month} className="space-y-4">
+                  <h4 className="font-mono text-xs uppercase tracking-wider text-brass-light">
+                    {month.monthName} {year.year}
+                  </h4>
+
+                  <div className="space-y-3">
+                    {month.commits.map((commit) => (
+                      <div
+                        key={commit.sha}
+                        className="group rounded-xl border border-ink-border bg-ink-surface p-4 shadow-sm transition-colors hover:border-commit-300/50"
+                      >
+                        <div className="mb-2 flex flex-col justify-between gap-2 md:flex-row md:items-center">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-md border border-commit-200/20 bg-commit-100/10 px-2 py-0.5 font-mono text-xs font-medium text-commit-300">
+                              {commit.repoName}
+                            </span>
+                            <a
+                              href={commit.htmlUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="font-mono text-xs text-muted transition-colors hover:text-brass"
+                            >
+                              {commit.shortSha || commit.sha.slice(0, 7)}
+                            </a>
+                          </div>
+                          <span className="flex items-center gap-1.5 font-mono text-xs text-muted">
+                            <GitCommit className="h-3.5 w-3.5" />
+                            {getRelativeTime(commit.date)}
+                          </span>
+                        </div>
+                        <p className="line-clamp-2 text-sm leading-relaxed text-ivory">
+                          {commit.message}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        {filteredData.length === 0 && (
+          <div className="py-12 text-center text-muted">
+            No commits match your filters.
+          </div>
+        )}
+      </div>
     </div>
   );
 }

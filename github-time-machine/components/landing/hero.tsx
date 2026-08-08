@@ -1,95 +1,72 @@
 "use client";
+
 import { motion } from "framer-motion";
-import { Github, ArrowRight } from "lucide-react";
+import { Github } from "lucide-react";
+import { signInWithGithub } from "@/lib/supabase/auth-actions";
 import { Button } from "@/components/ui/button";
 import { ContributionField } from "@/components/landing/contribution-field";
-import { signInWithGithub } from "@/lib/supabase/auth-actions";
-const container = {
-  hidden: {},
-  show: {
-    transition: { staggerChildren: 0.12, delayChildren: 0.15 },
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.2,
+      delayChildren: 0.3,
+    },
   },
 };
 
-const item = {
-  hidden: { opacity: 0, y: 22 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] },
-  },
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } },
 };
 
 export function Hero() {
   return (
-    <section className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-6 py-24">
-      <ContributionField />
-
-      <motion.div
-        variants={container}
+    <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-ink pt-20">
+      <div className="absolute inset-0 z-0 opacity-40">
+        <ContributionField />
+      </div>
+      
+      <motion.div 
+        variants={containerVariants}
         initial="hidden"
-        animate="show"
-        className="relative z-10 mx-auto flex max-w-3xl flex-col items-center text-center"
+        animate="visible"
+        className="relative z-10 flex flex-col items-center text-center max-w-4xl px-6"
       >
-        <motion.div
-          variants={item}
-          className="mb-7 inline-flex items-center gap-2 rounded-full border border-ink-border bg-ink-surface/80 px-4 py-1.5 font-mono text-xs text-muted backdrop-blur-sm"
-        >
-          <span className="h-1.5 w-1.5 rounded-full bg-commit-300 shadow-[0_0_8px_2px_rgba(57,211,83,0.6)]" />
-          every commit, every year, replayed
+        <motion.div variants={itemVariants} className="mb-8 rounded-full border border-brass-dim/30 bg-brass-dim/10 px-4 py-1.5 backdrop-blur-sm">
+          <span className="font-sans text-xs text-brass-light tracking-wide">
+            Every commit, every year, replayed
+          </span>
         </motion.div>
 
-        <motion.h1
-          variants={item}
-          className="text-balance font-display text-5xl leading-[1.05] text-ivory sm:text-6xl md:text-7xl"
-        >
-          Your GitHub journey
-          <br />
-          has a <span className="italic text-brass-light">story.</span>
+        <motion.h1 variants={itemVariants} className="font-display text-5xl md:text-7xl text-ivory tracking-tight mb-6 leading-tight">
+          Your GitHub journey has a <span className="italic text-brass-light">story.</span>
         </motion.h1>
 
-        <motion.p
-          variants={item}
-          className="mt-6 max-w-xl text-balance font-sans text-base leading-relaxed text-muted sm:text-lg"
-        >
-          Time Machine turns years of commits, repos, and late-night pushes into
-          a cinematic replay of how you became the developer you are — one
-          contribution graph square at a time.
+        <motion.p variants={itemVariants} className="font-sans text-lg md:text-xl text-muted max-w-2xl mb-10 leading-relaxed">
+          Rediscover the late-night pushes, the open-source breakthroughs, and the evolution of your code over the years.
         </motion.p>
 
-        <motion.div
-          variants={item}
-          className="mt-10 flex flex-col items-center gap-4 sm:flex-row"
-        >
-          <form action={signInWithGithub}>
-            <Button size="lg" className="group font-medium" type="submit">
-              <Github className="mr-2 h-[18px] w-[18px]" />
+        <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center gap-4 mb-6 w-full sm:w-auto">
+          <form action={signInWithGithub} className="w-full sm:w-auto">
+            <Button size="lg" className="w-full sm:w-auto font-sans bg-ivory text-ink hover:bg-ivory/90 rounded-full px-8">
+              <Github className="mr-2 w-4 h-4" />
               Continue with GitHub
-              <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
             </Button>
           </form>
-
-          <Button size="lg" variant="outline" className="font-mono text-sm">
-            see a sample replay
+          <Button size="lg" variant="outline" className="w-full sm:w-auto font-sans rounded-full border-white/10 text-ivory hover:bg-white/5">
+            See a sample replay
           </Button>
         </motion.div>
 
-        <motion.p
-          variants={item}
-          className="mt-5 font-mono text-xs text-muted/70"
-        >
-          read-only access · nothing is ever pushed on your behalf
+        <motion.p variants={itemVariants} className="font-mono text-xs text-muted/60">
+          Read-only access · nothing is ever pushed on your behalf
         </motion.p>
       </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.2, duration: 1 }}
-        className="absolute bottom-8 left-1/2 z-10 -translate-x-1/2 font-mono text-[11px] text-muted/60"
-      >
-        scroll to explore
-      </motion.div>
-    </section>
+      
+      <div className="absolute bottom-0 inset-x-0 h-40 bg-gradient-to-t from-ink to-transparent z-0 pointer-events-none" />
+    </div>
   );
 }

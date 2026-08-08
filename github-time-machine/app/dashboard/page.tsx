@@ -24,7 +24,7 @@ export default async function DashboardPage() {
     "developer";
   const email: string | undefined = user.email;
 
-  // Retrieve session provider token if available
+  // Attempt to pre-fetch profile on the server
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -34,37 +34,28 @@ export default async function DashboardPage() {
   try {
     initialProfile = await fetchGitHubProfile(username, providerToken);
   } catch {
-    // If profile call fails during server render, DashboardContent will manage fallback
     initialProfile = null;
   }
 
   return (
-    <main className="flex min-h-screen flex-col bg-ink text-ivory antialiased">
-      {/* Vintage App Navigation Bar */}
-      <header className="sticky top-0 z-30 border-b border-ink-border bg-ink/80 backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4 sm:px-8">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-ink-border bg-ink-surface shadow-sm">
-              <GitCommitHorizontal className="h-5 w-5 text-commit-300" />
+    <main className="flex min-h-screen flex-col bg-ink">
+      {/* Top navigation */}
+      <header className="sticky top-0 z-30 border-b border-ink-border bg-ink/90 backdrop-blur-md">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-3.5 sm:px-8">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-ink-border bg-ink-surface">
+              <GitCommitHorizontal className="h-4 w-4 text-commit-300" />
             </div>
-            <div className="flex flex-col">
-              <span className="font-mono text-sm font-semibold tracking-tight text-ivory">
-                time-machine<span className="text-brass-light">.git</span>
-              </span>
-              <span className="font-mono text-[10px] text-muted/70">
-                temporal commit replay
-              </span>
-            </div>
+            <span className="text-sm font-medium text-ivory">
+              time-machine<span className="text-brass-light">.git</span>
+            </span>
           </div>
-
-          <div className="flex items-center gap-4">
-            <LogoutButton />
-          </div>
+          <LogoutButton />
         </div>
       </header>
 
-      {/* Main Container */}
-      <section className="mx-auto w-full max-w-6xl flex-1 px-6 py-10 sm:px-8">
+      {/* Main content */}
+      <section className="mx-auto w-full max-w-6xl flex-1 px-6 py-8 sm:px-8">
         <DashboardContent
           initialUsername={username}
           initialAvatar={avatarUrl}
@@ -73,9 +64,9 @@ export default async function DashboardPage() {
         />
       </section>
 
-      {/* Vintage Footer */}
-      <footer className="border-t border-ink-border py-8 text-center font-mono text-xs text-muted/60">
-        <p>GitHub Time Machine · Crafted for developer odysseys</p>
+      {/* Footer */}
+      <footer className="border-t border-ink-border py-6 text-center text-xs text-muted/50">
+        GitHub Time Machine · Built for developers who forgot how far they've come
       </footer>
     </main>
   );
