@@ -13,59 +13,59 @@
 
   body {
     @apply bg-ink text-ivory antialiased;
-    background-color: #0B1020;
+    background-color: #09090B;
   }
 
   ::selection {
-    background-color: rgba(212, 168, 83, 0.35);
+    background-color: rgba(212, 168, 83, 0.25);
     color: #f2f0eb;
   }
 
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: #0B1020;
+    background: #09090B;
   }
   ::-webkit-scrollbar-thumb {
-    background: #1E293B;
+    background: #27272A;
     border-radius: 999px;
-    border: 2px solid #0B1020;
+    border: 2px solid #09090B;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #334155;
+    background: #3F3F46;
   }
 }
 
 @layer components {
-  /* Glassmorphism Frosted Surfaces */
+  /* Editorial refined dark surfaces */
   .glass-card {
-    @apply relative overflow-hidden rounded-2xl border border-white/10 bg-ink-surface/75 backdrop-blur-xl shadow-2xl;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+    @apply relative overflow-hidden rounded-2xl border border-zinc-800/80 bg-ink-surface/85 backdrop-blur-xl;
+    box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.7);
   }
 
   .glass-card-glow {
-    @apply relative overflow-hidden rounded-3xl border border-brass/30 bg-ink-surface/80 backdrop-blur-2xl shadow-2xl;
-    box-shadow: 0 0 45px -10px rgba(212, 168, 83, 0.2), 0 20px 40px -15px rgba(0, 0, 0, 0.7);
+    @apply relative overflow-hidden rounded-3xl border border-brass/35 bg-zinc-900/90 backdrop-blur-2xl;
+    box-shadow: 0 0 50px -15px rgba(212, 168, 83, 0.12), 0 25px 50px -20px rgba(0, 0, 0, 0.8);
   }
 
   /* Subtle GitHub Grid Pattern */
   .bg-grid-pattern {
     background-size: 32px 32px;
     background-image: 
-      linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
   }
 
   /* Soft Vignette */
   .vignette-overlay {
-    background: radial-gradient(circle at 50% 50%, transparent 40%, rgba(7, 10, 20, 0.85) 100%);
+    background: radial-gradient(circle at 50% 50%, transparent 50%, rgba(9, 9, 11, 0.92) 100%);
   }
 
   /* Skeleton loading shimmer */
   .skeleton {
-    @apply relative overflow-hidden rounded-lg bg-ink-surface;
+    @apply relative overflow-hidden rounded-lg bg-zinc-900;
   }
   .skeleton::after {
     content: "";

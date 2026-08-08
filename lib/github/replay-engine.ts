@@ -124,7 +124,6 @@ export interface ReplayEngineControls {
   speed: 1 | 2 | 5;
   progress: number; // 0 to 100
   total: number;
-  isFullscreen: boolean;
 
   // Active item & metadata
   currentEvent: ReplayEvent | null;
@@ -158,7 +157,6 @@ export interface ReplayEngineControls {
   skipYear: (direction: 1 | -1) => void;
   jumpToChapter: (chapterId: string) => void;
   setSpeed: (speed: 1 | 2 | 5) => void;
-  toggleFullscreen: () => void;
 }
 
 /**
@@ -180,7 +178,6 @@ export function useReplayEngine(
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState<1 | 2 | 5>(1);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // 1x = 2500ms (2.5 seconds per event), 2x = 1250ms, 5x = 500ms
   const speedIntervalMap: Record<1 | 2 | 5, number> = {
@@ -353,10 +350,6 @@ export function useReplayEngine(
     [chapters, seek]
   );
 
-  const toggleFullscreen = useCallback(() => {
-    setIsFullscreen((prev) => !prev);
-  }, []);
-
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -393,9 +386,6 @@ export function useReplayEngine(
       } else if (e.code === "KeyL") {
         e.preventDefault();
         skipBy(5); // Jump forward 5 commits
-      } else if (e.code === "KeyF") {
-        e.preventDefault();
-        toggleFullscreen();
       } else if (e.code === "KeyR") {
         e.preventDefault();
         replay();
@@ -410,7 +400,7 @@ export function useReplayEngine(
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [togglePlay, stepBack, stepForward, skipBy, skipYear, replay, toggleFullscreen]);
+  }, [togglePlay, stepBack, stepForward, skipBy, skipYear, replay]);
 
   // Active event & derived properties
   const currentEvent = total > 0 ? events[currentIndex] || events[0] : null;
@@ -498,7 +488,6 @@ export function useReplayEngine(
     speed,
     progress,
     total,
-    isFullscreen,
     currentEvent,
     currentChapter,
     currentYear,
@@ -524,6 +513,5 @@ export function useReplayEngine(
     skipYear,
     jumpToChapter,
     setSpeed,
-    toggleFullscreen,
   };
 }

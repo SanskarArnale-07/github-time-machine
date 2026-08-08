@@ -10,43 +10,43 @@ const config: Config = {
     extend: {
       colors: {
         ink: {
-          DEFAULT: "#0B1020", // Deep Navy background per Stage 1.5
-          deep: "#070A14",
-          soft: "#0F172A",
-          surface: "#131C31",
-          border: "#1E293B",
-          card: "rgba(19, 28, 49, 0.75)",
+          DEFAULT: "#09090B", // Deep Charcoal
+          deep: "#040405",
+          soft: "#18181B",
+          surface: "#18181B",
+          border: "#27272A",
+          card: "rgba(24, 24, 27, 0.85)",
         },
         navy: {
-          DEFAULT: "#0B1020",
-          deep: "#070A14",
-          soft: "#0F172A",
-          surface: "#131C31",
-          border: "#1E293B",
-          glow: "rgba(59, 130, 246, 0.15)",
+          DEFAULT: "#09090B",
+          deep: "#040405",
+          soft: "#18181B",
+          surface: "#18181B",
+          border: "#27272A",
+          glow: "rgba(212, 168, 83, 0.08)",
         },
         cosmic: {
-          blue: "#1D4ED8",
-          cyan: "#38BDF8",
+          blue: "#3F3F46", // Graphite/Zinc base
+          cyan: "#A1A1AA",
           indigo: "#6366F1",
           amber: "#F59E0B",
           gold: "#D4A853",
         },
         commit: {
-          50: "#0E4429",
-          100: "#006D32",
-          200: "#26A641",
-          300: "#39D353",
-          glow: "#5CFF7D",
+          50: "#18181B",
+          100: "#27272A",
+          200: "#D4A853", // Using gold accent for highlights
+          300: "#E3BC6E",
+          glow: "rgba(212, 168, 83, 0.4)",
         },
         brass: {
           DEFAULT: "#D4A853",
           light: "#E3BC6E",
           dim: "#8A6D2F",
-          glow: "rgba(212, 168, 83, 0.25)",
+          glow: "rgba(212, 168, 83, 0.2)",
         },
-        ivory: "#F2F0EB",
-        muted: "#8B949E",
+        ivory: "#FAFAFA",
+        muted: "#A1A1AA",
       },
       fontFamily: {
         display: ["var(--font-playfair)", "Georgia", "serif"],
@@ -97,9 +97,9 @@ const config: Config = {
       },
       backgroundImage: {
         "radial-fade":
-          "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(212,168,83,0.12), transparent 70%)",
+          "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(212,168,83,0.08), transparent 70%)",
         "cosmic-radial":
-          "radial-gradient(circle at 50% 30%, rgba(29, 78, 216, 0.18), rgba(212, 168, 83, 0.08) 45%, transparent 70%)",
+          "radial-gradient(circle at 50% 30%, rgba(99, 102, 241, 0.05), rgba(212, 168, 83, 0.03) 45%, transparent 70%)",
       },
     },
   },

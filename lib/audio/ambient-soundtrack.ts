@@ -156,7 +156,8 @@ class AmbientSoundEngine {
 
     const playProgression = () => {
       if (!this.isPlaying || !this.ctx) return;
-      const chords = selectedTheme.chords;
+      const currentSelectedTheme = this.themes[this.currentTheme];
+      const chords = currentSelectedTheme.chords;
       const currentChord = chords[chordStep % chords.length];
 
       // Play soft warm chord pad in background
@@ -178,6 +179,14 @@ class AmbientSoundEngine {
 
     playProgression();
     this.intervalTimer = setInterval(playProgression, 2900);
+  }
+
+  /**
+   * Smoothly changes the active harmonic theme
+   */
+  public setTheme(theme: SoundtrackTheme) {
+    if (this.currentTheme === theme) return;
+    this.currentTheme = theme;
   }
 
   /**

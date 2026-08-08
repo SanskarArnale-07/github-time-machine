@@ -454,88 +454,98 @@ export async function exportReplayVideoFormat(
 
         ctx.globalAlpha = Math.max(0.2, eventAlpha);
 
-        // Glassmorphic Card (Occupies 80% of Frame)
-        ctx.fillStyle = "rgba(19, 28, 49, 0.88)";
-        ctx.strokeStyle = ev.type === "repo_created" ? "#D4A853" : "rgba(255, 255, 255, 0.12)";
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.roundRect(cardX, cardY, cardW, cardH, 36);
-        ctx.fill();
-        ctx.stroke();
+        if (ev.type === "year_milestone") {
+          // --- Dramatic Chapter Title Card ---
+          ctx.fillStyle = "rgba(11, 16, 32, 0.95)";
+          ctx.fillRect(0, 0, width, height);
+          
+          ctx.fillStyle = "#D4A853";
+          ctx.font = "bold 24px monospace";
+          ctx.fillText(ev.title.toUpperCase(), cx - 120, cy - 80);
 
-        // Top Chapter & Era Indicator
-        ctx.fillStyle = "#D4A853";
-        ctx.font = "bold 22px monospace";
-        const chapterName = ev.chapterName || "THE DEVELOPER JOURNEY";
-        ctx.fillText(`CHAPTER: ${chapterName.toUpperCase()} · ${ev.year}`, cardX + 90, cardY + 130);
+          ctx.fillStyle = "#F2F0EB";
+          ctx.font = "italic 68px Playfair Display, Georgia, serif";
+          ctx.fillText(`Chapter: ${ev.chapterName || "Progression"}`, cx - 350, cy);
 
-        ctx.fillStyle = "#8B949E";
-        ctx.font = "18px monospace";
-        ctx.fillText(`Commit ${eventIndex + 1} of ${sampledEvents.length}`, cardX + cardW - 380, cardY + 130);
-
-        // Large Repository Badge
-        ctx.fillStyle = "#0E4429";
-        ctx.strokeStyle = "#39D353";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.roundRect(cardX + 90, cardY + 180, 360, 56, 14);
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.fillStyle = "#39D353";
-        ctx.font = "bold 22px monospace";
-        const rName = ev.repoName ? `⚡ ${ev.repoName}` : "⚡ Repository";
-        ctx.fillText(rName.length > 22 ? `${rName.slice(0, 20)}...` : rName, cardX + 115, cardY + 217);
-
-        // Prominent Playfair Display / Serif Commit Headline
-        ctx.fillStyle = "#F2F0EB";
-        ctx.font = "bold 52px Georgia, serif";
-        const titleText = ev.title.length > 58 ? `${ev.title.slice(0, 55)}...` : ev.title;
-        ctx.fillText(titleText, cardX + 90, cardY + 340);
-
-        // Date Timestamp & Metadata
-        ctx.fillStyle = "#8B949E";
-        ctx.font = "22px monospace";
-        ctx.fillText(`Pushed on ${ev.date.slice(0, 10)} · #${ev.commitShortSha || "sha"}`, cardX + 90, cardY + 420);
-
-        // Chapter Narrative Sentence
-        if (ev.impactDescription || ev.chapterName) {
-          ctx.fillStyle = "rgba(11, 16, 32, 0.9)";
-          ctx.strokeStyle = "rgba(212, 168, 83, 0.35)";
-          ctx.lineWidth = 1.5;
+          if (ev.subtitle) {
+            ctx.fillStyle = "#8B949E";
+            ctx.font = "24px system-ui, sans-serif";
+            ctx.fillText(ev.subtitle, cx - 250, cy + 80);
+          }
+        } else {
+          // --- Minimal Commit Card ---
+          // Glassmorphic Card (Occupies 80% of Frame)
+          ctx.fillStyle = "rgba(19, 28, 49, 0.88)";
+          ctx.strokeStyle = ev.type === "repo_created" ? "#D4A853" : "rgba(255, 255, 255, 0.12)";
+          ctx.lineWidth = 2.5;
           ctx.beginPath();
-          ctx.roundRect(cardX + 90, cardY + 480, cardW - 180, 110, 18);
+          ctx.roundRect(cardX, cardY, cardW, cardH, 36);
           ctx.fill();
           ctx.stroke();
 
+          // Top Chapter Indicator
           ctx.fillStyle = "#D4A853";
-          ctx.font = "bold 18px monospace";
-          ctx.fillText(`✦ MILESTONE: ${ev.impactBadge?.toUpperCase() || "PROGRESSION"}`, cardX + 120, cardY + 524);
+          ctx.font = "bold 20px monospace";
+          const chapterName = ev.chapterName || "THE DEVELOPER JOURNEY";
+          ctx.fillText(`CHAPTER: ${chapterName.toUpperCase()} · ${ev.year}`, cardX + 90, cardY + 110);
 
+          // Large Repository Badge
+          ctx.fillStyle = "#0E4429";
+          ctx.strokeStyle = "#39D353";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.roundRect(cardX + 90, cardY + 160, 360, 56, 14);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#39D353";
+          ctx.font = "bold 22px monospace";
+          const rName = ev.repoName ? `⚡ ${ev.repoName}` : "⚡ Repository";
+          ctx.fillText(rName.length > 22 ? `${rName.slice(0, 20)}...` : rName, cardX + 115, cardY + 197);
+
+          // Prominent Serif Commit Headline
           ctx.fillStyle = "#F2F0EB";
-          ctx.font = "italic 20px Georgia, serif";
-          const desc = ev.impactDescription || "Continued active development across codebase.";
-          ctx.fillText(`“${desc}”`, cardX + 120, cardY + 562);
+          ctx.font = "bold 56px Playfair Display, Georgia, serif";
+          const titleText = ev.title.length > 55 ? `${ev.title.slice(0, 52)}...` : ev.title;
+          ctx.fillText(titleText, cardX + 90, cardY + 310);
+
+          // Date Timestamp
+          ctx.fillStyle = "#8B949E";
+          ctx.font = "22px monospace";
+          ctx.fillText(`Pushed on ${ev.date.slice(0, 10)}`, cardX + 90, cardY + 390);
+
+          // Chapter Narrative Sentence
+          if (ev.impactDescription) {
+            ctx.fillStyle = "rgba(11, 16, 32, 0.9)";
+            ctx.strokeStyle = "rgba(212, 168, 83, 0.35)";
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.roundRect(cardX + 90, cardY + 450, cardW - 180, 110, 18);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = "#D4A853";
+            ctx.font = "bold 18px monospace";
+            ctx.fillText(`✦ MILESTONE: ${ev.impactBadge?.toUpperCase() || "PROGRESSION"}`, cardX + 120, cardY + 494);
+
+            ctx.fillStyle = "#F2F0EB";
+            ctx.font = "italic 22px Playfair Display, Georgia, serif";
+            ctx.fillText(`“${ev.impactDescription}”`, cardX + 120, cardY + 532);
+          }
+
+          // Minimal Progress Indicator
+          const barY = cardY + cardH - 120;
+          const barW = cardW - 180;
+          ctx.fillStyle = "#0B1020";
+          ctx.beginPath();
+          ctx.roundRect(cardX + 90, barY, barW, 8, 4);
+          ctx.fill();
+
+          ctx.fillStyle = "#D4A853";
+          ctx.beginPath();
+          ctx.roundRect(cardX + 90, barY, Math.max(20, barW * overallProgress), 8, 4);
+          ctx.fill();
         }
-
-        // Thick Glowing Golden Progress Bar (Positioned near bottom of card)
-        const barY = cardY + cardH - 120;
-        const barW = cardW - 180;
-
-        ctx.fillStyle = "#0B1020";
-        ctx.beginPath();
-        ctx.roundRect(cardX + 90, barY, barW, 20, 10);
-        ctx.fill();
-
-        ctx.fillStyle = "#D4A853";
-        ctx.beginPath();
-        ctx.roundRect(cardX + 90, barY, Math.max(20, barW * overallProgress), 20, 10);
-        ctx.fill();
-
-        // Progress Text
-        ctx.fillStyle = "#8B949E";
-        ctx.font = "18px monospace";
-        ctx.fillText(`${Math.round(overallProgress * 100)}% Replayed · ${ev.date.slice(0, 10)}`, cardX + 90, barY + 52);
 
         ctx.restore();
       }

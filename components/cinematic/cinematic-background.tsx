@@ -30,18 +30,18 @@ export function CinematicBackground() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[#070A14]"
+      className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[#09090B]"
     >
-      {/* 1. Deep Blue to Navy Gradient Foundation */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#0B1226] via-[#080D1A] to-[#070A14]" />
+      {/* 1. Deep Graphite Gradient Foundation */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#09090B] via-[#121214] to-[#09090B]" />
 
       {/* 2. Soft Aurora Glow & Gentle Light Rays Radiating from Top-Center */}
-      <div className="absolute left-1/2 -top-40 h-[650px] w-[1000px] -translate-x-1/2 rounded-full bg-gradient-to-b from-cosmic-blue/20 via-cosmic-cyan/10 to-transparent blur-[140px] animate-pulse-glow" />
-      <div className="absolute -left-36 top-1/4 h-[550px] w-[550px] rounded-full bg-cosmic-indigo/15 blur-[150px]" />
-      <div className="absolute -right-36 top-1/3 h-[550px] w-[550px] rounded-full bg-brass/15 blur-[150px]" />
+      <div className="absolute left-1/2 -top-40 h-[650px] w-[1000px] -translate-x-1/2 rounded-full bg-gradient-to-b from-brass/10 via-zinc-800/5 to-transparent blur-[140px] animate-pulse-glow" />
+      <div className="absolute -left-36 top-1/4 h-[550px] w-[550px] rounded-full bg-zinc-900/10 blur-[150px]" />
+      <div className="absolute -right-36 top-1/3 h-[550px] w-[550px] rounded-full bg-brass/10 blur-[150px]" />
 
       {/* 3. Faint GitHub Contribution Grid Texture */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-25" />
+      <div className="absolute inset-0 bg-grid-pattern opacity-15" />
 
       {/* 4. Floating Particles & Star Dust */}
       <div className="absolute inset-0">
@@ -54,11 +54,11 @@ export function CinematicBackground() {
               top: p.top,
               width: p.size,
               height: p.size,
-              backgroundColor: p.isGold ? "#D4A853" : "#60A5FA",
+              backgroundColor: p.isGold ? "#D4A853" : "#FAFAFA",
               opacity: p.opacity,
               boxShadow: p.isGold
-                ? "0 0 6px rgba(212, 168, 83, 0.6)"
-                : "0 0 6px rgba(96, 165, 250, 0.6)",
+                ? "0 0 6px rgba(212, 168, 83, 0.4)"
+                : "0 0 6px rgba(250, 250, 250, 0.3)",
               animation: `particle-drift ${p.duration} ease-in-out infinite`,
               animationDelay: p.delay,
             }}
@@ -67,7 +67,7 @@ export function CinematicBackground() {
       </div>
 
       {/* 5. Soft Vignette & Depth Blur */}
-      <div className="vignette-overlay absolute inset-0 opacity-80" />
+      <div className="vignette-overlay absolute inset-0 opacity-92" />
     </div>
   );
 }

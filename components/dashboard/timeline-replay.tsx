@@ -2,6 +2,7 @@
 
 import React, { useRef, useState, useEffect } from "react";
 import Image from "next/image";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Play,
   Pause,
@@ -60,7 +61,9 @@ export function TimelineReplay({
   const username = profile?.name || profile?.login || "Developer";
   const engine = useReplayEngine(commits, repos, username);
   const progressBarRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
+  const [isFullscreen, setIsFullscreen] = useState(false);
   // Audio is MUTED by default per user requirement
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -68,6 +71,7 @@ export function TimelineReplay({
   const [exportStatus, setExportStatus] = useState<string | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showControlsDrawer, setShowControlsDrawer] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
 
   // Load user's saved audio preference from localStorage
   useEffect(() => {
@@ -109,6 +113,78 @@ export function TimelineReplay({
       ambientSoundtrack.triggerSubtleClick();
     }
   }, [soundEnabled, engine.currentEvent, engine.isPlaying]);
+
+  // Sync Audio Theme with Chapter Progress
+  useEffect(() => {
+    if (soundEnabled && engine.currentChapter) {
+      const idx = engine.chapters.findIndex(c => c.id === engine.currentChapter?.id);
+      if (idx <= 1) {
+        ambientSoundtrack.setTheme("odyssey");
+      } else if (idx === engine.chapters.length - 1) {
+        ambientSoundtrack.setTheme("horizon");
+      } else {
+        ambientSoundtrack.setTheme("constellations");
+      }
+    }
+  }, [soundEnabled, engine.currentChapter, engine.chapters]);
+
+  // Handle Fullscreen API natively
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      containerRef.current?.requestFullscreen().catch((err) => {
+        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.tagName === "SELECT" ||
+        target?.isContentEditable
+      ) {
+        return;
+      }
+      if (e.code === "KeyF") {
+        e.preventDefault();
+        toggleFullscreen();
+      }
+      if (e.key === "Escape" || e.key === "Esc") {
+        setShowDetails(false);
+      }
+      if (e.code === "Space") {
+        e.preventDefault();
+        engine.togglePlay();
+      }
+      if (e.code === "ArrowLeft") {
+        e.preventDefault();
+        engine.stepBack();
+      }
+      if (e.code === "ArrowRight") {
+        e.preventDefault();
+        engine.stepForward();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [engine, showDetails]);
 
   if (engine.total === 0) {
     return (
@@ -199,12 +275,19 @@ export function TimelineReplay({
 
   return (
     <div
-      className={`relative w-full transition-all duration-700 ${
-        engine.isFullscreen
-          ? "fixed inset-0 z-50 overflow-y-auto bg-[#070A14] p-6 sm:p-12"
-          : "glass-card-glow p-6 sm:p-10"
+      ref={containerRef}
+      className={`relative transition-all duration-700 ${
+        isFullscreen
+          ? "bg-[#09090B] flex flex-col items-center justify-center fixed inset-0 z-[100] h-screen w-screen overflow-hidden font-sans"
+          : "glass-card-glow relative w-full p-8 sm:p-12 overflow-y-auto"
       }`}
     >
+      {/* 16:9 Cinematic Inner Container for Fullscreen */}
+      <div className={`${
+        isFullscreen
+          ? "relative w-full aspect-video max-h-screen max-w-[calc(100vh*16/9)] mx-auto flex flex-col items-center justify-center px-12 py-8"
+          : "relative w-full"
+      }`}>
       {/* 1. Ambient cosmic glow */}
       <div
         className="pointer-events-none absolute -left-20 -top-20 h-96 w-96 rounded-full blur-3xl transition-all duration-1000 ease-out"
@@ -226,17 +309,17 @@ export function TimelineReplay({
       />
 
       {/* Top Header: Always Minimal & Readable */}
-      <div className="relative z-10 flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-5">
+      <div className={`relative z-10 flex flex-wrap items-center justify-between gap-4 border-b border-zinc-800/65 pb-6 ${isFullscreen ? 'w-[85%] mx-auto' : ''}`}>
         <div className="flex items-center gap-3">
           <div
-            className="flex h-10 w-10 items-center justify-center rounded-xl border bg-[#0B1020]/90 shadow-md transition-all duration-500"
+            className={`flex items-center justify-center rounded-xl border bg-zinc-950/80 shadow-md transition-all duration-500 ${isFullscreen ? 'h-12 w-12' : 'h-10 w-10'}`}
             style={{
               borderColor: engine.eraColor.border,
               color: engine.eraColor.accent,
             }}
           >
             <Clock
-              className={`h-4 w-4 ${
+              className={`${isFullscreen ? 'h-5 w-5' : 'h-4 w-4'} ${
                 engine.isPlaying
                   ? "animate-spin [animation-duration:12s]"
                   : ""
@@ -247,22 +330,22 @@ export function TimelineReplay({
           <div>
             <div className="flex items-center gap-2">
               <span
-                className="font-mono text-[11px] font-semibold uppercase tracking-widest"
+                className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em]"
                 style={{ color: engine.eraColor.accent }}
               >
                 Developer Odyssey
               </span>
               <span
-                className={`inline-flex items-center rounded-full border px-2 py-0.2 font-mono text-[9px] font-medium transition-all ${
+                className={`inline-flex items-center rounded-full border px-2 py-0.5 font-mono text-[9px] font-medium transition-all ${
                   engine.isPlaying
-                    ? "border-commit-300/40 bg-commit-50/20 text-commit-300 shadow-[0_0_10px_rgba(57,211,83,0.3)]"
-                    : "border-white/10 bg-ink text-muted"
+                    ? "border-brass/45 bg-brass/10 text-brass-light shadow-[0_0_10px_rgba(212,168,83,0.2)]"
+                    : "border-zinc-800 bg-zinc-950 text-zinc-500"
                 }`}
               >
                 {engine.isPlaying ? "Playing 1x" : "Paused"}
               </span>
             </div>
-            <h2 className="font-display text-xl tracking-tight text-ivory sm:text-2xl">
+            <h2 className={`font-display tracking-tight text-ivory ${isFullscreen ? 'text-3xl sm:text-4xl mt-1' : 'text-xl sm:text-2xl font-semibold'}`}>
               {currentChapter?.name || "The Developer Journey"}
             </h2>
           </div>
@@ -275,8 +358,8 @@ export function TimelineReplay({
             onClick={toggleSoundtrack}
             className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 font-mono text-xs transition-all ${
               soundEnabled
-                ? "border-brass bg-brass/20 text-brass-light shadow-[0_0_15px_rgba(212,168,83,0.3)]"
-                : "border-white/10 bg-ink-surface/70 text-muted hover:text-ivory"
+                ? "border-brass bg-brass/10 text-brass-light shadow-[0_0_15px_rgba(212,168,83,0.15)]"
+                : "border-zinc-800 bg-zinc-950/50 text-zinc-500 hover:text-ivory"
             }`}
             title="Toggle inspiring ambient piano soundtrack (Default: Muted)"
           >
@@ -294,12 +377,12 @@ export function TimelineReplay({
           </button>
 
           {/* Date Odometer */}
-          <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-ink-surface/80 px-3.5 py-1.5 shadow-inner">
+          <div className="flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-950/80 px-3.5 py-1.5 shadow-inner">
             <Calendar className="h-3.5 w-3.5 text-brass-light" />
             <span className="font-display text-lg font-bold tracking-tight text-ivory">
               {engine.currentYear}
             </span>
-            <span className="font-mono text-xs text-muted">
+            <span className="font-mono text-xs text-zinc-500">
               {engine.currentMonthName}
             </span>
           </div>
@@ -308,11 +391,11 @@ export function TimelineReplay({
           <Button
             variant="ghost"
             size="sm"
-            onClick={engine.toggleFullscreen}
+            onClick={toggleFullscreen}
             title="Toggle Fullscreen Replay Theater (F)"
-            className="h-8 w-8 p-0 text-muted hover:text-ivory"
+            className="h-8 w-8 p-0 text-zinc-500 hover:text-ivory"
           >
-            {engine.isFullscreen ? (
+            {isFullscreen ? (
               <Minimize2 className="h-4 w-4" />
             ) : (
               <Maximize2 className="h-4 w-4" />
@@ -324,7 +407,7 @@ export function TimelineReplay({
             variant="outline"
             size="sm"
             onClick={() => setShowControlsDrawer(!showControlsDrawer)}
-            className="h-8 border-white/10 px-2.5 font-mono text-xs text-muted hover:text-ivory"
+            className="h-8 border-zinc-800 px-2.5 font-mono text-xs text-zinc-500 hover:text-ivory"
           >
             <Sliders className="mr-1 h-3 w-3 text-brass-light" />
             <span>{showControlsDrawer ? "Hide Controls" : "Controls"}</span>
@@ -337,7 +420,7 @@ export function TimelineReplay({
         <div className="glass-card relative z-20 my-4 flex flex-wrap items-center justify-between gap-4 p-4 shadow-xl">
           {/* Chapter Quick Selector */}
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="mr-1 font-mono text-[10px] uppercase text-muted">
+            <span className="mr-1 font-mono text-[10px] uppercase text-zinc-500">
               Chapters:
             </span>
             {engine.chapters.map((ch) => (
@@ -347,7 +430,7 @@ export function TimelineReplay({
                 className={`rounded-lg border px-2.5 py-1 font-sans text-xs transition-all ${
                   currentChapter?.id === ch.id
                     ? "border-brass bg-brass text-ink font-semibold"
-                    : "border-white/10 bg-ink-surface/60 text-muted hover:text-ivory"
+                    : "border-zinc-800 bg-zinc-950/60 text-zinc-400 hover:text-ivory"
                 }`}
               >
                 {ch.name}
@@ -361,10 +444,10 @@ export function TimelineReplay({
               variant="outline"
               size="sm"
               onClick={handleCopyLink}
-              className="h-8 border-white/10 font-mono text-xs text-muted hover:text-ivory"
+              className="h-8 border-zinc-800 font-mono text-xs text-zinc-450 hover:text-ivory"
             >
               {copiedLink ? (
-                <Check className="mr-1 h-3 w-3 text-commit-300" />
+                <Check className="mr-1 h-3 w-3 text-brass-light" />
               ) : (
                 <Share2 className="mr-1 h-3 w-3" />
               )}
@@ -375,7 +458,7 @@ export function TimelineReplay({
               variant="outline"
               size="sm"
               onClick={handleDownloadPDF}
-              className="h-8 border-white/10 font-mono text-xs text-muted hover:text-ivory"
+              className="h-8 border-zinc-800 font-mono text-xs text-zinc-450 hover:text-ivory"
             >
               <FileText className="mr-1 h-3 w-3" />
               <span>PDF Chronicle</span>
@@ -457,192 +540,247 @@ export function TimelineReplay({
         </div>
       )}
 
-      {/* Varied AI Narration Caption Bar */}
+      {/* Varied AI Narration Caption Bar - Editorial placement above the card */}
       {currentChapter?.narrative && (
-        <div className="my-4 flex items-center gap-2.5 rounded-xl border border-white/5 bg-ink/60 px-4 py-2.5 backdrop-blur-sm">
-          <Sparkles className="h-3.5 w-3.5 flex-shrink-0 text-brass-light animate-pulse" />
-          <p className="font-serif italic text-xs text-ivory/85 sm:text-sm">
+        <div className={`text-center max-w-3xl mx-auto mb-6 px-4 relative z-10 ${isFullscreen ? 'mt-4' : ''}`}>
+          <p className="font-serif italic text-zinc-400 text-base sm:text-lg md:text-xl leading-relaxed">
             “{currentChapter.narrative}”
           </p>
         </div>
       )}
 
-      {/* 2. Main Hero Replay Cinema Stage */}
-      {isAtEnd ? (
-        /* Netflix-style Ending Scene */
-        <div className="glass-card-glow relative my-6 overflow-hidden p-8 text-center sm:p-12">
-          <div className="pointer-events-none absolute inset-0 bg-scan-line opacity-5" />
-          <div className="relative z-10 mx-auto flex max-w-2xl flex-col items-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-brass bg-brass/10 text-brass-light shadow-lg">
-              <Award className="h-7 w-7 animate-bounce" />
-            </div>
+      {/* 2. Main Hero Replay Cinema Stage (Centered and scaled at 80% width) */}
+      <div className="relative z-10 flex flex-col items-center justify-center w-full my-4 flex-1">
+        {isAtEnd ? (
+          /* Netflix-style Ending Scene */
+          <div className="glass-card-glow relative w-[80%] max-w-4xl p-8 text-center sm:p-12 border-zinc-800 bg-zinc-900/90 shadow-2xl">
+            <div className="pointer-events-none absolute inset-0 bg-scan-line opacity-5" />
+            <div className="relative z-10 mx-auto flex max-w-2xl flex-col items-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-brass bg-brass/10 text-brass-light shadow-lg">
+                <Award className="h-7 w-7 animate-bounce" />
+              </div>
 
-            <span className="mt-5 font-mono text-[11px] uppercase tracking-[0.25em] text-brass-light font-bold">
-              Documentary Finale
-            </span>
+              <span className="mt-5 font-mono text-[10px] uppercase tracking-[0.25em] text-brass-light font-bold">
+                Documentary Finale
+              </span>
 
-            {/* Ending Narrative Highlight */}
-            <h3 className="mt-4 font-display text-2xl font-bold leading-relaxed text-ivory sm:text-4xl">
-              {stats.commitsReplayed} commits. {repos.length || 6} repositories. {yearsSpan} year{yearsSpan > 1 ? "s" : ""} of growth.
-            </h3>
+              {/* Ending Narrative Highlight */}
+              <h3 className="mt-4 font-display text-2xl font-semibold leading-relaxed text-ivory sm:text-3xl">
+                {stats.commitsReplayed} commits. {repos.length || 6} repositories. {yearsSpan} year{yearsSpan > 1 ? "s" : ""} of growth.
+              </h3>
 
-            <p className="mt-2 font-display text-xl font-medium text-brass-light sm:text-2xl">
-              This is how a developer is built.
-            </p>
+              <p className="mt-2 font-display text-xl font-medium text-brass-light sm:text-2xl">
+                This is how a developer is built.
+              </p>
 
-            <div className="my-6 flex items-center gap-3 rounded-2xl border border-white/10 bg-[#0B1020]/90 px-6 py-3 font-mono text-xs text-muted">
-              <span>@{username}</span>
-              <span>·</span>
-              <span className="text-commit-300">time-machine.git</span>
-            </div>
+              <div className="my-6 flex items-center gap-3 rounded-2xl border border-zinc-850 bg-zinc-950/80 px-6 py-3 font-mono text-xs text-zinc-500">
+                <span>@{username}</span>
+                <span>·</span>
+                <span className="text-brass">time-machine.git</span>
+              </div>
 
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-              <Button
-                size="lg"
-                onClick={engine.replay}
-                className="rounded-full bg-brass px-7 font-sans font-semibold text-ink hover:bg-brass-light"
-              >
-                <RotateCcw className="mr-2 h-4 w-4" /> Watch Story Again
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={handleDownloadPDF}
-                className="rounded-full border-white/10 font-mono text-xs"
-              >
-                <FileText className="mr-2 h-4 w-4" /> Download PDF Chronicle
-              </Button>
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+                <Button
+                  size="lg"
+                  onClick={engine.replay}
+                  className="rounded-full bg-brass px-7 font-sans font-semibold text-ink hover:bg-brass-light"
+                >
+                  <RotateCcw className="mr-2 h-4 w-4" /> Watch Story Again
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={handleDownloadPDF}
+                  className="rounded-full border-zinc-800 font-mono text-xs"
+                >
+                  <FileText className="mr-2 h-4 w-4" /> Download PDF Chronicle
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      ) : (
-        /* Minimalist, Clean Replay Card (Occupies 80% of Frame) */
-        <div
-          className="glass-card relative my-5 overflow-hidden p-6 sm:p-10 transition-all duration-700 ease-out"
-          style={{ borderColor: engine.eraColor.border }}
-        >
-          <div className="pointer-events-none absolute inset-0 bg-scan-line opacity-5" />
+        ) : (
+          /* Minimalist, Clean Replay Card (Centered at 80% Frame with Details panel) */
+          <div
+            className={`glass-card relative w-[80%] max-w-4xl overflow-hidden transition-all duration-700 ease-out shadow-2xl flex flex-col justify-between border-zinc-800 bg-[#161618]/95 ${
+              isFullscreen ? 'p-10 min-h-[360px] sm:min-h-[400px]' : 'p-6 sm:p-8 min-h-[280px] sm:min-h-[320px]'
+            }`}
+            style={{ borderColor: engine.eraColor.border }}
+          >
+            <div className="pointer-events-none absolute inset-0 bg-scan-line opacity-5" />
 
-          {currentEvent?.type === "repo_created" ? (
-            <div className="relative z-10 flex flex-col gap-3">
-              <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-3">
-                <span className="inline-flex items-center gap-1.5 rounded-lg border border-brass-dim/50 bg-brass/15 px-3 py-1 font-mono text-xs font-medium text-brass-light">
-                  <FolderGit2 className="h-3.5 w-3.5" />
-                  New Repository Founded
-                </span>
-                <span className="font-mono text-xs text-muted">{formattedDate}</span>
-              </div>
-
-              <div className="py-2">
-                <h3 className="font-display text-2xl font-bold text-ivory sm:text-3xl lg:text-4xl">
-                  {currentEvent.repoName}
-                </h3>
-                <p className="mt-2 font-sans text-xs leading-relaxed text-muted sm:text-sm">
-                  {currentEvent.description || "Inaugural repository initialized."}
-                </p>
-              </div>
-
-              <div className="flex items-center justify-between border-t border-white/10 pt-3 font-mono text-xs text-muted">
-                {currentEvent.language && (
-                  <span className="inline-flex items-center gap-1.5 text-ivory">
-                    <span
-                      className="h-2 w-2 rounded-full"
-                      style={{
-                        backgroundColor:
-                          currentEvent.languageColor || "#D4A853",
-                      }}
-                    />
-                    {currentEvent.language}
+            {currentEvent?.type === "repo_created" ? (
+              <div className="relative z-10 flex flex-col gap-4 select-text">
+                <div className="flex items-center justify-between gap-2 border-b border-zinc-800/80 pb-3">
+                  <span className="inline-flex items-center gap-1.5 rounded-lg border border-brass-dim/50 bg-brass/10 px-3 py-1 font-mono text-xs font-medium text-brass-light">
+                    <FolderGit2 className="h-3.5 w-3.5" />
+                    New Repository Founded
                   </span>
-                )}
-                {currentEvent.repoUrl && (
-                  <a
-                    href={currentEvent.repoUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center gap-1 text-brass-light hover:text-ivory"
-                  >
-                    <span>View Repository</span>
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                )}
-              </div>
-            </div>
-          ) : (
-            /* Clean Commit View with Only: Repo Name, Prominent Serif Commit Headline, Date, and Subtle Progress */
-            <div className="relative z-10 flex flex-col gap-4">
-              <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-3">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-lg border border-commit-300/30 bg-commit-50/20 px-2.5 py-0.5 font-mono text-xs font-semibold text-commit-300">
-                    <GitCommit className="h-3.5 w-3.5" />
-                    {currentEvent?.repoName}
-                  </span>
+                  <span className="font-mono text-xs text-zinc-500">{formattedDate}</span>
+                </div>
 
-                  {currentEvent?.commitSha && (
+                <div className="py-2">
+                  <h3 className="font-display text-2xl font-semibold text-ivory sm:text-3xl lg:text-4xl">
+                    {currentEvent.repoName}
+                  </h3>
+                  <p className="mt-2 font-sans text-xs leading-relaxed text-zinc-400 sm:text-sm">
+                    {currentEvent.description || "Inaugural repository initialized."}
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between border-t border-zinc-800/80 pt-3 font-mono text-xs text-zinc-500">
+                  {currentEvent.language && (
+                    <span className="inline-flex items-center gap-1.5 text-ivory">
+                      <span
+                        className="h-2 w-2 rounded-full"
+                        style={{
+                          backgroundColor:
+                            currentEvent.languageColor || "#D4A853",
+                        }}
+                      />
+                      {currentEvent.language}
+                    </span>
+                  )}
+                  {currentEvent.repoUrl && (
                     <a
-                      href={
-                        commit?.htmlUrl ||
-                        `https://github.com/${currentEvent.repoName}/commit/${currentEvent.commitSha}`
-                      }
+                      href={currentEvent.repoUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="group inline-flex items-center gap-1 font-mono text-xs text-muted hover:text-brass-light"
+                      className="flex items-center gap-1 text-brass-light hover:text-ivory"
                     >
-                      <span>#{currentEvent.commitShortSha}</span>
-                      <ExternalLink className="h-3 w-3 opacity-60 group-hover:translate-x-0.5" />
+                      <span>View Repository</span>
+                      <ExternalLink className="h-3 w-3" />
                     </a>
                   )}
                 </div>
-
-                <span className="font-mono text-xs text-muted">{formattedDate}</span>
               </div>
+            ) : (
+              /* Clean Commit View with Only: Repo Name, Prominent Serif Commit Headline, Date, and Subtle Progress */
+              <div className="relative z-10 flex flex-col gap-4 select-text">
+                <div className="flex items-center justify-between gap-3 border-b border-zinc-800/60 pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-2.5 py-0.5 font-mono text-xs font-semibold text-zinc-400">
+                      <GitCommit className="h-3.5 w-3.5" />
+                      {currentEvent?.repoName}
+                    </span>
 
-              {/* Prominent Serif Commit Headline */}
-              <div className="py-2">
-                <h3 className="font-display text-2xl font-medium leading-relaxed tracking-tight text-ivory sm:text-3xl lg:text-4xl">
-                  {currentEvent?.title}
-                </h3>
-              </div>
+                    {currentEvent?.commitSha && (
+                      <a
+                        href={
+                          commit?.htmlUrl ||
+                          `https://github.com/${currentEvent.repoName}/commit/${currentEvent.commitSha}`
+                        }
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group inline-flex items-center gap-1 font-mono text-xs text-zinc-500 hover:text-brass-light"
+                      >
+                        <span>#{currentEvent.commitShortSha}</span>
+                        <ExternalLink className="h-3 w-3 opacity-60 group-hover:translate-x-0.5" />
+                      </a>
+                    )}
+                  </div>
 
-              {/* Subtle Narrative Caption */}
-              {currentEvent?.impactDescription && (
-                <div className="rounded-xl border border-white/10 bg-[#0B1020]/90 p-3 text-xs font-sans text-ivory/85">
-                  <span className="font-mono text-[10px] font-bold uppercase text-brass-light">
-                    ✦ Milestone:{" "}
+                  <div className="flex items-center gap-3">
+                    <span className="font-mono text-xs text-zinc-500">{formattedDate}</span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowDetails(true)}
+                      className="h-7 border-zinc-800 bg-zinc-900/60 font-mono text-[10px] text-zinc-450 hover:text-ivory px-2.5"
+                    >
+                      Logs
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Prominent Serif Commit Headline - Truncated to 2 lines max to avoid breakage */}
+                <div className="py-2">
+                  <h3 className={`font-display font-medium leading-relaxed tracking-tight text-ivory line-clamp-2 overflow-hidden text-ellipsis ${isFullscreen ? 'text-3xl sm:text-4xl' : 'text-xl sm:text-2xl'}`}>
+                    {currentEvent?.title}
+                  </h3>
+                </div>
+
+                {/* Subtle Narrative Caption / Milestone - Limited line height */}
+                {currentEvent?.impactDescription && (
+                  <div className="rounded-xl border border-zinc-850 bg-zinc-950/80 p-3 text-xs font-sans text-zinc-300">
+                    <span className="font-mono text-[9px] font-bold uppercase text-brass-light">
+                      ✦ Milestone:{" "}
+                    </span>
+                    {currentEvent.impactDescription}
+                  </div>
+                )}
+
+                {/* Subtle Author & Progress */}
+                <div className="flex items-center justify-between border-t border-zinc-800/80 pt-3 font-mono text-xs text-zinc-500">
+                  <div className="flex items-center gap-2">
+                    {currentEvent?.authorAvatar ? (
+                      <div className="relative h-4 w-4 overflow-hidden rounded-full border border-zinc-800">
+                        <Image
+                          src={currentEvent.authorAvatar}
+                          alt={currentEvent.authorName || "Author"}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <span className="h-2 w-2 rounded-full bg-brass" />
+                    )}
+                    <span>{currentEvent?.authorName || "Developer"}</span>
+                  </div>
+
+                  <span className="text-brass-light">
+                    {engine.currentIndex + 1} / {engine.total}
                   </span>
-                  {currentEvent.impactDescription}
                 </div>
-              )}
-
-              {/* Subtle Author & Progress */}
-              <div className="flex items-center justify-between border-t border-white/10 pt-3 font-mono text-xs text-muted">
-                <div className="flex items-center gap-2">
-                  {currentEvent?.authorAvatar ? (
-                    <div className="relative h-4 w-4 overflow-hidden rounded-full border border-white/10">
-                      <Image
-                        src={currentEvent.authorAvatar}
-                        alt={currentEvent.authorName || "Author"}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <span className="h-2 w-2 rounded-full bg-commit-300" />
-                  )}
-                  <span>{currentEvent?.authorName || "Developer"}</span>
-                </div>
-
-                <span className="text-brass-light">
-                  {engine.currentIndex + 1} / {engine.total}
-                </span>
               </div>
-            </div>
-          )}
-        </div>
-      )}
+            )}
+
+            {/* Slide-up details drawer inside the commit card */}
+            <AnimatePresence>
+              {showDetails && (
+                <motion.div
+                  initial={{ y: "100%" }}
+                  animate={{ y: 0 }}
+                  exit={{ y: "100%" }}
+                  transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                  className="absolute inset-0 z-30 bg-[#121214] p-6 sm:p-8 flex flex-col border-t border-zinc-800 select-text"
+                >
+                  <div className="flex items-center justify-between border-b border-zinc-850 pb-2">
+                    <span className="font-mono text-[10px] text-brass-light font-bold uppercase tracking-wider">Documentary logs</span>
+                    <button
+                      onClick={() => setShowDetails(false)}
+                      className="text-[10px] text-zinc-500 hover:text-ivory font-mono border border-zinc-800 px-2 py-0.5 rounded bg-zinc-900"
+                    >
+                      Close [Esc]
+                    </button>
+                  </div>
+                  <div className="mt-4 flex-1 overflow-y-auto pr-1 text-left custom-scrollbar leading-relaxed font-sans text-xs sm:text-sm text-zinc-300">
+                    <div className="font-mono text-[10px] text-zinc-500 mb-1.5">PATH: {currentEvent?.repoName}/{currentEvent?.commitShortSha}</div>
+                    <h4 className="font-display font-medium text-ivory text-base sm:text-lg mb-3 leading-snug">{currentEvent?.title}</h4>
+                    {commit?.message && (
+                      <pre className="whitespace-pre-wrap rounded-lg bg-zinc-950 p-3.5 border border-zinc-850 font-mono text-[10px] sm:text-xs text-zinc-400 max-h-[160px] overflow-y-auto">
+                        {commit.message}
+                      </pre>
+                    )}
+                    <div className="mt-4 border-t border-zinc-850 pt-4 grid grid-cols-2 gap-3 text-[10px] sm:text-xs text-zinc-500 font-mono">
+                      <div>
+                        <span className="block text-zinc-650 font-semibold uppercase text-[9px]">Author</span>
+                        <span className="text-zinc-300">{currentEvent?.authorName || "Developer"}</span>
+                      </div>
+                      <div>
+                        <span className="block text-zinc-650 font-semibold uppercase text-[9px]">Timestamp</span>
+                        <span className="text-zinc-300">{formattedDate}</span>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
 
       {/* 3. Minimalist Timeline Scrubber */}
-      <div className="my-5 flex flex-col gap-1.5">
+      <div className={`my-5 flex flex-col gap-1.5 ${isFullscreen ? 'w-[85%] mx-auto' : ''}`}>
         <div className="flex items-center justify-between font-mono text-[11px] text-muted">
           <span>{engine.startYear} Inception</span>
           <span className="text-ivory font-medium">
@@ -771,6 +909,7 @@ export function TimelineReplay({
             Fullscreen
           </span>
         </div>
+      </div>
       </div>
     </div>
   );

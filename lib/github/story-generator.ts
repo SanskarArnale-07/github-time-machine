@@ -348,14 +348,26 @@ export function generateChaptersAndStories(
       ev.impactType = "language";
     }
 
-    // Default impact badge
+    // Contextual varied documentary narration
     if (!ev.impactBadge) {
       if (idx % 4 === 0) {
         ev.impactBadge = "Architecture Refactor";
+        ev.impactDescription = `Re-evaluating foundational code in ${ev.repoName}. You were looking for long-term stability.`;
       } else if (idx % 3 === 0) {
-        ev.impactBadge = "Critical Debugging Fix";
+        ev.impactBadge = "Critical Debugging";
+        ev.impactDescription = `Fixing edge cases and unresolved issues. The unglamorous but essential work of a developer.`;
+      } else if (hour >= 22 || hour < 4) {
+        ev.impactBadge = "Midnight Session";
+        ev.impactDescription = `A late night push to ${ev.repoName}. When the world was quiet, your focus peaked.`;
+      } else if (ev.title.toLowerCase().includes("feat") || ev.title.toLowerCase().includes("add")) {
+        ev.impactBadge = "Feature Expansion";
+        ev.impactDescription = `Expanding capabilities. Every new feature pushed ${ev.repoName} closer to the final vision.`;
+      } else if (ev.title.toLowerCase().includes("fix") || ev.title.toLowerCase().includes("bug")) {
+        ev.impactBadge = "Bug Squashing";
+        ev.impactDescription = `Methodically eliminating bugs to improve the reliability of ${ev.repoName}.`;
       } else {
-        ev.impactBadge = "Feature Push";
+        ev.impactBadge = "Consistent Progress";
+        ev.impactDescription = `Another step forward in ${ev.repoName}. Small, continuous commits that compound over time.`;
       }
     }
   }
