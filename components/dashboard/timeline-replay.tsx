@@ -268,17 +268,17 @@ export function TimelineReplay({
   return (
     <div
       ref={containerRef}
-      className={`relative transition-opacity duration-1000 ${
+      className={`relative transition-opacity duration-1000 ease-in-out ${
         isFullscreen
-          ? "bg-[#09090B] flex flex-col items-center justify-center fixed inset-0 z-[100] h-screen w-screen overflow-hidden font-sans"
-          : "glass-card-glow relative w-full p-8 sm:p-12 overflow-y-auto"
+          ? "bg-[#09090B] flex flex-col items-center justify-center fixed inset-0 z-[100] h-[100dvh] w-screen font-sans"
+          : "glass-card-glow relative w-full flex flex-col min-h-[750px] pb-8 md:pb-12"
       }`}
     >
       {/* 16:9 Cinematic Inner Container for Fullscreen */}
       <div className={`${
         isFullscreen
-          ? "relative w-full aspect-video max-h-screen max-w-[calc(100vh*16/9)] mx-auto flex flex-col items-center justify-center px-12 py-8"
-          : "relative w-full"
+          ? "relative w-full aspect-video max-h-screen max-w-[calc(100vh*16/9)] mx-auto flex flex-col justify-between px-12 py-8 pb-16"
+          : "relative w-full flex-1 flex flex-col justify-between p-6 sm:p-8 sm:pb-12 overflow-hidden"
       }`}>
       {/* 1. Ambient cosmic glow */}
       <div
@@ -533,13 +533,14 @@ export function TimelineReplay({
       )}
 
       {/* Varied AI Narration Caption Bar - Editorial placement above the card */}
-      {currentChapter?.narrative && (
-        <div className={`text-center max-w-3xl mx-auto mb-6 px-4 relative z-10 ${isFullscreen ? 'mt-4' : ''}`}>
-          <p className="font-serif italic text-zinc-400 text-base sm:text-lg md:text-xl leading-relaxed">
-            “{currentChapter.narrative}”
-          </p>
-        </div>
-      )}
+      <div className="flex-1 flex flex-col justify-center items-center py-4">
+        {currentChapter?.narrative && (
+          <div className={`text-center max-w-3xl mx-auto mb-8 px-4 relative z-10 ${isFullscreen ? 'mt-4' : ''}`}>
+            <p className="font-serif italic text-zinc-300 text-base sm:text-lg md:text-xl leading-relaxed drop-shadow-md">
+              “{currentChapter.narrative}”
+            </p>
+          </div>
+        )}
 
       {/* 2. Main Hero Replay Cinema Stage (Centered and scaled at 80% width) */}
       <div className="relative z-10 flex flex-col items-center justify-center w-full my-4 flex-1">
@@ -591,10 +592,10 @@ export function TimelineReplay({
             </div>
           </div>
         ) : (
-          /* Minimalist, Clean Replay Card (Centered at 80% Frame with Details panel) */
+          /* Minimalist, Clean Replay Card (Centered at 65-70% Frame with Details panel) */
           <div
-            className={`glass-card relative w-[80%] max-w-4xl overflow-hidden transition-opacity duration-1000 ease-in-out shadow-2xl flex flex-col justify-between border-zinc-800 bg-[#161618]/95 ${
-              isFullscreen ? 'p-12 min-h-[360px] sm:min-h-[400px]' : 'p-8 sm:p-10 min-h-[280px] sm:min-h-[320px]'
+            className={`glass-card cinematic-depth-card relative w-[90%] sm:w-[80%] md:w-[70%] lg:w-[65%] max-w-4xl mx-auto overflow-hidden transition-opacity duration-1000 ease-in-out shadow-2xl flex flex-col justify-between border-zinc-800 bg-[#161618]/95 ${
+              isFullscreen ? 'p-12 min-h-[340px] sm:min-h-[380px]' : 'p-8 sm:p-10 min-h-[280px] sm:min-h-[320px]'
             }`}
             style={{ borderColor: engine.eraColor.border }}
           >
@@ -648,31 +649,36 @@ export function TimelineReplay({
             ) : (
               /* Summarized Chapter Commit Card: Repo Badge, Date, Title, 1-sentence summary */
               <div className="relative z-10 flex flex-col gap-5 select-text">
-                <div className="flex items-center justify-between gap-3 border-b border-zinc-800/50 pb-4 transition-all duration-[400ms] ease-in-out">
-                  <div className="flex items-center gap-3">
-                    <span className="inline-flex items-center gap-1.5 rounded-md border border-zinc-700/50 bg-zinc-800/40 px-3 py-1 font-mono text-xs font-semibold text-zinc-300">
-                      <FolderGit2 className="h-3.5 w-3.5" />
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800/60 pb-4 transition-all duration-500 ease-in-out">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-md border border-zinc-700/60 bg-zinc-800/50 px-3 py-1 font-mono text-xs font-semibold text-zinc-200 shadow-sm">
+                      <FolderGit2 className="h-3.5 w-3.5 text-brass-light" />
                       {currentEvent?.repoName}
                     </span>
+                    <span className="inline-flex items-center gap-1.5 rounded-md border border-zinc-800/80 bg-zinc-900/50 px-2 py-1 font-mono text-[10px] uppercase text-zinc-400">
+                      <GitCommit className="h-3 w-3" />
+                      {commit?.sha?.substring(0, 7) || "commit"}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono text-xs text-zinc-400">{formattedDate}</span>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-3.5 w-3.5 text-zinc-500" />
+                    <span className="font-mono text-xs text-zinc-300 font-medium">{formattedDate}</span>
                   </div>
                 </div>
 
-                <div className="py-3 transition-all duration-[400ms] ease-in-out">
+                <div className="py-2 transition-all duration-500 ease-in-out">
                   <h3 className={`font-display font-medium leading-snug tracking-tight text-ivory line-clamp-2 ${isFullscreen ? 'text-4xl' : 'text-2xl sm:text-3xl'}`}>
                     {currentEvent?.title}
                   </h3>
                 </div>
 
-                {/* 1-sentence summary */}
-                <div className="text-sm font-sans text-zinc-400 leading-relaxed transition-all duration-[600ms] ease-in-out">
-                  {currentEvent?.impactDescription || (commit?.message ? commit.message.split('\n')[0] : "Codebase updated.")}
+                {/* GitHub Description / Summary */}
+                <div className="text-sm md:text-base font-sans text-zinc-300 leading-relaxed transition-all duration-500 ease-in-out">
+                  {currentEvent?.description || currentEvent?.impactDescription || (commit?.message ? commit.message.split('\n')[0] : "Codebase updated.")}
                 </div>
 
                 {commit?.message && (
-                  <div className="mt-2 transition-all duration-[250ms] ease-in-out">
+                  <div className="mt-2 transition-all duration-200 ease-in-out">
                     <button 
                       onClick={() => setShowDetails(!showDetails)}
                       className="font-mono text-[10px] text-zinc-500 hover:text-ivory uppercase tracking-wider"
@@ -701,21 +707,31 @@ export function TimelineReplay({
           </div>
         )}
       </div>
+    </div>
 
-      {/* 3. Cinematic Chapter Timeline */}
-      <div className={`my-6 flex flex-col items-center justify-center text-center ${isFullscreen ? 'w-[85%] mx-auto' : ''}`}>
-        <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-500 mb-2 transition-all duration-[400ms] ease-in-out">
+      {/* 3. Cinematic Chapter Timeline & Indicator */}
+      <div className={`mt-auto pt-6 flex flex-col items-center justify-center text-center transition-opacity duration-500 ease-in-out pb-4 ${isFullscreen ? 'w-[85%] mx-auto' : 'w-full'}`}>
+        <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-500 mb-3 transition-all duration-500 ease-in-out">
           Chapter {engine.chapters.findIndex(c => c.id === currentChapter?.id) + 1} of {engine.chapters.length}
           <span className="mx-2 text-zinc-700">•</span>
-          <span className="text-brass-light transition-all duration-[400ms] ease-in-out">{currentEvent?.monthName} {currentEvent?.year}</span>
+          <span className="text-brass-light transition-all duration-500 ease-in-out">{currentEvent?.monthName} {currentEvent?.year}</span>
         </div>
-        <div className="font-sans text-xs text-zinc-400 transition-all duration-[600ms] ease-in-out">
+        
+        {/* Timeline Progress Bar */}
+        <div className="w-full max-w-2xl h-1 bg-zinc-800/50 rounded-full overflow-hidden mb-3">
+          <div 
+            className="h-full bg-brass transition-all duration-1000 ease-out" 
+            style={{ width: `${(engine.currentIndex / Math.max(1, engine.total - 1)) * 100}%` }}
+          />
+        </div>
+
+        <div className="font-sans text-xs text-zinc-400 mb-4 transition-all duration-500 ease-in-out">
           {engine.total - engine.currentIndex - 1} meaningful milestones remaining
         </div>
       </div>
 
       {/* 4. Streamlined Centerpiece Playback Bar */}
-      <div className="glass-card mt-5 flex flex-wrap items-center justify-between gap-4 p-3.5">
+      <div className="glass-card flex flex-wrap items-center justify-between gap-4 p-3.5 mb-8 md:mb-12 w-full max-w-5xl mx-auto z-20">
         {/* Speed Controls */}
         <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-ink-surface p-1">
           <span className="px-2 font-mono text-[10px] uppercase text-muted">

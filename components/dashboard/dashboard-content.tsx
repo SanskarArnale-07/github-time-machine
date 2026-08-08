@@ -70,7 +70,7 @@ export function DashboardContent({
   // Client-side cache key
   const cacheKey = `gtm_cache_${initialUsername.toLowerCase()}`;
 
-  // Progressive hydration: check client-side sessionStorage cache first for instant sub-second render
+  // Progressive hydration: check client-side sessionStorage cache first
   useEffect(() => {
     try {
       const cached = sessionStorage.getItem(cacheKey);
@@ -84,10 +84,11 @@ export function DashboardContent({
           if (parsed.contributions) setContributions(parsed.contributions);
           if (parsed.analytics) setAnalytics(parsed.analytics);
           setHasLoaded(true);
+          return;
         }
       }
     } catch {}
-  }, [cacheKey]);
+  }, [cacheKey]); // Note: We don't auto-fetch in this effect anymore to avoid dependency cycle with loadCommitHistory
 
   const loadCommitHistory = useCallback(async () => {
     setIsLoading(true);
@@ -120,6 +121,15 @@ export function DashboardContent({
     }
   }, [cacheKey]);
 
+  // If no cache was found during mount, auto-fetch
+  const hasAttemptedFetch = React.useRef(false);
+  useEffect(() => {
+    if (!hasLoaded && !isLoading && !hasAttemptedFetch.current) {
+      hasAttemptedFetch.current = true;
+      loadCommitHistory();
+    }
+  }, [hasLoaded, isLoading, loadCommitHistory]);
+
   const tabs: { id: TabId; label: string; icon: typeof Play }[] = [
     { id: "replay", label: "Documentary Replay", icon: Play },
     { id: "timeline", label: "Chronicle Timeline", icon: Layers },
@@ -128,32 +138,30 @@ export function DashboardContent({
     { id: "analytics", label: "Analytics Suite", icon: BarChart3 },
   ];
 
+  const isEmptyState = hasLoaded && repos.length === 0 && commits.length === 0;
+
   return (
     <div className="relative min-h-screen">
       {/* 1. Cinematic Background (Deep Navy, Cosmic Blue, Warm Amber, Particle Field) */}
       <CinematicBackground />
 
       {/* 2. Fast 1.2s Cinematic Loading Overlay */}
-      <CinematicLoadingOverlay isLoading={isLoading} />
+      <CinematicLoadingOverlay isLoading={isLoading && !hasLoaded} />
 
-      {/* Landing / Pre-loaded state */}
-      {!hasLoaded ? (
+      {/* Empty / Onboarding state */}
+      {isEmptyState ? (
         <div className="flex flex-col gap-8">
-          {isLoading ? (
-            <ProfileSkeleton />
-          ) : (
-            <ProfileCard
-              profile={profile}
-              fallbackUsername={initialUsername}
-              fallbackAvatar={initialAvatar}
-              fallbackEmail={initialEmail}
-            />
-          )}
+          <ProfileCard
+            profile={profile}
+            fallbackUsername={initialUsername}
+            fallbackAvatar={initialAvatar}
+            fallbackEmail={initialEmail}
+          />
 
           <div className="glass-card-glow relative overflow-hidden px-8 py-16 text-center sm:px-12 sm:py-20">
             {/* Ambient lighting */}
             <div className="pointer-events-none absolute -left-20 -top-20 h-60 w-60 rounded-full bg-brass/15 blur-3xl" />
-            <div className="pointer-events-none absolute -bottom-20 -right-20 h-60 w-60 rounded-full bg-cosmic-blue/20 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-20 -right-20 h-60 w-60 rounded-full bg-zinc-600/20 blur-3xl" />
 
             <div className="relative mx-auto flex max-w-lg flex-col items-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-brass/50 bg-[#0B1020]/90 shadow-[0_0_35px_rgba(212,168,83,0.35)]">
@@ -161,12 +169,11 @@ export function DashboardContent({
               </div>
 
               <h2 className="mt-6 font-display text-3xl text-ivory sm:text-4xl">
-                Continue your developer documentary
+                Begin your developer documentary
               </h2>
 
               <p className="mt-3 text-balance text-sm leading-relaxed text-muted sm:text-base">
-                Reconstruct commit logs across repositories and replay your developer
-                growth as a cinematic personal documentary.
+                We couldn't find any repositories or commits. Push some code to GitHub to reconstruct your timeline and replay your growth as a cinematic personal documentary.
               </p>
 
               {error && (
@@ -184,71 +191,73 @@ export function DashboardContent({
                 {isLoading ? (
                   <span className="flex items-center gap-2">
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-ink border-t-transparent" />
-                    Synthesizing story...
+                    Scanning GitHub...
                   </span>
                 ) : (
                   <span className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4" />
-                    Play Developer Story
+                    <RotateCcw className="h-4 w-4" />
+                    Check again
                   </span>
                 )}
               </Button>
-
-              <p className="mt-3 font-mono text-xs text-muted/70">
-                Aggregates public & authenticated commits across codebases
-              </p>
             </div>
           </div>
-
-          {isLoading && (
-            <div className="flex flex-col gap-8">
-              <RepoSkeleton />
-              <TimelineSkeleton />
-            </div>
-          )}
+        </div>
+      ) : !hasLoaded ? (
+        /* Loading Skeletons while fetching initial data */
+        <div className="flex flex-col gap-8">
+          <ProfileSkeleton />
+          <RepoSkeleton />
+          <TimelineSkeleton />
         </div>
       ) : (
         /* Loaded state — progressive full documentary dashboard */
-        <div className="flex flex-col gap-6">
-          <ProfileCard
-            profile={profile}
-            fallbackUsername={initialUsername}
-            fallbackAvatar={initialAvatar}
-            fallbackEmail={initialEmail}
-          />
+        <div className="flex flex-col gap-4">
+          <div className="mb-[-8px]">
+            <ProfileCard
+              profile={profile}
+              fallbackUsername={initialUsername}
+              fallbackAvatar={initialAvatar}
+              fallbackEmail={initialEmail}
+            />
+          </div>
 
-          {/* Apple Photos Memories Style Hero */}
-          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-black/40 p-8 shadow-2xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-brass/10 via-transparent to-black/80" />
-            <div className="absolute right-0 top-0 h-64 w-64 -translate-y-1/2 translate-x-1/3 rounded-full bg-brass/20 blur-[100px]" />
-            <div className="relative z-10 flex flex-col md:flex-row items-end justify-between gap-6">
-              <div className="max-w-xl">
-                <p className="font-mono text-xs font-semibold uppercase tracking-widest text-brass-light mb-2">Where am I in my story?</p>
-                <h2 className="font-display text-4xl md:text-5xl font-bold text-ivory leading-tight">
-                  The {analytics?.mostActiveYear || new Date().getFullYear()} Chapter
-                </h2>
-                <p className="mt-4 text-sm md:text-base text-muted/90 leading-relaxed italic">
-                  "You've been forging ahead, deeply engaged in expanding your technical repertoire. With a surge of {commits.length} contributions lately, the focus has shifted towards refining core logic and embracing new architectural patterns. The journey is accelerating."
-                </p>
-                <div className="mt-6 flex flex-wrap gap-4 items-center">
-                  <div className="flex items-center gap-2 rounded-full border border-brass/30 bg-brass/10 px-4 py-2 text-sm text-brass-light shadow-inner">
-                    <Sparkles className="h-4 w-4" />
-                    Latest Milestone: Over {repos.length} repositories
+          {/* Cinematic Movie Title Card Hero */}
+          <div className="relative z-10">
+            {/* Stronger breathing glow (cinematic lighting) behind the hero card */}
+            <div className="absolute -inset-2 rounded-3xl bg-brass/30 blur-2xl opacity-80 animate-pulse" />
+            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-black/50 p-5 shadow-2xl">
+              <div className="absolute inset-0 bg-gradient-to-br from-brass/10 via-black/40 to-black/90" />
+              <div className="absolute right-0 top-0 h-64 w-64 -translate-y-1/2 translate-x-1/3 rounded-full bg-brass/20 blur-[100px] animate-pulse" />
+              <div className="relative z-10 flex flex-col md:flex-row items-end justify-between gap-4">
+                <div className="max-w-2xl pb-2">
+                  <p className="font-mono text-xs font-bold uppercase tracking-widest text-brass-light mb-2 opacity-90">Current Chapter</p>
+                  <h2 className="font-display text-4xl md:text-6xl font-bold text-ivory leading-tight drop-shadow-2xl mb-3">
+                    The {analytics?.mostActiveYear || new Date().getFullYear()} Chapter
+                  </h2>
+                  <p className="text-base md:text-lg text-zinc-300 leading-relaxed italic border-l-2 border-brass/50 pl-4">
+                    "You've been forging ahead, deeply engaged in expanding your technical repertoire. With a surge of {commits.length} contributions lately, the focus has shifted towards refining core logic and embracing new architectural patterns. The journey is accelerating."
+                  </p>
+                  <div className="mt-8 flex flex-wrap gap-5 items-center">
+                    <Button 
+                      onClick={() => setActiveTab("replay")}
+                      className="rounded-full bg-brass text-ink hover:bg-[#FCE3B4] font-bold px-10 py-7 text-lg shadow-[0_0_50px_rgba(212,168,83,0.6)] transition-all hover:scale-105 hover:shadow-[0_0_60px_rgba(212,168,83,0.8)] border border-brass-light/50 ring-2 ring-brass/20 ring-offset-2 ring-offset-black"
+                    >
+                      <Play className="mr-3 h-6 w-6 fill-current" />
+                      Resume Documentary
+                    </Button>
+                    <div className="flex items-center gap-2 rounded-full border border-brass/30 bg-brass/10 px-4 py-2 text-sm text-brass-light shadow-inner">
+                      <Sparkles className="h-4 w-4" />
+                      Latest Milestone: Over {repos.length} repositories
+                    </div>
                   </div>
-                  <Button 
-                    onClick={() => setActiveTab("replay")}
-                    className="rounded-full bg-ivory text-ink hover:bg-white font-semibold transition-transform hover:scale-105"
-                  >
-                    <Play className="mr-2 h-4 w-4 fill-current" />
-                    Resume Documentary
-                  </Button>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Tab navigation bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3 mt-4">
             <div className="glass-card flex items-center gap-1 p-1">
               {tabs.map((tab) => (
                 <button

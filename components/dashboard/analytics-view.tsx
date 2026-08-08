@@ -1,7 +1,7 @@
 "use client";
 import React, { useMemo } from 'react';
 import { AnalyticsData, GitHubCommit } from '@/lib/github/types';
-import { Activity, Code, Clock, Calendar, Zap, Trophy, TrendingUp, BookOpen, Orbit } from 'lucide-react';
+import { Trophy, Orbit, Rocket, Code, Zap, Star, Flag, Clock } from 'lucide-react';
 
 interface AnalyticsViewProps {
   analytics: AnalyticsData;
@@ -9,23 +9,56 @@ interface AnalyticsViewProps {
 }
 
 export function AnalyticsView({ analytics, commits }: AnalyticsViewProps) {
-  const topLanguages = useMemo(() => {
-    return (analytics.topLanguages || []).slice(0, 5);
-  }, [analytics.topLanguages]);
-
   const milestones = useMemo(() => {
-    const repoFirstCommits = new Map<string, GitHubCommit>();
-    commits.forEach(commit => {
-      const commitDate = new Date(commit.date);
-      if (!repoFirstCommits.has(commit.repoName) || commitDate < new Date(repoFirstCommits.get(commit.repoName)!.date)) {
-        repoFirstCommits.set(commit.repoName, commit);
+    const list: any[] = [];
+    
+    if (commits.length > 0) {
+      const sorted = [...commits].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      const firstCommit = sorted[0];
+      list.push({
+        id: "first-commit",
+        title: "Chapter I: First Repo Founded",
+        description: `The genesis of the journey. First documented code forged in ${firstCommit.repoName}.`,
+        date: new Date(firstCommit.date).toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+        Icon: Rocket,
+        color: "text-blue-400"
+      });
+      
+      if (analytics.topLanguages && analytics.topLanguages.length > 0) {
+        const topLang = analytics.topLanguages[0].name;
+        list.push({
+          id: "first-major",
+          title: "Chapter II: First Major Project",
+          description: `A breakthrough moment. Adopted ${topLang} to build something substantial and defining.`,
+          date: "Key Milestone",
+          Icon: Trophy,
+          color: "text-brass-light"
+        });
       }
-    });
 
-    return Array.from(repoFirstCommits.values())
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      .slice(0, 5);
-  }, [commits]);
+      if (analytics.longestStreak > 0) {
+        list.push({
+          id: "streak",
+          title: "Chapter III: Longest Streak",
+          description: `An era of unbreakable flow. Maintained relentless focus for a ${analytics.longestStreak}-day coding streak.`,
+          date: "Momentum Peak",
+          Icon: Zap,
+          color: "text-amber-400"
+        });
+      }
+      
+      const latestCommit = sorted[sorted.length - 1];
+      list.push({
+        id: "latest",
+        title: "Chapter IV: Present Chapter",
+        description: `The continuing saga. Pushing boundaries and exploring new frontiers in ${latestCommit.repoName}.`,
+        date: new Date(latestCommit.date).toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+        Icon: Flag,
+        color: "text-purple-400"
+      });
+    }
+    return list;
+  }, [commits, analytics]);
 
   return (
     <div className="space-y-12 w-full">
@@ -45,96 +78,44 @@ export function AnalyticsView({ analytics, commits }: AnalyticsViewProps) {
         </div>
       </div>
 
-      {/* Momentum Analysis */}
+      {/* Narrative Milestone Timeline */}
       <div>
-        <h3 className="font-display text-2xl text-ivory mb-6 flex items-center gap-2">
-          <TrendingUp className="h-6 w-6 text-brass-light" />
-          Momentum Analysis
+        <h3 className="font-display text-2xl text-ivory mb-8 flex items-center gap-2">
+          <Clock className="h-6 w-6 text-brass-light" />
+          Narrative Milestone Timeline
         </h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 shadow-sm hover:bg-white/[0.04] transition-colors">
-            <Activity className="w-6 h-6 text-brass mb-3" />
-            <span className="font-display text-3xl text-ivory font-bold">{analytics.totalCommits || 0}</span>
-            <span className="text-xs text-muted uppercase tracking-wider mt-2 block">Total Commits</span>
-          </div>
-          <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 shadow-sm hover:bg-white/[0.04] transition-colors">
-            <Trophy className="w-6 h-6 text-brass mb-3" />
-            <span className="font-display text-3xl text-ivory font-bold">{analytics.longestStreak || 0}</span>
-            <span className="text-xs text-muted uppercase tracking-wider mt-2 block">Longest Streak</span>
-          </div>
-          <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 shadow-sm hover:bg-white/[0.04] transition-colors">
-            <Zap className="w-6 h-6 text-brass mb-3" />
-            <span className="font-display text-3xl text-ivory font-bold">
-              {analytics.avgCommitsPerWeek || 0}
-            </span>
-            <span className="text-xs text-muted uppercase tracking-wider mt-2 block">Avg Commits/Week</span>
-          </div>
-          <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 shadow-sm hover:bg-white/[0.04] transition-colors">
-            <Clock className="w-6 h-6 text-brass mb-3" />
-            <span className="font-display text-xl md:text-2xl text-ivory font-bold line-clamp-1">{analytics.mostActiveMonth || '-'}</span>
-            <span className="text-xs text-muted uppercase tracking-wider mt-2 block">Best Month</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Learning Timeline (Top Languages redefined) */}
-        <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-8 shadow-sm">
-          <h3 className="font-display text-2xl text-ivory mb-8 flex items-center gap-2">
-            <BookOpen className="h-6 w-6 text-brass-light" />
-            Learning Timeline
-          </h3>
-          <div className="space-y-6">
-            {topLanguages.length > 0 ? topLanguages.map(lang => (
-              <div key={lang.name}>
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-ivory font-semibold text-base">{lang.name}</span>
-                  <span className="text-brass-light font-mono text-sm">{lang.percentage.toFixed(1)}%</span>
-                </div>
-                <div className="w-full bg-ink-soft rounded-full h-3 overflow-hidden border border-ink-border/50">
-                  <div 
-                    className="bg-gradient-to-r from-brass to-brass-light h-full rounded-full" 
-                    style={{ width: `${lang.percentage}%` }}
-                  />
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {milestones.map((milestone) => {
+            const { Icon } = milestone;
+            return (
+              <div 
+                key={milestone.id}
+                className="cinematic-depth-card group relative overflow-hidden rounded-3xl border border-white/10 bg-black/40 p-8 shadow-2xl transition-all duration-500 hover:-translate-y-2 hover:border-brass/40"
+                style={{ transformStyle: 'preserve-3d', perspective: '1000px' }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+                <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/5 blur-3xl transition-all duration-500 group-hover:bg-brass/20" />
+                
+                <div className="relative z-10 flex flex-col items-start gap-4" style={{ transform: 'translateZ(30px)' }}>
+                  <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 shadow-inner ${milestone.color}`}>
+                    <Icon className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-muted">
+                      {milestone.date}
+                    </span>
+                    <h4 className="mt-2 font-display text-xl font-bold text-ivory">
+                      {milestone.title}
+                    </h4>
+                    <p className="mt-2 text-sm leading-relaxed text-muted/80">
+                      {milestone.description}
+                    </p>
+                  </div>
                 </div>
               </div>
-            )) : (
-              <div className="text-muted text-center py-8">Not enough language data available.</div>
-            )}
-          </div>
-        </div>
-
-        {/* Developer Evolution (Milestone Timeline) */}
-        <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-8 shadow-sm">
-          <h3 className="font-display text-2xl text-ivory mb-8 flex items-center gap-2">
-            <Activity className="h-6 w-6 text-brass-light" />
-            Evolution Story
-          </h3>
-          {milestones.length > 0 ? (
-            <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-white/10 before:to-transparent">
-              {milestones.map((milestone, idx) => {
-                const date = new Date(milestone.date);
-                return (
-                  <div key={milestone.sha} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white/20 bg-ink-surface text-brass-light shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10 transition-transform group-hover:scale-110">
-                      <Trophy className="w-4 h-4" />
-                    </div>
-                    <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white/[0.03] border border-white/5 p-4 rounded-xl shadow-sm hover:border-brass/30 transition-colors">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-mono text-xs text-brass font-bold">
-                          {date.toLocaleDateString("en-US", { month: "short", year: "numeric" })}
-                        </span>
-                      </div>
-                      <div className="font-semibold text-ivory text-sm truncate">First commit in {milestone.repoName}</div>
-                      <div className="text-muted text-xs truncate mt-1">{milestone.message}</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="text-muted text-center py-12">Not enough commit data to display timeline.</div>
-          )}
+            );
+          })}
         </div>
       </div>
     </div>

@@ -76,6 +76,27 @@ export function RepoSection({ repos }: RepoSectionProps) {
     return `linear-gradient(135deg, ${color1}40, ${color2})`;
   };
 
+  const generateUniqueRepoInsight = (name: string, lang: string) => {
+    const insights = [
+      "A foundational piece demonstrating robust architecture.",
+      "An exploratory dive into modern methodologies.",
+      "Consistent iterative improvements over time.",
+      "A testament to disciplined coding practices.",
+      "An experimental sandbox pushing technical boundaries.",
+      "A cornerstone project with meticulous attention to detail."
+    ];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % insights.length;
+    const insight = insights[index];
+    if (lang) {
+      return `Key ${lang} project: ${insight}`;
+    }
+    return insight;
+  };
+
   const getRelativeTime = (dateString: string) => {
     try {
       const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
@@ -162,71 +183,72 @@ export function RepoSection({ repos }: RepoSectionProps) {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
             {displayedRepos.map((repo) => (
               <div
                 key={repo.id}
-                className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/5 bg-white/[0.02] min-h-[320px] transition-all duration-500 hover:border-brass/50 hover:shadow-[0_0_30px_rgba(212,168,83,0.3)]"
+                className="cinematic-depth-card group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-black/40 p-5 shadow-2xl transition-all duration-500 hover:-translate-y-1 hover:border-brass/40"
+                style={{ transformStyle: 'preserve-3d', perspective: '1000px' }}
               >
-                {/* Cinematic Cover Background */}
+                {/* Cinematic Cover Background (subtle) */}
                 <div 
-                  className="absolute inset-0 opacity-20 transition-opacity duration-500 group-hover:opacity-40"
+                  className="absolute inset-0 opacity-10 transition-opacity duration-500 group-hover:opacity-20"
                   style={{ background: getCoverGradient(repo.name, repo.language || '') }}
                 />
                 
                 {/* Content */}
-                <div className="relative z-10 flex flex-col h-full p-6 md:p-8">
+                <div className="relative z-10 flex flex-col h-full">
                   <div>
-                    <div className="flex items-start justify-between gap-4 mb-4">
+                    <div className="flex items-start justify-between gap-3">
                       <a
                         href={repo.html_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="line-clamp-2 font-display text-2xl font-bold text-ivory transition-colors group-hover:text-brass-light"
+                        className="line-clamp-1 font-display text-lg font-semibold text-ivory transition-colors group-hover:text-brass-light"
                       >
                         {repo.name}
                       </a>
-                      <div className="flex items-center gap-1.5 rounded-full bg-black/40 px-2.5 py-1 backdrop-blur-md border border-white/10">
-                        <Star className="h-3.5 w-3.5 text-brass" />
-                        <span className="font-mono text-xs font-bold text-ivory">{repo.stargazers_count}</span>
+                      <div className="flex items-center gap-1 rounded-md bg-white/5 px-2 py-0.5 border border-white/5">
+                        <Star className="h-3 w-3 text-brass" />
+                        <span className="font-mono text-[10px] text-ivory">{repo.stargazers_count}</span>
                       </div>
                     </div>
-                    <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted/90 group-hover:text-muted transition-colors">
-                      {repo.description || "No description provided. The code speaks for itself."}
+                    <p className="mt-2 line-clamp-2 text-sm text-muted/80">
+                      {repo.description || "No description provided."}
                     </p>
-                    <div className="mt-4 rounded-xl bg-gradient-to-r from-brass/10 to-transparent p-4 border border-brass/10 border-l-2 border-l-brass">
-                      <p className="text-xs text-brass-light/90 italic leading-relaxed">
-                        "An influential repository demonstrating clear structural choices and consistent updates. A key piece of the developer's evolution."
+                    {/* Subtle AI Insight */}
+                    <div className="mt-3 border-l-2 border-brass/30 pl-2">
+                      <p className="text-[11px] text-muted/70 italic leading-snug">
+                        "{generateUniqueRepoInsight(repo.name, repo.language || '')}"
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-auto pt-6 flex flex-col gap-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
+                  <div className="mt-5 flex flex-col gap-3">
+                    <div className="flex items-center justify-between border-t border-white/5 pt-3">
+                      <div className="flex items-center gap-3">
                         {repo.language && (
-                          <div className="flex items-center gap-2 font-mono text-xs font-medium text-ivory">
+                          <div className="flex items-center gap-1.5 font-mono text-[10px] text-muted">
                             <span
-                              className="h-3 w-3 rounded-full shadow-sm"
+                              className="h-2 w-2 rounded-full"
                               style={{ backgroundColor: getLanguageColor(repo.language) }}
                             />
                             {repo.language}
                           </div>
                         )}
                         {repo.forks_count > 0 && (
-                          <div className="flex items-center gap-1.5 font-mono text-xs text-muted">
-                            <GitFork className="h-4 w-4 text-commit-300" />
+                          <div className="flex items-center gap-1 font-mono text-[10px] text-muted">
+                            <GitFork className="h-3 w-3" />
                             <span>{repo.forks_count}</span>
                           </div>
                         )}
                       </div>
-                      <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-muted">
-                        <Clock className="h-3.5 w-3.5" />
-                        <span>{getRelativeTime(repo.updated_at)}</span>
+                      <div className="font-mono text-[10px] text-muted">
+                        {getRelativeTime(repo.updated_at)}
                       </div>
                     </div>
-                    <Button variant="outline" className="w-full justify-center gap-2 border-white/10 text-muted hover:border-brass hover:text-brass-light bg-white/5 hover:bg-brass/10 transition-colors font-mono text-xs tracking-wider">
-                      <Clock className="h-3.5 w-3.5" />
+                    <Button variant="outline" size="sm" className="w-full h-8 text-xs border-white/10 text-muted hover:border-brass/50 hover:text-brass-light bg-transparent hover:bg-brass/5 transition-colors">
+                      <Clock className="mr-1.5 h-3 w-3" />
                       View Timeline
                     </Button>
                   </div>

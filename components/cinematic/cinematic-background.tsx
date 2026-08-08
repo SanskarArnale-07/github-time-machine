@@ -29,24 +29,22 @@ export function CinematicBackground() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[#050507]"
+      className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[#07111f]"
     >
       {/* 1. Deep Base Gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#050507] via-[#0a0a0f] to-[#050507]" />
+      <div className="absolute inset-0 bg-gradient-to-br from-[#07111f] via-[#0b1a2e] to-[#07111f]" />
 
-      {/* 2. Slow Animated Aurora / Soft Light Blooms */}
+      {/* 2. Slow Animated Aurora / Dual Lighting */}
       <div className="absolute inset-0 opacity-40 mix-blend-screen">
+        {/* Amber behind hero (top right) */}
         <div 
-          className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] rounded-full bg-indigo-900/30 blur-[130px] animate-pulse-glow" 
-          style={{ animationDuration: '10s' }} 
+          className="absolute top-[-10%] right-[-10%] w-[60%] h-[70%] rounded-full bg-amber-500/15 blur-[150px] animate-pulse-glow" 
+          style={{ animationDuration: '14s' }} 
         />
+        {/* Cool blue behind content (bottom left) */}
         <div 
-          className="absolute top-[20%] right-[-10%] w-[60%] h-[80%] rounded-full bg-brass/15 blur-[150px] animate-pulse-glow" 
-          style={{ animationDuration: '14s', animationDelay: '2s' }} 
-        />
-        <div 
-          className="absolute bottom-[-20%] left-[20%] w-[80%] h-[60%] rounded-full bg-zinc-800/40 blur-[140px] animate-pulse-glow" 
-          style={{ animationDuration: '12s', animationDelay: '1s' }} 
+          className="absolute bottom-[-10%] left-[-10%] w-[70%] h-[60%] rounded-full bg-blue-500/15 blur-[150px] animate-pulse-glow" 
+          style={{ animationDuration: '12s', animationDelay: '2s' }} 
         />
       </div>
 
@@ -80,7 +78,7 @@ export function CinematicBackground() {
       </div>
 
       {/* 5. Deep Vignette */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_20%,#050507_120%)] opacity-90" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_20%,#07111f_120%)] opacity-90" />
     </div>
   );
 }

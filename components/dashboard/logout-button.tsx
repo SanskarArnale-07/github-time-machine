@@ -9,6 +9,7 @@ export function LogoutButton() {
     const supabase = createClient();
     await supabase.auth.signOut();
     localStorage.clear();
+    sessionStorage.clear();
     window.location.href = "/";
   }
 

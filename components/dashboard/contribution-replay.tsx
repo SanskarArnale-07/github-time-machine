@@ -1,8 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import { ContributionWeek, GitHubCommit } from "@/lib/github/types";
-import { Play, RotateCcw } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 interface ContributionReplayProps {
   contributions: ContributionWeek[];
@@ -20,9 +18,9 @@ export function ContributionReplay({
   useEffect(() => {
     // Auto-play on mount
     const timeout = setTimeout(() => {
-      setWaveProgress(0);
+      setWaveProgress(-4);
       setIsPlaying(true);
-    }, 300);
+    }, 100);
     return () => clearTimeout(timeout);
   }, []);
 
@@ -42,10 +40,7 @@ export function ContributionReplay({
     };
   }, [isPlaying, waveProgress, contributions.length]);
 
-  const togglePlay = () => {
-    setWaveProgress(0);
-    setIsPlaying(true);
-  };
+
 
   const getCellColor = (level: number) => {
     switch (level) {
@@ -147,8 +142,8 @@ export function ContributionReplay({
                       className="h-[11px] w-[11px] rounded-[2px] transition-all duration-300 ease-out sm:h-[13px] sm:w-[13px]"
                       style={{
                         backgroundColor: getCellColor(level),
-                        transform: active ? "scale(1.4)" : "scale(1)",
-                        boxShadow: active ? `0 0 12px ${getCellColor(level)}` : "none",
+                        transform: active ? "scale(1.15)" : "scale(1)",
+                        boxShadow: active ? `0 0 10px ${getCellColor(level)}` : "none",
                         zIndex: active ? 10 : 1,
                       }}
                       title={`${day.count} contribution${day.count === 1 ? "" : "s"} on ${day.date}`}
@@ -174,22 +169,6 @@ export function ContributionReplay({
             ))}
           </div>
           <span>More</span>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Button
-            size="sm"
-            onClick={togglePlay}
-            disabled={isPlaying}
-            className={`font-sans text-xs font-semibold ${
-              isPlaying
-                ? "border border-ink-border bg-ink-surface text-muted"
-                : "bg-brass text-ink hover:bg-brass-light"
-            }`}
-          >
-            <Play className={`mr-1.5 h-3.5 w-3.5 ${isPlaying ? 'text-muted' : 'fill-current'}`} />
-            {isPlaying ? "Replaying..." : "Replay Bloom"}
-          </Button>
         </div>
       </div>
     </div>

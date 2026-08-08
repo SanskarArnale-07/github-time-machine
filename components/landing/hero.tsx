@@ -8,15 +8,24 @@ import { Button } from "@/components/ui/button";
 import { GitBackground } from "@/components/landing/git-background";
 
 export function Hero() {
-  // Sample animated contribution grid squares
+  const [activeCommitIdx, setActiveCommitIdx] = useState(0);
+
+  // Animated contribution grid squares that evolve with the timeline
   const sampleSquares = useMemo(() => {
     const colors = ["#161A1E", "#0E4429", "#006D32", "#26A641", "#39D353"];
-    return Array.from({ length: 48 }).map((_, i) => ({
-      id: i,
-      color: colors[(i * 7 + 3) % colors.length],
-      delay: (i % 8) * 0.15,
-    }));
-  }, []);
+    // Intensity multiplier based on current timeline index (0, 1, 2)
+    const intensity = 1 + activeCommitIdx * 0.8; 
+    return Array.from({ length: 48 }).map((_, i) => {
+      const randomBase = (i * 7 + 3) % 10; 
+      // Higher activeCommitIdx means more green squares and higher intensity
+      const activeValue = Math.min(Math.floor((randomBase * intensity) / 4), colors.length - 1);
+      return {
+        id: i,
+        color: colors[activeValue],
+        delay: (i % 8) * 0.15,
+      };
+    });
+  }, [activeCommitIdx]);
 
   const timelineMilestones = [
     { year: "2025", label: "First repository founded" },
@@ -32,6 +41,8 @@ export function Hero() {
       msg: "feat: implement real-time radar stream pipeline",
       narration: "October 2025: You stopped experimenting and started building consistently.",
       progress: "68%",
+      streak: "18d",
+      date: "Oct 24, 2025",
     },
     {
       repo: "rust-cli-tool",
@@ -39,6 +50,8 @@ export function Hero() {
       msg: "refactor: optimize memory allocation for large files",
       narration: "A breakthrough moment. You began caring about deep performance.",
       progress: "75%",
+      streak: "42d",
+      date: "Feb 12, 2026",
     },
     {
       repo: "portfolio-v3",
@@ -46,10 +59,10 @@ export function Hero() {
       msg: "design: overhaul layout with glassmorphism and tailwind",
       narration: "You found your aesthetic identity as a developer.",
       progress: "82%",
+      streak: "64d",
+      date: "Aug 05, 2026",
     }
   ];
-
-  const [activeCommitIdx, setActiveCommitIdx] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -173,7 +186,22 @@ export function Hero() {
                   </span>
                   <span className="font-semibold text-brass tracking-wider uppercase">Live Preview</span>
                 </div>
-                <span className="text-zinc-500">Documentary Mode</span>
+                <span className="text-zinc-500 flex items-center gap-2">
+                  <span>Documentary Mode</span>
+                  <span>&bull;</span>
+                  <AnimatePresence mode="wait">
+                    <motion.span
+                      key={activeCommitIdx}
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 5 }}
+                      transition={{ duration: 0.5 }}
+                      className="text-brass-light font-medium"
+                    >
+                      {simulatedCommits[activeCommitIdx].date}
+                    </motion.span>
+                  </AnimatePresence>
+                </span>
               </div>
 
               {/* Sample Repository & Milestone */}
@@ -218,13 +246,24 @@ export function Hero() {
               <div className="mt-8 rounded-2xl border border-zinc-800/50 bg-zinc-950/80 p-5 shadow-inner">
                 <div className="flex items-center justify-between font-mono text-xs text-zinc-500 mb-3">
                   <span>Activity Progression</span>
-                  <span className="text-brass-light font-medium">Streak: 18d</span>
+                  <AnimatePresence mode="wait">
+                    <motion.span
+                      key={activeCommitIdx}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.5 }}
+                      className="text-brass-light font-medium"
+                    >
+                      Streak: {simulatedCommits[activeCommitIdx].streak}
+                    </motion.span>
+                  </AnimatePresence>
                 </div>
                 <div className="grid grid-cols-12 gap-1.5">
                   {sampleSquares.map((sq) => (
                     <div
                       key={sq.id}
-                      className="h-3 w-full rounded-[2px] transition-all duration-300 hover:scale-110"
+                      className="h-3 w-full rounded-[2px] transition-all duration-1000 hover:scale-110"
                       style={{ backgroundColor: sq.color === "#39D353" ? "#D4A853" : sq.color, boxShadow: sq.color === "#39D353" ? "0 0 10px rgba(212,168,83,0.3)" : "none" }}
                     />
                   ))}
@@ -235,7 +274,18 @@ export function Hero() {
               <div className="mt-8">
                 <div className="flex justify-between font-mono text-xs text-zinc-500 mb-2">
                   <span>Rendering Timeline</span>
-                  <span className="text-ivory font-medium transition-all duration-500">{simulatedCommits[activeCommitIdx].progress}</span>
+                  <AnimatePresence mode="wait">
+                    <motion.span
+                      key={activeCommitIdx}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.5 }}
+                      className="text-ivory font-medium"
+                    >
+                      {simulatedCommits[activeCommitIdx].progress}
+                    </motion.span>
+                  </AnimatePresence>
                 </div>
                 <div className="h-1.5 w-full overflow-hidden rounded-full border border-zinc-800/80 bg-zinc-950">
                   <motion.div

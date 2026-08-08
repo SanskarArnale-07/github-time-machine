@@ -10,19 +10,19 @@ const config: Config = {
     extend: {
       colors: {
         ink: {
-          DEFAULT: "#09090B", // Deep Charcoal
-          deep: "#040405",
-          soft: "#18181B",
-          surface: "#18181B",
-          border: "#27272A",
-          card: "rgba(24, 24, 27, 0.85)",
+          DEFAULT: "#07111f", // Deep Navy
+          deep: "#030811",
+          soft: "#0b1a2e",
+          surface: "#0b1a2e",
+          border: "#162b47",
+          card: "rgba(11, 26, 46, 0.85)",
         },
         navy: {
-          DEFAULT: "#09090B",
-          deep: "#040405",
-          soft: "#18181B",
-          surface: "#18181B",
-          border: "#27272A",
+          DEFAULT: "#07111f",
+          deep: "#030811",
+          soft: "#0b1a2e",
+          surface: "#0b1a2e",
+          border: "#162b47",
           glow: "rgba(212, 168, 83, 0.08)",
         },
         cosmic: {
@@ -100,6 +100,12 @@ const config: Config = {
           "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(212,168,83,0.08), transparent 70%)",
         "cosmic-radial":
           "radial-gradient(circle at 50% 30%, rgba(99, 102, 241, 0.05), rgba(212, 168, 83, 0.03) 45%, transparent 70%)",
+      },
+      transitionDuration: {
+        "150": "150ms", // hover
+        "500": "500ms", // section
+        "1000": "1000ms", // fade
+        "2000": "2000ms", // bloom
       },
     },
   },
