@@ -8,13 +8,15 @@ import { createClient } from "@/lib/supabase/client";
  * and forwards the user to /dashboard.
  */
 export async function signInWithGithub() {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   await supabase.auth.signInWithOAuth({
     provider: "github",
     options: {
-      redirectTo: `${window.location.origin}/auth/callback`,
-      scopes: "read:user repo",
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+      queryParams: {
+        prompt: "consent", // or 'select_account'
+      },
     },
   });
 }

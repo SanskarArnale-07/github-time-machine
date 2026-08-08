@@ -58,13 +58,40 @@ export function TimelineView({
     }
   };
 
-  // Group commits by day for a journal feel
+  // Group commits by day for a journal feel, and group repetitive commits
   const groupCommitsByDay = (commits: GitHubCommit[]) => {
-    const groups: Record<string, GitHubCommit[]> = {};
+    const groups: Record<string, { repoName: string; sha: string; htmlUrl: string; messages: string[]; shortSha: string; count: number }[]> = {};
     commits.forEach(commit => {
       const date = new Date(commit.date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
       if (!groups[date]) groups[date] = [];
-      groups[date].push(commit);
+
+      // Group similar commits in the same repo (e.g. repetitive "Update" or same prefix)
+      const isRepetitive = (msg1: string, msg2: string) => {
+        const m1 = msg1.toLowerCase();
+        const m2 = msg2.toLowerCase();
+        if (m1 === m2) return true;
+        if (m1.startsWith("update") && m2.startsWith("update")) return true;
+        if (m1.startsWith("fix") && m2.startsWith("fix")) return true;
+        return msg1.substring(0, 10) === msg2.substring(0, 10);
+      };
+
+      const similarCommit = groups[date].find(g => 
+        g.repoName === commit.repoName && isRepetitive(g.messages[0], commit.message)
+      );
+
+      if (similarCommit) {
+        similarCommit.count += 1;
+        similarCommit.messages.push(commit.message);
+      } else {
+        groups[date].push({
+          repoName: commit.repoName,
+          sha: commit.sha,
+          shortSha: commit.shortSha || commit.sha.slice(0, 7),
+          htmlUrl: commit.htmlUrl,
+          messages: [commit.message],
+          count: 1
+        });
+      }
     });
     return Object.entries(groups);
   };
@@ -75,7 +102,7 @@ export function TimelineView({
         <div>
           <h2 className="font-display text-3xl font-bold text-ivory">Developer Journal</h2>
           <p className="mt-2 text-sm text-muted">
-            {totalCommits} entries across time. Merge commits are hidden for a focused narrative.
+            {totalCommits} entries across time. Merge commits are hidden and repetitive updates are grouped for a focused narrative.
           </p>
         </div>
 
@@ -130,7 +157,11 @@ export function TimelineView({
             </div>
 
             <div className="space-y-16 md:pl-20">
-              {year.months.map((month) => (
+              {year.months.map((month) => {
+                const uniqueRepos = Array.from(new Set(month.commits.map(c => c.repoName)));
+                const topRepos = uniqueRepos.slice(0, 2).join(" and ") || "various projects";
+                
+                return (
                 <div key={month.month} className="space-y-8">
                   {/* Monthly Chapter Card */}
                   <div className="relative overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br from-white/[0.03] to-transparent p-6 shadow-xl backdrop-blur-sm">
@@ -142,7 +173,7 @@ export function TimelineView({
                         Chapter: {month.monthName}
                       </h4>
                       <p className="mt-2 text-sm leading-relaxed text-muted max-w-xl">
-                        A focused period of development encompassing {month.commits.length} key contributions. The primary focus during this chapter included advancements in {month.commits[0]?.repoName || "various projects"} and foundational code improvements.
+                        {month.commits.length} meaningful contributions focused on {topRepos}. This chapter highlights sustained momentum in building and refining core systems.
                       </p>
                     </div>
                   </div>
@@ -158,28 +189,33 @@ export function TimelineView({
                         </div>
                         
                         <div className="space-y-3 pl-4 md:pl-0 border-l-2 md:border-l-0 border-ink-border ml-1 md:ml-0">
-                          {dayCommits.map((commit) => (
+                          {dayCommits.map((group) => (
                             <div
-                              key={commit.sha}
+                              key={group.sha}
                               className="group rounded-xl border border-transparent bg-white/[0.02] p-4 transition-all hover:border-white/10 hover:bg-white/[0.04]"
                             >
                               <div className="mb-2 flex flex-col justify-between gap-2 md:flex-row md:items-center">
                                 <div className="flex flex-wrap items-center gap-2">
                                   <span className="rounded-full bg-commit-300/10 px-2.5 py-1 font-mono text-[10px] font-medium text-commit-300 border border-commit-300/20">
-                                    {commit.repoName}
+                                    {group.repoName}
                                   </span>
                                   <a
-                                    href={commit.htmlUrl}
+                                    href={group.htmlUrl}
                                     target="_blank"
                                     rel="noreferrer"
                                     className="font-mono text-xs text-muted transition-colors hover:text-brass"
                                   >
-                                    {commit.shortSha || commit.sha.slice(0, 7)}
+                                    {group.shortSha}
                                   </a>
+                                  {group.count > 1 && (
+                                    <span className="rounded-full bg-brass/10 px-2 py-0.5 font-mono text-[10px] text-brass-light border border-brass/20">
+                                      +{group.count - 1} similar
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                               <p className="text-sm leading-relaxed text-ivory/90">
-                                {commit.message}
+                                {group.messages[0]}
                               </p>
                             </div>
                           ))}
@@ -188,7 +224,7 @@ export function TimelineView({
                     ))}
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           </div>
         ))}

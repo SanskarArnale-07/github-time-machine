@@ -60,7 +60,6 @@ export function TimelineReplay({
 }: TimelineReplayProps) {
   const username = profile?.name || profile?.login || "Developer";
   const engine = useReplayEngine(commits, repos, username);
-  const progressBarRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -204,13 +203,6 @@ export function TimelineReplay({
   const commit = currentEvent?.commit;
   const isAtEnd = engine.currentIndex >= engine.total - 1;
 
-  const handleProgressBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!progressBarRef.current) return;
-    const rect = progressBarRef.current.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const fraction = Math.max(0, Math.min(1, clickX / rect.width));
-    engine.seekFraction(fraction);
-  };
 
   const handleCopyLink = async () => {
     const res = await copyShareableReplayLink(username, engine.currentIndex);
@@ -656,7 +648,7 @@ export function TimelineReplay({
             ) : (
               /* Summarized Chapter Commit Card: Repo Badge, Date, Title, 1-sentence summary */
               <div className="relative z-10 flex flex-col gap-5 select-text">
-                <div className="flex items-center justify-between gap-3 border-b border-zinc-800/50 pb-4">
+                <div className="flex items-center justify-between gap-3 border-b border-zinc-800/50 pb-4 transition-all duration-[400ms] ease-in-out">
                   <div className="flex items-center gap-3">
                     <span className="inline-flex items-center gap-1.5 rounded-md border border-zinc-700/50 bg-zinc-800/40 px-3 py-1 font-mono text-xs font-semibold text-zinc-300">
                       <FolderGit2 className="h-3.5 w-3.5" />
@@ -665,106 +657,60 @@ export function TimelineReplay({
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="font-mono text-xs text-zinc-400">{formattedDate}</span>
-                    {currentEvent?.commitSha && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowDetails(true)}
-                        className="h-7 font-mono text-[10px] text-zinc-500 hover:text-ivory px-2"
-                      >
-                        Details
-                      </Button>
-                    )}
                   </div>
                 </div>
 
-                <div className="py-3">
+                <div className="py-3 transition-all duration-[400ms] ease-in-out">
                   <h3 className={`font-display font-medium leading-snug tracking-tight text-ivory line-clamp-2 ${isFullscreen ? 'text-4xl' : 'text-2xl sm:text-3xl'}`}>
                     {currentEvent?.title}
                   </h3>
                 </div>
 
                 {/* 1-sentence summary */}
-                <div className="text-sm font-sans text-zinc-400 leading-relaxed">
+                <div className="text-sm font-sans text-zinc-400 leading-relaxed transition-all duration-[600ms] ease-in-out">
                   {currentEvent?.impactDescription || (commit?.message ? commit.message.split('\n')[0] : "Codebase updated.")}
                 </div>
+
+                {commit?.message && (
+                  <div className="mt-2 transition-all duration-[250ms] ease-in-out">
+                    <button 
+                      onClick={() => setShowDetails(!showDetails)}
+                      className="font-mono text-[10px] text-zinc-500 hover:text-ivory uppercase tracking-wider"
+                    >
+                      {showDetails ? "Hide Raw Log" : "View Raw Log"}
+                    </button>
+                    <AnimatePresence>
+                      {showDetails && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.4, ease: "easeInOut" }}
+                          className="mt-3 overflow-hidden"
+                        >
+                          <pre className="whitespace-pre-wrap rounded bg-zinc-950/50 p-3 border border-zinc-800/50 font-mono text-[10px] text-zinc-400 line-clamp-2">
+                            {commit.message}
+                          </pre>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
               </div>
             )}
-
-            {/* Slide-up details drawer inside the commit card */}
-            <AnimatePresence>
-              {showDetails && (
-                <motion.div
-                  initial={{ y: "100%" }}
-                  animate={{ y: 0 }}
-                  exit={{ y: "100%" }}
-                  transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                  className="absolute inset-0 z-30 bg-[#121214] p-6 sm:p-8 flex flex-col border-t border-zinc-800 select-text"
-                >
-                  <div className="flex items-center justify-between border-b border-zinc-850 pb-2">
-                    <span className="font-mono text-[10px] text-brass-light font-bold uppercase tracking-wider">Documentary logs</span>
-                    <button
-                      onClick={() => setShowDetails(false)}
-                      className="text-[10px] text-zinc-500 hover:text-ivory font-mono border border-zinc-800 px-2 py-0.5 rounded bg-zinc-900"
-                    >
-                      Close [Esc]
-                    </button>
-                  </div>
-                  <div className="mt-4 flex-1 overflow-y-auto pr-1 text-left custom-scrollbar leading-relaxed font-sans text-xs sm:text-sm text-zinc-300">
-                    <div className="font-mono text-[10px] text-zinc-500 mb-1.5">PATH: {currentEvent?.repoName}/{currentEvent?.commitShortSha}</div>
-                    <h4 className="font-display font-medium text-ivory text-base sm:text-lg mb-3 leading-snug">{currentEvent?.title}</h4>
-                    {commit?.message && (
-                      <pre className="whitespace-pre-wrap rounded-lg bg-zinc-950 p-3.5 border border-zinc-850 font-mono text-[10px] sm:text-xs text-zinc-400 max-h-[160px] overflow-y-auto">
-                        {commit.message}
-                      </pre>
-                    )}
-                    <div className="mt-4 border-t border-zinc-850 pt-4 grid grid-cols-2 gap-3 text-[10px] sm:text-xs text-zinc-500 font-mono">
-                      <div>
-                        <span className="block text-zinc-650 font-semibold uppercase text-[9px]">Author</span>
-                        <span className="text-zinc-300">{currentEvent?.authorName || "Developer"}</span>
-                      </div>
-                      <div>
-                        <span className="block text-zinc-650 font-semibold uppercase text-[9px]">Timestamp</span>
-                        <span className="text-zinc-300">{formattedDate}</span>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
         )}
       </div>
 
-      {/* 3. Minimalist Timeline Scrubber */}
-      <div className={`my-5 flex flex-col gap-1.5 ${isFullscreen ? 'w-[85%] mx-auto' : ''}`}>
-        <div className="flex items-center justify-between font-mono text-[11px] text-muted">
-          <span>{engine.startYear}</span>
-          <span className="text-ivory font-medium tracking-wide">
-            {currentEvent ? `${currentEvent.monthName} ${currentEvent.year}` : "Timeline"}
-          </span>
-          <span>{engine.endYear}</span>
+      {/* 3. Cinematic Chapter Timeline */}
+      <div className={`my-6 flex flex-col items-center justify-center text-center ${isFullscreen ? 'w-[85%] mx-auto' : ''}`}>
+        <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-500 mb-2 transition-all duration-[400ms] ease-in-out">
+          Chapter {engine.chapters.findIndex(c => c.id === currentChapter?.id) + 1} of {engine.chapters.length}
+          <span className="mx-2 text-zinc-700">•</span>
+          <span className="text-brass-light transition-all duration-[400ms] ease-in-out">{currentEvent?.monthName} {currentEvent?.year}</span>
         </div>
-
-        <div
-          ref={progressBarRef}
-          onClick={handleProgressBarClick}
-          className="group relative flex h-3 w-full cursor-pointer items-center"
-        >
-          <div className="h-1.5 w-full overflow-hidden rounded-full border border-white/10 bg-[#0B1020]">
-            <div
-              className="h-full transition-all duration-200 ease-out shadow-[0_0_10px_rgba(212,168,83,0.7)]"
-              style={{
-                width: `${engine.progress}%`,
-                backgroundColor: engine.eraColor.accent,
-              }}
-            />
-          </div>
-          {/* Subtle Light Trail Cursor */}
-          <div
-            className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 h-4 w-4 rounded-full border-2 border-ivory bg-brass shadow-[0_0_12px_rgba(212,168,83,0.9)] transition-transform group-hover:scale-125"
-            style={{ left: `${engine.progress}%` }}
-          />
+        <div className="font-sans text-xs text-zinc-400 transition-all duration-[600ms] ease-in-out">
+          {engine.total - engine.currentIndex - 1} meaningful milestones remaining
         </div>
       </div>
 

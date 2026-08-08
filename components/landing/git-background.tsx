@@ -146,8 +146,21 @@ export function GitBackground() {
             ctx.beginPath();
             ctx.moveTo(p.x, p.y);
             ctx.lineTo(p2.x, p2.y);
-            // Dynamic opacity based on distance
-            const opacity = (1 - dist / 150) * 0.15;
+            
+            let mouseOpacityMultiplier = 1;
+            if (mouseRef.current.isActive) {
+              const midX = (p.x + p2.x) / 2;
+              const midY = (p.y + p2.y) / 2;
+              const mDx = midX - mouseRef.current.x;
+              const mDy = midY - mouseRef.current.y;
+              const mDist = Math.sqrt(mDx * mDx + mDy * mDy);
+              if (mDist < 250) {
+                mouseOpacityMultiplier = 1 + (1 - mDist / 250) * 2.5;
+              }
+            }
+            
+            // Dynamic opacity based on distance and mouse proximity
+            const opacity = Math.min(1, (1 - dist / 150) * 0.15 * mouseOpacityMultiplier);
             ctx.strokeStyle = `rgba(161, 161, 170, ${opacity})`;
             ctx.lineWidth = 1;
             ctx.stroke();
@@ -176,18 +189,7 @@ export function GitBackground() {
         }
       });
 
-      // Draw atmospheric mouse spotlight
-      if (mouseRef.current.isActive) {
-        const spotLight = ctx.createRadialGradient(
-          mouseRef.current.x, mouseRef.current.y, 0,
-          mouseRef.current.x, mouseRef.current.y, 600
-        );
-        spotLight.addColorStop(0, 'rgba(212, 168, 83, 0.03)'); // subtle gold glow
-        spotLight.addColorStop(1, 'rgba(5, 5, 7, 0)');
-        
-        ctx.fillStyle = spotLight;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      }
+      // (Removed atmospheric gradient to eliminate AI-generated look)
 
       animationFrameId = requestAnimationFrame(draw);
     };

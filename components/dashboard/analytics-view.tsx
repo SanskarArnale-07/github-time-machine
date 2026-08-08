@@ -9,20 +9,23 @@ interface AnalyticsViewProps {
 }
 
 export function AnalyticsView({ analytics, commits }: AnalyticsViewProps) {
-  const commitsByYear = useMemo(() => {
-    const counts: Record<string, number> = {};
-    commits.forEach(commit => {
-      const year = new Date(commit.date).getFullYear().toString();
-      counts[year] = (counts[year] || 0) + 1;
-    });
-    return Object.entries(counts).map(([year, count]) => ({ year, count })).sort((a, b) => Number(a.year) - Number(b.year));
-  }, [commits]);
-
-  const maxYearCount = Math.max(...commitsByYear.map(d => d.count), 1);
-
   const topLanguages = useMemo(() => {
     return (analytics.topLanguages || []).slice(0, 5);
   }, [analytics.topLanguages]);
+
+  const milestones = useMemo(() => {
+    const repoFirstCommits = new Map<string, GitHubCommit>();
+    commits.forEach(commit => {
+      const commitDate = new Date(commit.date);
+      if (!repoFirstCommits.has(commit.repoName) || commitDate < new Date(repoFirstCommits.get(commit.repoName)!.date)) {
+        repoFirstCommits.set(commit.repoName, commit);
+      }
+    });
+
+    return Array.from(repoFirstCommits.values())
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .slice(0, 5);
+  }, [commits]);
 
   return (
     <div className="space-y-12 w-full">
@@ -101,29 +104,33 @@ export function AnalyticsView({ analytics, commits }: AnalyticsViewProps) {
           </div>
         </div>
 
-        {/* Developer Evolution (Commit Volume refactored to look premium) */}
+        {/* Developer Evolution (Milestone Timeline) */}
         <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-8 shadow-sm">
           <h3 className="font-display text-2xl text-ivory mb-8 flex items-center gap-2">
             <Activity className="h-6 w-6 text-brass-light" />
-            Developer Evolution
+            Evolution Story
           </h3>
-          {commitsByYear.length > 0 ? (
-            <div className="flex items-end gap-3 h-56 pt-4">
-              {commitsByYear.map(data => (
-                <div key={data.year} className="flex-1 flex flex-col items-center gap-3 group relative">
-                  <div className="w-full relative flex items-end justify-center h-full">
-                    <div 
-                      className="w-full max-w-[40px] bg-white/5 group-hover:bg-brass/30 border border-white/10 group-hover:border-brass rounded-t-md transition-all duration-500 ease-out"
-                      style={{ height: `${(data.count / maxYearCount) * 100}%`, minHeight: '4px' }}
-                    >
-                      <div className="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 transform -translate-x-1/2 bg-ink text-ivory text-xs px-3 py-1.5 rounded-lg border border-white/10 shadow-xl font-mono transition-all duration-300 whitespace-nowrap z-10 pointer-events-none">
-                        {data.count} commits
+          {milestones.length > 0 ? (
+            <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-white/10 before:to-transparent">
+              {milestones.map((milestone, idx) => {
+                const date = new Date(milestone.date);
+                return (
+                  <div key={milestone.sha} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white/20 bg-ink-surface text-brass-light shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10 transition-transform group-hover:scale-110">
+                      <Trophy className="w-4 h-4" />
+                    </div>
+                    <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white/[0.03] border border-white/5 p-4 rounded-xl shadow-sm hover:border-brass/30 transition-colors">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-mono text-xs text-brass font-bold">
+                          {date.toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+                        </span>
                       </div>
+                      <div className="font-semibold text-ivory text-sm truncate">First commit in {milestone.repoName}</div>
+                      <div className="text-muted text-xs truncate mt-1">{milestone.message}</div>
                     </div>
                   </div>
-                  <span className="text-sm text-muted font-mono">{data.year.slice(-2)}'</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="text-muted text-center py-12">Not enough commit data to display timeline.</div>

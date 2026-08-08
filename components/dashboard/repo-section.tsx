@@ -166,7 +166,7 @@ export function RepoSection({ repos }: RepoSectionProps) {
             {displayedRepos.map((repo) => (
               <div
                 key={repo.id}
-                className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/5 bg-white/[0.02] transition-all duration-500 hover:border-white/20 hover:shadow-2xl hover:shadow-black/50"
+                className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/5 bg-white/[0.02] min-h-[320px] transition-all duration-500 hover:border-brass/50 hover:shadow-[0_0_30px_rgba(212,168,83,0.3)]"
               >
                 {/* Cinematic Cover Background */}
                 <div 
@@ -191,33 +191,44 @@ export function RepoSection({ repos }: RepoSectionProps) {
                         <span className="font-mono text-xs font-bold text-ivory">{repo.stargazers_count}</span>
                       </div>
                     </div>
-                    <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-muted/90 group-hover:text-muted transition-colors">
+                    <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted/90 group-hover:text-muted transition-colors">
                       {repo.description || "No description provided. The code speaks for itself."}
                     </p>
+                    <div className="mt-4 rounded-xl bg-gradient-to-r from-brass/10 to-transparent p-4 border border-brass/10 border-l-2 border-l-brass">
+                      <p className="text-xs text-brass-light/90 italic leading-relaxed">
+                        "An influential repository demonstrating clear structural choices and consistent updates. A key piece of the developer's evolution."
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="mt-auto pt-6 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      {repo.language && (
-                        <div className="flex items-center gap-2 font-mono text-xs font-medium text-ivory">
-                          <span
-                            className="h-3 w-3 rounded-full shadow-sm"
-                            style={{ backgroundColor: getLanguageColor(repo.language) }}
-                          />
-                          {repo.language}
-                        </div>
-                      )}
-                      {repo.forks_count > 0 && (
-                        <div className="flex items-center gap-1.5 font-mono text-xs text-muted">
-                          <GitFork className="h-4 w-4 text-commit-300" />
-                          <span>{repo.forks_count}</span>
-                        </div>
-                      )}
+                  <div className="mt-auto pt-6 flex flex-col gap-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        {repo.language && (
+                          <div className="flex items-center gap-2 font-mono text-xs font-medium text-ivory">
+                            <span
+                              className="h-3 w-3 rounded-full shadow-sm"
+                              style={{ backgroundColor: getLanguageColor(repo.language) }}
+                            />
+                            {repo.language}
+                          </div>
+                        )}
+                        {repo.forks_count > 0 && (
+                          <div className="flex items-center gap-1.5 font-mono text-xs text-muted">
+                            <GitFork className="h-4 w-4 text-commit-300" />
+                            <span>{repo.forks_count}</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-muted">
+                        <Clock className="h-3.5 w-3.5" />
+                        <span>{getRelativeTime(repo.updated_at)}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-muted">
+                    <Button variant="outline" className="w-full justify-center gap-2 border-white/10 text-muted hover:border-brass hover:text-brass-light bg-white/5 hover:bg-brass/10 transition-colors font-mono text-xs tracking-wider">
                       <Clock className="h-3.5 w-3.5" />
-                      <span>{getRelativeTime(repo.updated_at)}</span>
-                    </div>
+                      View Timeline
+                    </Button>
                   </div>
                 </div>
               </div>

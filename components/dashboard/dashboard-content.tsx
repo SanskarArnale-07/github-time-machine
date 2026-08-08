@@ -209,7 +209,7 @@ export function DashboardContent({
         </div>
       ) : (
         /* Loaded state — progressive full documentary dashboard */
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-6">
           <ProfileCard
             profile={profile}
             fallbackUsername={initialUsername}
@@ -217,36 +217,35 @@ export function DashboardContent({
             fallbackEmail={initialEmail}
           />
 
-          {/* Quick stats ribbon */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {[
-              { label: "Total commits", value: commits.length, color: "text-ivory" },
-              { label: "Repositories", value: repos.length, color: "text-commit-300" },
-              { label: "Years active", value: yearGroups.length || 1, color: "text-brass-light" },
-              { label: "Languages", value: analytics?.topLanguages?.length ?? 1, color: "text-ivory" },
-            ].map((stat) => (
-              <div
-                key={stat.label}
-                className="glass-card px-4 py-3.5"
-              >
-                <p className={`font-display text-2xl font-bold ${stat.color}`}>{stat.value}</p>
-                <p className="mt-0.5 font-mono text-[10px] uppercase text-muted">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Featured Insight Block */}
-          {analytics && (
-            <div className="glass-card flex flex-col md:flex-row items-center gap-4 p-5 border-l-4 border-l-brass">
-              <Sparkles className="h-6 w-6 text-brass flex-shrink-0" />
-              <div>
-                <h3 className="font-display text-lg font-semibold text-ivory">Featured Insight</h3>
-                <p className="text-sm text-muted">
-                  You've been most active in {analytics.mostActiveYear || "recent years"}, pushing out {analytics.totalCommits || 0} commits across {analytics.totalRepos || 0} repositories. Keep the momentum going!
+          {/* Apple Photos Memories Style Hero */}
+          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-black/40 p-8 shadow-2xl">
+            <div className="absolute inset-0 bg-gradient-to-br from-brass/10 via-transparent to-black/80" />
+            <div className="absolute right-0 top-0 h-64 w-64 -translate-y-1/2 translate-x-1/3 rounded-full bg-brass/20 blur-[100px]" />
+            <div className="relative z-10 flex flex-col md:flex-row items-end justify-between gap-6">
+              <div className="max-w-xl">
+                <p className="font-mono text-xs font-semibold uppercase tracking-widest text-brass-light mb-2">Where am I in my story?</p>
+                <h2 className="font-display text-4xl md:text-5xl font-bold text-ivory leading-tight">
+                  The {analytics?.mostActiveYear || new Date().getFullYear()} Chapter
+                </h2>
+                <p className="mt-4 text-sm md:text-base text-muted/90 leading-relaxed italic">
+                  "You've been forging ahead, deeply engaged in expanding your technical repertoire. With a surge of {commits.length} contributions lately, the focus has shifted towards refining core logic and embracing new architectural patterns. The journey is accelerating."
                 </p>
+                <div className="mt-6 flex flex-wrap gap-4 items-center">
+                  <div className="flex items-center gap-2 rounded-full border border-brass/30 bg-brass/10 px-4 py-2 text-sm text-brass-light shadow-inner">
+                    <Sparkles className="h-4 w-4" />
+                    Latest Milestone: Over {repos.length} repositories
+                  </div>
+                  <Button 
+                    onClick={() => setActiveTab("replay")}
+                    className="rounded-full bg-ivory text-ink hover:bg-white font-semibold transition-transform hover:scale-105"
+                  >
+                    <Play className="mr-2 h-4 w-4 fill-current" />
+                    Resume Documentary
+                  </Button>
+                </div>
               </div>
             </div>
-          )}
+          </div>
 
           {/* Tab navigation bar */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">

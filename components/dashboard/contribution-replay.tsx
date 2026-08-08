@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import { ContributionWeek, GitHubCommit } from "@/lib/github/types";
-import { Play, Pause, RotateCcw } from "lucide-react";
+import { Play, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface ContributionReplayProps {
@@ -13,36 +13,38 @@ export function ContributionReplay({
   contributions,
   commits,
 }: ContributionReplayProps) {
-  const [visibleWeeks, setVisibleWeeks] = useState(0);
+  const [waveProgress, setWaveProgress] = useState(-1);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [speed, setSpeed] = useState<1 | 2 | 5>(2);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (isPlaying && visibleWeeks < contributions.length) {
-      const delay = speed === 1 ? 180 : speed === 2 ? 120 : 60;
-      timerRef.current = setTimeout(() => {
-        setVisibleWeeks((prev) => prev + 1);
-      }, delay);
-    } else if (isPlaying && visibleWeeks >= contributions.length) {
-      setIsPlaying(false);
+    // Auto-play on mount
+    const timeout = setTimeout(() => {
+      setWaveProgress(0);
+      setIsPlaying(true);
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, []);
+
+  useEffect(() => {
+    if (isPlaying) {
+      if (waveProgress < contributions.length + 5) {
+        timerRef.current = setTimeout(() => {
+          setWaveProgress((prev) => prev + 1);
+        }, 40); // 40ms * 52 weeks ~= 2 seconds
+      } else {
+        setIsPlaying(false);
+      }
     }
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [isPlaying, visibleWeeks, contributions.length, speed]);
+  }, [isPlaying, waveProgress, contributions.length]);
 
   const togglePlay = () => {
-    if (visibleWeeks >= contributions.length) {
-      setVisibleWeeks(0);
-    }
-    setIsPlaying(!isPlaying);
-  };
-
-  const handleReset = () => {
-    setIsPlaying(false);
-    setVisibleWeeks(0);
+    setWaveProgress(0);
+    setIsPlaying(true);
   };
 
   const getCellColor = (level: number) => {
@@ -62,18 +64,13 @@ export function ContributionReplay({
     }
   };
 
-  const currentVisibleCommits = contributions
-    .slice(0, visibleWeeks)
-    .reduce((acc, week) => {
-      return acc + (week.days || []).reduce((sum, day) => sum + (day.count || 0), 0);
-    }, 0);
+  const currentTotalCommits = contributions.reduce((acc, week) => {
+    return acc + (week.days || []).reduce((sum, day) => sum + (day.count || 0), 0);
+  }, 0);
 
   const currentYear =
-    contributions.length > 0 &&
-    visibleWeeks > 0 &&
-    visibleWeeks <= contributions.length &&
-    contributions[visibleWeeks - 1]?.days?.[0]?.date
-      ? new Date(contributions[visibleWeeks - 1].days[0].date).getFullYear()
+    contributions.length > 0 && contributions[contributions.length - 1]?.days?.[0]?.date
+      ? new Date(contributions[contributions.length - 1].days[0].date).getFullYear()
       : new Date().getFullYear();
 
   return (
@@ -87,14 +84,14 @@ export function ContributionReplay({
             Activity bloom over time
           </h2>
           <p className="mt-1 text-sm text-muted">
-            Watch your contribution graph animate week by week across the past year.
+            A continuous canvas of your momentum, illuminated left-to-right.
           </p>
         </div>
 
         <div className="flex items-center gap-4 rounded-xl border border-ink-border bg-ink/60 px-4 py-2.5">
           <div className="text-right">
             <div className="font-display text-2xl font-bold text-brass-light">
-              {currentVisibleCommits}
+              {currentTotalCommits}
             </div>
             <div className="font-mono text-[10px] uppercase tracking-wider text-muted">
               Contributions
@@ -140,17 +137,18 @@ export function ContributionReplay({
                   )}
 
                 {(week.days || []).map((day, dayIndex) => {
-                  const isVisible = weekIndex < visibleWeeks;
                   const level = day.level;
-                  const active = isVisible && level > 0;
+                  const isWave = isPlaying && weekIndex >= waveProgress - 2 && weekIndex <= waveProgress;
+                  const active = isWave && level > 0;
+                  
                   return (
                     <div
                       key={`${weekIndex}-${dayIndex}`}
-                      className="h-[11px] w-[11px] rounded-[2px] transition-all duration-500 ease-out sm:h-[13px] sm:w-[13px]"
+                      className="h-[11px] w-[11px] rounded-[2px] transition-all duration-300 ease-out sm:h-[13px] sm:w-[13px]"
                       style={{
-                        backgroundColor: getCellColor(isVisible ? level : 0),
-                        transform: active ? "scale(1.15)" : "scale(0.85)",
-                        boxShadow: active ? `0 0 8px ${getCellColor(level)}` : "none",
+                        backgroundColor: getCellColor(level),
+                        transform: active ? "scale(1.4)" : "scale(1)",
+                        boxShadow: active ? `0 0 12px ${getCellColor(level)}` : "none",
                         zIndex: active ? 10 : 1,
                       }}
                       title={`${day.count} contribution${day.count === 1 ? "" : "s"} on ${day.date}`}
@@ -180,52 +178,17 @@ export function ContributionReplay({
 
         <div className="flex items-center gap-3">
           <Button
-            variant="outline"
-            size="sm"
-            onClick={handleReset}
-            title="Reset to beginning"
-            className="h-9 px-3 text-muted hover:text-ivory"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-          </Button>
-
-          <div className="flex items-center rounded-lg border border-ink-border bg-ink-soft p-1">
-            {([1, 2, 5] as const).map((s) => (
-              <button
-                key={s}
-                onClick={() => setSpeed(s)}
-                className={`rounded px-2.5 py-1 font-mono text-xs font-semibold transition-colors ${
-                  speed === s
-                    ? "bg-brass text-ink shadow-sm"
-                    : "text-muted hover:text-ivory"
-                }`}
-              >
-                {s}x
-              </button>
-            ))}
-          </div>
-
-          <Button
             size="sm"
             onClick={togglePlay}
+            disabled={isPlaying}
             className={`font-sans text-xs font-semibold ${
-              !isPlaying
-                ? "bg-brass text-ink hover:bg-brass-light"
-                : "border border-ink-border bg-ink-surface text-ivory hover:bg-ink-soft"
+              isPlaying
+                ? "border border-ink-border bg-ink-surface text-muted"
+                : "bg-brass text-ink hover:bg-brass-light"
             }`}
           >
-            {isPlaying ? (
-              <>
-                <Pause className="mr-1.5 h-3.5 w-3.5 fill-current" /> Pause
-              </>
-            ) : (
-              <>
-                <Play className="mr-1.5 h-3.5 w-3.5 fill-current" />
-                {visibleWeeks >= contributions.length
-                  ? "Replay Again"
-                  : "Play Graph"}
-              </>
-            )}
+            <Play className={`mr-1.5 h-3.5 w-3.5 ${isPlaying ? 'text-muted' : 'fill-current'}`} />
+            {isPlaying ? "Replaying..." : "Replay Bloom"}
           </Button>
         </div>
       </div>
