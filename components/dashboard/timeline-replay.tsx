@@ -16,11 +16,9 @@ import {
   Clock,
   ChevronLeft,
   ChevronRight,
-  Flame,
   Share2,
   FileText,
   Check,
-  BookOpen,
   Volume2,
   VolumeX,
   Video,
@@ -58,7 +56,6 @@ export function TimelineReplay({
   commits,
   repos = [],
   profile = null,
-  contributions = [],
 }: TimelineReplayProps) {
   const username = profile?.name || profile?.login || "Developer";
   const engine = useReplayEngine(commits, repos, username);
@@ -104,19 +101,21 @@ export function TimelineReplay({
     }
   };
 
-  // Trigger audio chime on milestones when sound is enabled
+  // Milestone chime and gentle click on events
   useEffect(() => {
     if (soundEnabled && engine.currentEvent?.impactType === "milestone") {
-      ambientSoundtrack.triggerChime(880);
+      ambientSoundtrack.triggerMilestoneSwell(880);
+    } else if (soundEnabled && engine.isPlaying) {
+      ambientSoundtrack.triggerSubtleClick();
     }
-  }, [soundEnabled, engine.currentEvent]);
+  }, [soundEnabled, engine.currentEvent, engine.isPlaying]);
 
   if (engine.total === 0) {
     return (
       <div className="glass-card flex flex-col items-center justify-center p-12 text-center">
         <Clock className="h-10 w-10 text-muted/50" />
         <h3 className="mt-4 font-display text-xl text-ivory">
-          No events available for replay
+          No milestones available for replay
         </h3>
         <p className="mt-1 font-sans text-xs text-muted">
           Your commit logs will appear here once loaded.
@@ -170,7 +169,7 @@ export function TimelineReplay({
   ) => {
     setExportingType(format);
     setExportStatus(
-      `Rendering 1080p 30fps documentary ${withAudio ? "with music" : "(no audio)"}...`
+      `Rendering 1080p 30fps documentary ${withAudio ? "with soundtrack" : "(no audio)"}...`
     );
     await exportReplayVideoFormat(
       `${username}'s Developer Replay`,
@@ -196,18 +195,17 @@ export function TimelineReplay({
       })
     : "";
 
-  const langCount =
-    new Set(repos.map((r) => r.language).filter(Boolean)).size || 3;
+  const yearsSpan = Math.max(1, engine.endYear - engine.startYear + 1);
 
   return (
     <div
       className={`relative w-full transition-all duration-700 ${
         engine.isFullscreen
-          ? "fixed inset-0 z-50 overflow-y-auto bg-[#0B1020] p-6 sm:p-12"
+          ? "fixed inset-0 z-50 overflow-y-auto bg-[#070A14] p-6 sm:p-12"
           : "glass-card-glow p-6 sm:p-10"
       }`}
     >
-      {/* 1. Ambient background glow shifting subtly per era */}
+      {/* 1. Ambient cosmic glow */}
       <div
         className="pointer-events-none absolute -left-20 -top-20 h-96 w-96 rounded-full blur-3xl transition-all duration-1000 ease-out"
         style={{
@@ -227,7 +225,7 @@ export function TimelineReplay({
         }}
       />
 
-      {/* Top Minimalist Header */}
+      {/* Top Header: Always Minimal & Readable */}
       <div className="relative z-10 flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-5">
         <div className="flex items-center gap-3">
           <div
@@ -240,7 +238,7 @@ export function TimelineReplay({
             <Clock
               className={`h-4 w-4 ${
                 engine.isPlaying
-                  ? "animate-spin [animation-duration:10s]"
+                  ? "animate-spin [animation-duration:12s]"
                   : ""
               }`}
             />
@@ -280,12 +278,12 @@ export function TimelineReplay({
                 ? "border-brass bg-brass/20 text-brass-light shadow-[0_0_15px_rgba(212,168,83,0.3)]"
                 : "border-white/10 bg-ink-surface/70 text-muted hover:text-ivory"
             }`}
-            title="Toggle nostalgic ambient piano soundtrack (Default: Muted)"
+            title="Toggle inspiring ambient piano soundtrack (Default: Muted)"
           >
             {soundEnabled ? (
               <>
                 <Volume2 className="h-3.5 w-3.5 text-brass-light animate-pulse" />
-                <span className="hidden sm:inline">Piano Music On</span>
+                <span className="hidden sm:inline">Piano On</span>
               </>
             ) : (
               <>
@@ -321,7 +319,7 @@ export function TimelineReplay({
             )}
           </Button>
 
-          {/* Controls / Options Drawer Toggle */}
+          {/* Controls Drawer Toggle */}
           <Button
             variant="outline"
             size="sm"
@@ -334,10 +332,10 @@ export function TimelineReplay({
         </div>
       </div>
 
-      {/* Collapsible Options Drawer */}
+      {/* Secondary Controls: Automatically tucked away or hidden during playback */}
       {showControlsDrawer && (
         <div className="glass-card relative z-20 my-4 flex flex-wrap items-center justify-between gap-4 p-4 shadow-xl">
-          {/* Chapter Quick Jump */}
+          {/* Chapter Quick Selector */}
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="mr-1 font-mono text-[10px] uppercase text-muted">
               Chapters:
@@ -417,7 +415,7 @@ export function TimelineReplay({
               className="border-white/10 font-mono text-xs"
             >
               <Video className="mr-1.5 h-3.5 w-3.5 text-brass-light" />
-              1080p Video (Default / No Audio)
+              1080p Video (No Audio)
             </Button>
             <Button
               variant="outline"
@@ -436,7 +434,7 @@ export function TimelineReplay({
               disabled={!!exportingType}
               className="border-white/10 font-mono text-xs"
             >
-              <Flame className="mr-1.5 h-3.5 w-3.5 text-brass-light" />
+              <Video className="mr-1.5 h-3.5 w-3.5 text-brass-light" />
               9:16 Social Reel
             </Button>
             <Button
@@ -459,7 +457,7 @@ export function TimelineReplay({
         </div>
       )}
 
-      {/* AI Narration Caption Bar */}
+      {/* Varied AI Narration Caption Bar */}
       {currentChapter?.narrative && (
         <div className="my-4 flex items-center gap-2.5 rounded-xl border border-white/5 bg-ink/60 px-4 py-2.5 backdrop-blur-sm">
           <Sparkles className="h-3.5 w-3.5 flex-shrink-0 text-brass-light animate-pulse" />
@@ -469,9 +467,9 @@ export function TimelineReplay({
         </div>
       )}
 
-      {/* 2. Main Hero Replay Cinema Stage (De-cluttered by 50%) */}
+      {/* 2. Main Hero Replay Cinema Stage */}
       {isAtEnd ? (
-        /* Final Documentary Ending Screen */
+        /* Netflix-style Ending Scene */
         <div className="glass-card-glow relative my-6 overflow-hidden p-8 text-center sm:p-12">
           <div className="pointer-events-none absolute inset-0 bg-scan-line opacity-5" />
           <div className="relative z-10 mx-auto flex max-w-2xl flex-col items-center">
@@ -483,49 +481,22 @@ export function TimelineReplay({
               Documentary Finale
             </span>
 
-            <h3 className="mt-3 font-display text-2xl font-bold leading-tight text-ivory sm:text-4xl">
-              From your first repository to your latest project, this journey was
-              built one commit at a time.
+            {/* Ending Narrative Highlight */}
+            <h3 className="mt-4 font-display text-2xl font-bold leading-relaxed text-ivory sm:text-4xl">
+              {stats.commitsReplayed} commits. {repos.length || 6} repositories. {yearsSpan} year{yearsSpan > 1 ? "s" : ""} of growth.
             </h3>
 
-            <div className="my-6 grid grid-cols-2 gap-3 rounded-2xl border border-white/10 bg-[#0B1020]/90 p-5 sm:grid-cols-4">
-              <div>
-                <span className="font-display text-2xl font-bold text-ivory">
-                  {stats.commitsReplayed}
-                </span>
-                <span className="block font-mono text-[9px] uppercase text-muted">
-                  Commits
-                </span>
-              </div>
-              <div>
-                <span className="font-display text-2xl font-bold text-commit-300">
-                  {repos.length || 6}
-                </span>
-                <span className="block font-mono text-[9px] uppercase text-muted">
-                  Repositories
-                </span>
-              </div>
-              <div>
-                <span className="font-display text-2xl font-bold text-brass-light">
-                  {langCount}
-                </span>
-                <span className="block font-mono text-[9px] uppercase text-muted">
-                  Languages
-                </span>
-              </div>
-              <div>
-                <span className="font-display text-2xl font-bold text-ivory">1</span>
-                <span className="block font-mono text-[9px] uppercase text-muted">
-                  Evolving Dev
-                </span>
-              </div>
-            </div>
-
-            <p className="font-serif italic text-base leading-relaxed text-brass-light sm:text-lg">
-              “Your GitHub history is not a graph. It is a story.”
+            <p className="mt-2 font-display text-xl font-medium text-brass-light sm:text-2xl">
+              This is how a developer is built.
             </p>
 
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <div className="my-6 flex items-center gap-3 rounded-2xl border border-white/10 bg-[#0B1020]/90 px-6 py-3 font-mono text-xs text-muted">
+              <span>@{username}</span>
+              <span>·</span>
+              <span className="text-commit-300">time-machine.git</span>
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
               <Button
                 size="lg"
                 onClick={engine.replay}
@@ -545,12 +516,11 @@ export function TimelineReplay({
           </div>
         </div>
       ) : (
-        /* Minimalist, Clean Replay Card (40-50% Visual Clutter Reduction) */
+        /* Minimalist, Clean Replay Card (Occupies 80% of Frame) */
         <div
           className="glass-card relative my-5 overflow-hidden p-6 sm:p-10 transition-all duration-700 ease-out"
           style={{ borderColor: engine.eraColor.border }}
         >
-          {/* Subtle Zoom & Light Trail Background */}
           <div className="pointer-events-none absolute inset-0 bg-scan-line opacity-5" />
 
           {currentEvent?.type === "repo_created" ? (
@@ -599,7 +569,7 @@ export function TimelineReplay({
               </div>
             </div>
           ) : (
-            /* Clean Commit View with Only: Repo Name, Commit Message, Date, and Subtle Progress */
+            /* Clean Commit View with Only: Repo Name, Prominent Serif Commit Headline, Date, and Subtle Progress */
             <div className="relative z-10 flex flex-col gap-4">
               <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-3">
                 <div className="flex items-center gap-2">
@@ -634,7 +604,17 @@ export function TimelineReplay({
                 </h3>
               </div>
 
-              {/* Subtle Author & Event Indicator */}
+              {/* Subtle Narrative Caption */}
+              {currentEvent?.impactDescription && (
+                <div className="rounded-xl border border-white/10 bg-[#0B1020]/90 p-3 text-xs font-sans text-ivory/85">
+                  <span className="font-mono text-[10px] font-bold uppercase text-brass-light">
+                    ✦ Milestone:{" "}
+                  </span>
+                  {currentEvent.impactDescription}
+                </div>
+              )}
+
+              {/* Subtle Author & Progress */}
               <div className="flex items-center justify-between border-t border-white/10 pt-3 font-mono text-xs text-muted">
                 <div className="flex items-center gap-2">
                   {currentEvent?.authorAvatar ? (
@@ -661,7 +641,7 @@ export function TimelineReplay({
         </div>
       )}
 
-      {/* 3. Minimalist Timeline Scrubber with Subtle Light Trail */}
+      {/* 3. Minimalist Timeline Scrubber */}
       <div className="my-5 flex flex-col gap-1.5">
         <div className="flex items-center justify-between font-mono text-[11px] text-muted">
           <span>{engine.startYear} Inception</span>
@@ -693,9 +673,9 @@ export function TimelineReplay({
         </div>
       </div>
 
-      {/* 4. Streamlined Centerpiece Controls Bar */}
+      {/* 4. Streamlined Centerpiece Playback Bar */}
       <div className="glass-card mt-5 flex flex-wrap items-center justify-between gap-4 p-3.5">
-        {/* Speed Controls dropdown/pill */}
+        {/* Speed Controls */}
         <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-ink-surface p-1">
           <span className="px-2 font-mono text-[10px] uppercase text-muted">
             Speed
@@ -715,7 +695,7 @@ export function TimelineReplay({
           ))}
         </div>
 
-        {/* Primary Play/Pause Controls */}
+        {/* Primary Transport Controls */}
         <div className="flex items-center gap-2">
           <Button
             variant="outline"

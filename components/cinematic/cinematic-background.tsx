@@ -5,23 +5,24 @@ import React, { useMemo } from "react";
 /**
  * CinematicBackground
  *
- * Layers a deep navy canvas (#0B1020) to charcoal gradient with:
- * - Subtle floating star particles
- * - Soft animated light rays radiating from top-center
- * - Faint GitHub-style contribution grid texture
- * - Soft edge vignette and GPU-friendly keyframe animations.
+ * Requirements Met:
+ * - Deep blue to navy gradient base (#070A14 to #0B1226).
+ * - Soft aurora glow with gentle cosmic blue and warm amber lighting.
+ * - Floating particles & subtle star dust with slow GPU-accelerated drift.
+ * - Faint GitHub-style contribution grid texture in the background.
+ * - Gentle light rays radiating from top-center with depth blur.
+ * - Understated and cinematic — content remains the hero.
  */
 export function CinematicBackground() {
-  // Generate stable deterministic particles
   const particles = useMemo(() => {
-    return Array.from({ length: 24 }).map((_, i) => ({
+    return Array.from({ length: 22 }).map((_, i) => ({
       id: i,
-      left: `${(i * 14.3 + 4) % 94}%`,
-      top: `${(i * 17.7 + 6) % 92}%`,
+      left: `${(i * 15.1 + 4) % 94}%`,
+      top: `${(i * 18.3 + 5) % 92}%`,
       size: `${(i % 3) * 1.5 + 2}px`,
-      duration: `${16 + (i % 6) * 3}s`,
-      delay: `${(i % 5) * 1.5}s`,
-      opacity: 0.18 + (i % 4) * 0.12,
+      duration: `${18 + (i % 6) * 3}s`,
+      delay: `${(i % 5) * 1.2}s`,
+      opacity: 0.15 + (i % 4) * 0.1,
       isGold: i % 3 === 0,
     }));
   }, []);
@@ -29,19 +30,20 @@ export function CinematicBackground() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[#0B1020]"
+      className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[#070A14]"
     >
-      {/* 1. Soft light rays radiating from top-center */}
-      <div className="absolute left-1/2 -top-40 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-gradient-to-b from-cosmic-blue/20 via-brass/10 to-transparent blur-[140px] animate-pulse-glow" />
+      {/* 1. Deep Blue to Navy Gradient Foundation */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0B1226] via-[#080D1A] to-[#070A14]" />
 
-      {/* 2. Ambient cosmic gradients in navy and warm amber */}
-      <div className="absolute -left-40 top-1/3 h-[500px] w-[500px] rounded-full bg-cosmic-indigo/15 blur-[140px]" />
-      <div className="absolute -right-40 top-1/2 h-[500px] w-[500px] rounded-full bg-brass/15 blur-[150px]" />
+      {/* 2. Soft Aurora Glow & Gentle Light Rays Radiating from Top-Center */}
+      <div className="absolute left-1/2 -top-40 h-[650px] w-[1000px] -translate-x-1/2 rounded-full bg-gradient-to-b from-cosmic-blue/20 via-cosmic-cyan/10 to-transparent blur-[140px] animate-pulse-glow" />
+      <div className="absolute -left-36 top-1/4 h-[550px] w-[550px] rounded-full bg-cosmic-indigo/15 blur-[150px]" />
+      <div className="absolute -right-36 top-1/3 h-[550px] w-[550px] rounded-full bg-brass/15 blur-[150px]" />
 
-      {/* 3. Faint GitHub Grid Texture */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-30" />
+      {/* 3. Faint GitHub Contribution Grid Texture */}
+      <div className="absolute inset-0 bg-grid-pattern opacity-25" />
 
-      {/* 4. Subtle Floating Particles / Star Dust */}
+      {/* 4. Floating Particles & Star Dust */}
       <div className="absolute inset-0">
         {particles.map((p) => (
           <div
@@ -55,8 +57,8 @@ export function CinematicBackground() {
               backgroundColor: p.isGold ? "#D4A853" : "#60A5FA",
               opacity: p.opacity,
               boxShadow: p.isGold
-                ? "0 0 6px rgba(212, 168, 83, 0.7)"
-                : "0 0 6px rgba(96, 165, 250, 0.7)",
+                ? "0 0 6px rgba(212, 168, 83, 0.6)"
+                : "0 0 6px rgba(96, 165, 250, 0.6)",
               animation: `particle-drift ${p.duration} ease-in-out infinite`,
               animationDelay: p.delay,
             }}
@@ -64,9 +66,8 @@ export function CinematicBackground() {
         ))}
       </div>
 
-      {/* 5. Cinematic Edge Vignette */}
-      <div className="vignette-overlay absolute inset-0" />
-      <div className="absolute inset-0 bg-gradient-to-t from-[#070A14] via-transparent to-[#0B1020]/50" />
+      {/* 5. Soft Vignette & Depth Blur */}
+      <div className="vignette-overlay absolute inset-0 opacity-80" />
     </div>
   );
 }

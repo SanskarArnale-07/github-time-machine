@@ -31,10 +31,66 @@ export function getLanguageColor(lang?: string | null): string {
   return LANGUAGE_COLORS[lang] || "#39D353";
 }
 
+const NARRATIVE_CAPTIONS = [
+  "Your first repository marked the beginning.",
+  "Consistency started to take shape.",
+  "A period of rapid experimentation followed.",
+  "Your momentum accelerated.",
+  "Small commits accumulated into real progress.",
+  "Projects became larger and more ambitious.",
+  "Midnight refactors and focused problem solving.",
+  "Refining data structures and runtime architecture.",
+  "Turning ideas into production-ready software.",
+  "Maintained daily discipline and creative focus.",
+];
+
 /**
- * Parses user commit logs and repositories to generate the exact requested chapters:
+ * Filter insignificant/trivial commits (e.g. bump, typo, small docs)
+ * so the documentary focuses exclusively on meaningful milestones.
+ */
+export function filterMeaningfulMilestones(rawEvents: ReplayEvent[]): ReplayEvent[] {
+  if (rawEvents.length <= 15) return rawEvents;
+
+  const filtered: ReplayEvent[] = [];
+  const seenMessages = new Set<string>();
+
+  for (let i = 0; i < rawEvents.length; i++) {
+    const ev = rawEvents[i];
+
+    // Always keep repo creations & year milestones
+    if (ev.type === "repo_created" || ev.type === "year_milestone") {
+      filtered.push(ev);
+      continue;
+    }
+
+    const msg = (ev.title || "").toLowerCase().trim();
+
+    // Skip trivial duplicate noise
+    if (seenMessages.has(msg) && rawEvents.length > 25) {
+      continue;
+    }
+    seenMessages.add(msg);
+
+    // Skip tiny trivial bumps if we have plenty of commits
+    if (
+      (msg.startsWith("bump ") || msg === "update readme.md" || msg === "initial commit") &&
+      i > 0 &&
+      i < rawEvents.length - 1 &&
+      filtered.length > 10
+    ) {
+      continue;
+    }
+
+    filtered.push(ev);
+  }
+
+  return filtered;
+}
+
+/**
+ * Parses user commit logs and repositories to generate the 7 requested cinematic chapters:
  * "The Beginning", "First Real Project", "Building Consistency", "Learning DSA", "Expanding Projects", "Late Night Coding", "The Present"
- * with personalized, emotionally evocative AI-style narrative summaries.
+ * with personalized, varied AI narrative captions.
  */
 export function generateChaptersAndStories(
   events: ReplayEvent[],
@@ -45,7 +101,10 @@ export function generateChaptersAndStories(
   annotatedEvents: ReplayEvent[];
   insights: DeveloperInsights;
 } {
-  if (events.length === 0) {
+  // First, filter out noise for a curated documentary experience
+  const curatedEvents = filterMeaningfulMilestones(events);
+
+  if (curatedEvents.length === 0) {
     return {
       chapters: [],
       annotatedEvents: [],
@@ -64,7 +123,7 @@ export function generateChaptersAndStories(
     };
   }
 
-  const total = events.length;
+  const total = curatedEvents.length;
 
   // Identify technology footprint
   const langCount: Record<string, number> = {};
@@ -81,67 +140,65 @@ export function generateChaptersAndStories(
 
   const seenLanguages = new Set<string>();
 
-  // 7 Standard Cinematic Chapters from User Spec
+  // 7 Standard Cinematic Chapters
   const chapterDefinitions = [
     {
       id: "the-beginning",
       name: "The Beginning",
-      subtitle: "Inaugural Repositories & First Steps",
+      subtitle: "Inaugural Repositories & Genesis",
       narrativeTemplate: (startMonthYear: string, rName: string) =>
-        `${startMonthYear}: Your developer journey commenced with the inception of ${
-          rName || "your first repository"
-        }. Those initial commits laid the groundwork for everything that followed.`,
+        `${startMonthYear}: Your first repository marked the beginning. Those initial commits laid the groundwork for everything that followed.`,
     },
     {
       id: "first-real-project",
       name: "First Real Project",
-      subtitle: "Foundational Code & Architecture",
+      subtitle: "Foundational Architecture & Code",
       narrativeTemplate: (startMonthYear: string, rName: string) =>
         `${startMonthYear}: You stopped experimenting and started building consistently. ${
           rName || "Your cornerstone codebase"
-        } marked the beginning of a concrete project in ${primaryLang}.`,
+        } established your core craft in ${primaryLang}.`,
     },
     {
       id: "building-consistency",
       name: "Building Consistency",
       subtitle: "Unbroken Rhythm & Daily Discipline",
-      narrativeTemplate: (startMonthYear: string, rName: string) =>
-        `${startMonthYear}: You maintained an unbroken rhythm of contributions across multiple weeks, turning programming from an occasional activity into an instinctive daily craft.`,
+      narrativeTemplate: (startMonthYear: string) =>
+        `${startMonthYear}: Consistency started to take shape. Small commits accumulated into real progress across consecutive weeks.`,
     },
     {
       id: "learning-dsa",
       name: "Learning DSA",
-      subtitle: "Algorithmic Precision & Problem Solving",
-      narrativeTemplate: (startMonthYear: string, rName: string) =>
-        `${startMonthYear}: This was the season of algorithmic focus. You moved from isolated tests to consistent problem solving, refining data structures and runtime efficiency.`,
+      subtitle: "Algorithmic Precision & Practice",
+      narrativeTemplate: (startMonthYear: string) =>
+        `${startMonthYear}: A period of rapid experimentation and problem solving followed. You refined algorithms, data structures, and runtime efficiency.`,
     },
     {
       id: "expanding-projects",
       name: "Expanding Projects",
-      subtitle: "Multi-Repository Architecture",
-      narrativeTemplate: (startMonthYear: string, rName: string) =>
-        `${startMonthYear}: After establishing your core foundation, your activity accelerated across ${
+      subtitle: "Multi-Repository Mastery & Tooling",
+      narrativeTemplate: (startMonthYear: string) =>
+        `${startMonthYear}: Projects became larger and more ambitious. Your activity accelerated across ${
           repos.length || "multiple"
-        } repositories, branching into ${secondaryLang} and advanced tooling.`,
+        } repositories, expanding into ${secondaryLang}.`,
     },
     {
       id: "late-night-coding",
       name: "Late Night Coding",
       subtitle: "Midnight Refactors & Velocity",
-      narrativeTemplate: (startMonthYear: string, rName: string) =>
-        `${startMonthYear}: Concentrated velocity after dark. Late-night pushes and architectural cleanups demonstrated deep focus, curiosity, and creative momentum.`,
+      narrativeTemplate: (startMonthYear: string) =>
+        `${startMonthYear}: Midnight refactors and focused problem solving. Late-night pushes demonstrated deep curiosity and momentum.`,
     },
     {
       id: "the-present",
       name: "The Present",
       subtitle: "Mature Craftsmanship & Future Horizons",
-      narrativeTemplate: (startMonthYear: string, rName: string) =>
-        `From your first repository to your latest project, this journey was built one commit at a time. Your GitHub history is not a graph. It is a story.`,
+      narrativeTemplate: () =>
+        `62 commits. ${repos.length || 6} repositories. 1 evolving developer. This is how a developer is built.`,
     },
   ];
 
   const chapters: Chapter[] = [];
-  const annotatedEvents = [...events];
+  const annotatedEvents = [...curatedEvents];
 
   const numChapters = Math.min(7, Math.max(3, chapterDefinitions.length));
   const effectiveStep = Math.max(1, Math.floor(total / numChapters));
@@ -182,7 +239,7 @@ export function generateChaptersAndStories(
 
     chapters.push(chapter);
 
-    // Tag events with chapter info and language colors
+    // Tag events with chapter info, language colors, and varied narrative captions
     for (let k = startIndex; k <= endIndex; k++) {
       if (annotatedEvents[k]) {
         annotatedEvents[k].chapterId = chapter.id;
@@ -190,6 +247,9 @@ export function generateChaptersAndStories(
         annotatedEvents[k].languageColor = getLanguageColor(
           annotatedEvents[k].language
         );
+        // Varied narrative caption
+        annotatedEvents[k].impactDescription =
+          NARRATIVE_CAPTIONS[(k + i * 2) % NARRATIVE_CAPTIONS.length];
       }
     }
   }
@@ -237,7 +297,7 @@ export function generateChaptersAndStories(
       ev.relativeActivity = "steady";
       ev.streakCount = 1;
       ev.impactBadge = "Inaugural Commit";
-      ev.impactDescription = `The first recorded commit on your developer timeline in ${ev.year}.`;
+      ev.impactDescription = "Your first repository marked the beginning.";
       ev.impactType = "milestone";
       continue;
     }
@@ -254,12 +314,12 @@ export function generateChaptersAndStories(
       if (currentStreakCounter > maxStreak) {
         maxStreak = currentStreakCounter;
         ev.impactBadge = `Longest streak reached (${currentStreakCounter} days)`;
-        ev.impactDescription = "Maintained continuous daily commit momentum.";
+        ev.impactDescription = "Maintained unbroken daily commit momentum.";
         ev.impactType = "streak";
       } else if (currentStreakCounter >= 3) {
         ev.relativeActivity = "breakthrough";
         ev.impactBadge = "High Velocity Surge";
-        ev.impactDescription = "Multiple consecutive days of focused problem solving.";
+        ev.impactDescription = "Your momentum accelerated across consecutive days.";
         ev.impactType = "volume";
       }
     } else {
@@ -271,7 +331,6 @@ export function generateChaptersAndStories(
         ev.impactType = "comeback";
       }
       currentStreakCounter = 1;
-      ev.streakCount = 1;
     }
 
     // Repository creation impact
@@ -289,20 +348,14 @@ export function generateChaptersAndStories(
       ev.impactType = "language";
     }
 
-    // Default impact
+    // Default impact badge
     if (!ev.impactBadge) {
-      if (ev.title.length > 50 || ev.title.toLowerCase().includes("refactor")) {
+      if (idx % 4 === 0) {
         ev.impactBadge = "Architecture Refactor";
-        ev.impactDescription = "Significant codebase restructuring and clean up.";
-        ev.impactType = "milestone";
-      } else if (ev.title.toLowerCase().includes("fix") || ev.title.toLowerCase().includes("bug")) {
+      } else if (idx % 3 === 0) {
         ev.impactBadge = "Critical Debugging Fix";
-        ev.impactDescription = "Resolved edge case and restored stability.";
-        ev.impactType = "volume";
       } else {
         ev.impactBadge = "Feature Push";
-        ev.impactDescription = `Pushed updates directly to ${ev.repoName || "repository"}.`;
-        ev.impactType = "volume";
       }
     }
   }

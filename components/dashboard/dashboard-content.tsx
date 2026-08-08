@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import React, { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import {
   GitCommitHorizontal,
   Layers,
@@ -21,18 +21,24 @@ import type {
 } from "@/lib/github/types";
 import { ProfileCard } from "./profile-card";
 import { RepoSection } from "./repo-section";
-import { TimelineView } from "./timeline-view";
-import { TimelineReplay } from "./timeline-replay";
-import { ContributionReplay } from "./contribution-replay";
-import { AnalyticsView } from "./analytics-view";
-import {
-  ProfileSkeleton,
-  RepoSkeleton,
-  TimelineSkeleton,
-} from "./loading-skeleton";
+import { TimelineSkeleton, RepoSkeleton, ProfileSkeleton } from "./loading-skeleton";
 import { Button } from "@/components/ui/button";
 import { CinematicBackground } from "@/components/cinematic/cinematic-background";
 import { CinematicLoadingOverlay } from "@/components/cinematic/cinematic-loading-overlay";
+
+// Lazy-load heavier replay, analytics, and timeline components for instant <1s initial interactivity
+const TimelineReplay = lazy(() =>
+  import("./timeline-replay").then((mod) => ({ default: mod.TimelineReplay }))
+);
+const TimelineView = lazy(() =>
+  import("./timeline-view").then((mod) => ({ default: mod.TimelineView }))
+);
+const ContributionReplay = lazy(() =>
+  import("./contribution-replay").then((mod) => ({ default: mod.ContributionReplay }))
+);
+const AnalyticsView = lazy(() =>
+  import("./analytics-view").then((mod) => ({ default: mod.AnalyticsView }))
+);
 
 type TabId = "replay" | "timeline" | "repos" | "contributions" | "analytics";
 
@@ -61,6 +67,28 @@ export function DashboardContent({
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>("replay");
 
+  // Client-side cache key
+  const cacheKey = `gtm_cache_${initialUsername.toLowerCase()}`;
+
+  // Progressive hydration: check client-side sessionStorage cache first for instant sub-second render
+  useEffect(() => {
+    try {
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && parsed.commits) {
+          if (parsed.profile) setProfile(parsed.profile);
+          if (parsed.repos) setRepos(parsed.repos);
+          if (parsed.commits) setCommits(parsed.commits);
+          if (parsed.yearGroups) setYearGroups(parsed.yearGroups);
+          if (parsed.contributions) setContributions(parsed.contributions);
+          if (parsed.analytics) setAnalytics(parsed.analytics);
+          setHasLoaded(true);
+        }
+      }
+    } catch {}
+  }, [cacheKey]);
+
   const loadCommitHistory = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -79,13 +107,18 @@ export function DashboardContent({
       if (data.contributions) setContributions(data.contributions);
       if (data.analytics) setAnalytics(data.analytics);
 
+      // Save to client cache for next time
+      try {
+        sessionStorage.setItem(cacheKey, JSON.stringify(data));
+      } catch {}
+
       setHasLoaded(true);
     } catch (err: any) {
       setError(err.message || "Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [cacheKey]);
 
   const tabs: { id: TabId; label: string; icon: typeof Play }[] = [
     { id: "replay", label: "Documentary Replay", icon: Play },
@@ -100,12 +133,12 @@ export function DashboardContent({
       {/* 1. Cinematic Background (Deep Navy, Cosmic Blue, Warm Amber, Particle Field) */}
       <CinematicBackground />
 
-      {/* 4. Cinematic Loading Overlay */}
+      {/* 2. Fast 1.2s Cinematic Loading Overlay */}
       <CinematicLoadingOverlay isLoading={isLoading} />
 
       {/* Landing / Pre-loaded state */}
       {!hasLoaded ? (
-        <div className="flex flex-col gap-10">
+        <div className="flex flex-col gap-8">
           {isLoading ? (
             <ProfileSkeleton />
           ) : (
@@ -118,7 +151,7 @@ export function DashboardContent({
           )}
 
           <div className="glass-card-glow relative overflow-hidden px-8 py-16 text-center sm:px-12 sm:py-20">
-            {/* Glow accents */}
+            {/* Ambient lighting */}
             <div className="pointer-events-none absolute -left-20 -top-20 h-60 w-60 rounded-full bg-brass/15 blur-3xl" />
             <div className="pointer-events-none absolute -bottom-20 -right-20 h-60 w-60 rounded-full bg-cosmic-blue/20 blur-3xl" />
 
@@ -132,8 +165,8 @@ export function DashboardContent({
               </h2>
 
               <p className="mt-3 text-balance text-sm leading-relaxed text-muted sm:text-base">
-                Fetch your repositories, reconstruct commit logs across the years,
-                and watch your developer growth unfold as a cinematic documentary.
+                Reconstruct commit logs across repositories and replay your developer
+                growth as a cinematic personal documentary.
               </p>
 
               {error && (
@@ -162,7 +195,7 @@ export function DashboardContent({
               </Button>
 
               <p className="mt-3 font-mono text-xs text-muted/70">
-                Aggregates public & authenticated commits across all codebases
+                Aggregates public & authenticated commits across codebases
               </p>
             </div>
           </div>
@@ -175,7 +208,7 @@ export function DashboardContent({
           )}
         </div>
       ) : (
-        /* Loaded state — full documentary dashboard */
+        /* Loaded state — progressive full documentary dashboard */
         <div className="flex flex-col gap-8">
           <ProfileCard
             profile={profile}
@@ -229,12 +262,12 @@ export function DashboardContent({
               className="font-mono text-xs text-muted hover:text-ivory"
             >
               <RotateCcw className={`mr-1.5 h-3 w-3 ${isLoading ? "animate-spin" : ""}`} />
-              Sync Latest
+              Refresh Cache
             </Button>
           </div>
 
-          {/* Tab content */}
-          <div>
+          {/* Tab content wrapped in Suspense for smooth lazy loading */}
+          <Suspense fallback={<TimelineSkeleton />}>
             {activeTab === "replay" && (
               <TimelineReplay
                 commits={commits}
@@ -257,7 +290,7 @@ export function DashboardContent({
             {activeTab === "analytics" && analytics && (
               <AnalyticsView analytics={analytics} commits={commits} />
             )}
-          </div>
+          </Suspense>
         </div>
       )}
     </div>
