@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-ink-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-ink text-ivory antialiased;
+    font-feature-settings: "ss01" on, "ss02" on;
+  }
+
+  ::selection {
+    background-color: rgba(217, 142, 57, 0.35);
+    color: #f2f4f5;
+  }
+
+  /* Slim, dark scrollbar to match the terminal-at-night feel */
+  ::-webkit-scrollbar {
+    width: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0b0d0f;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #20242a;
+    border-radius: 999px;
+    border: 2px solid #0b0d0f;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #2c3038;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
