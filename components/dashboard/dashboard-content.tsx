@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, lazy, Suspense } from "react";
+import { useRouter } from 'next/navigation';
 import {
   GitCommitHorizontal,
   Layers,
@@ -26,10 +27,7 @@ import { Button } from "@/components/ui/button";
 import { CinematicBackground } from "@/components/cinematic/cinematic-background";
 import { CinematicLoadingOverlay } from "@/components/cinematic/cinematic-loading-overlay";
 
-// Lazy-load heavier replay, analytics, and timeline components for instant <1s initial interactivity
-const TimelineReplay = lazy(() =>
-  import("./timeline-replay").then((mod) => ({ default: mod.TimelineReplay }))
-);
+// Lazy-load heavier analytics and timeline components for instant <1s initial interactivity
 const TimelineView = lazy(() =>
   import("./timeline-view").then((mod) => ({ default: mod.TimelineView }))
 );
@@ -40,7 +38,7 @@ const AnalyticsView = lazy(() =>
   import("./analytics-view").then((mod) => ({ default: mod.AnalyticsView }))
 );
 
-type TabId = "replay" | "timeline" | "repos" | "contributions" | "analytics";
+type TabId = "timeline" | "repos" | "contributions" | "analytics";
 
 interface DashboardContentProps {
   initialUsername: string;
@@ -55,6 +53,7 @@ export function DashboardContent({
   initialEmail,
   initialProfile,
 }: DashboardContentProps) {
+  const router = useRouter();
   const [profile, setProfile] = useState<GitHubUserProfile | null>(initialProfile);
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [commits, setCommits] = useState<GitHubCommit[]>([]);
@@ -65,7 +64,7 @@ export function DashboardContent({
   const [isLoading, setIsLoading] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabId>("replay");
+  const [activeTab, setActiveTab] = useState<TabId>("timeline");
 
   // Client-side cache key
   const cacheKey = `gtm_cache_${initialUsername.toLowerCase()}`;
@@ -131,7 +130,6 @@ export function DashboardContent({
   }, [hasLoaded, isLoading, loadCommitHistory]);
 
   const tabs: { id: TabId; label: string; icon: typeof Play }[] = [
-    { id: "replay", label: "Documentary Replay", icon: Play },
     { id: "timeline", label: "Chronicle Timeline", icon: Layers },
     { id: "repos", label: "Repositories", icon: FolderGit2 },
     { id: "contributions", label: "Heatmap Bloom", icon: Grid3X3 },
@@ -164,7 +162,7 @@ export function DashboardContent({
             <div className="pointer-events-none absolute -bottom-20 -right-20 h-60 w-60 rounded-full bg-zinc-600/20 blur-3xl" />
 
             <div className="relative mx-auto flex max-w-lg flex-col items-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-brass/50 bg-[#0B1020]/90 shadow-[0_0_35px_rgba(212,168,83,0.35)]">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-brass/50 bg-[#0B0A09]/90 shadow-[0_0_35px_rgba(212,168,83,0.35)]">
                 <GitCommitHorizontal className="h-8 w-8 text-brass-light animate-pulse" />
               </div>
 
@@ -226,7 +224,7 @@ export function DashboardContent({
           <div className="relative z-10">
             {/* Stronger breathing glow (cinematic lighting) behind the hero card */}
             <div className="absolute -inset-2 rounded-3xl bg-brass/30 blur-2xl opacity-80 animate-pulse" />
-            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-black/50 p-5 shadow-2xl">
+            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#0E0D0B]/60 p-5 shadow-2xl">
               <div className="absolute inset-0 bg-gradient-to-br from-brass/10 via-black/40 to-black/90" />
               <div className="absolute right-0 top-0 h-64 w-64 -translate-y-1/2 translate-x-1/3 rounded-full bg-brass/20 blur-[100px] animate-pulse" />
               <div className="relative z-10 flex flex-col md:flex-row items-end justify-between gap-4">
@@ -240,7 +238,7 @@ export function DashboardContent({
                   </p>
                   <div className="mt-8 flex flex-wrap gap-5 items-center">
                     <Button 
-                      onClick={() => setActiveTab("replay")}
+                      onClick={() => router.push("/replay")}
                       className="rounded-full bg-brass text-ink hover:bg-[#FCE3B4] font-bold px-10 py-7 text-lg shadow-[0_0_50px_rgba(212,168,83,0.6)] transition-all hover:scale-105 hover:shadow-[0_0_60px_rgba(212,168,83,0.8)] border border-brass-light/50 ring-2 ring-brass/20 ring-offset-2 ring-offset-black"
                     >
                       <Play className="mr-3 h-6 w-6 fill-current" />
@@ -289,14 +287,7 @@ export function DashboardContent({
 
           {/* Tab content wrapped in Suspense for smooth lazy loading */}
           <Suspense fallback={<TimelineSkeleton />}>
-            {activeTab === "replay" && (
-              <TimelineReplay
-                commits={commits}
-                repos={repos}
-                profile={profile}
-                contributions={contributions}
-              />
-            )}
+
             {activeTab === "timeline" && (
               <TimelineView
                 yearGroups={yearGroups}

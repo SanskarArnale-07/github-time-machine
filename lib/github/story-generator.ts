@@ -44,46 +44,34 @@ const NARRATIVE_CAPTIONS = [
   "Maintained daily discipline and creative focus.",
 ];
 
-function cleanSubject(subject: string): string {
-  let s = subject.replace(/^(implement|add|create|update|fix|remove|refactor|delete|support)\s+(for\s+)?/i, "");
-  s = s.replace(/^(the|a|an)\s+/i, "");
-  if (!s) return subject;
-  return s;
-}
+const CINEMATIC_TITLES = [
+  "Building the Atmosphere",
+  "Strengthening the Foundation",
+  "Finding the Signal",
+  "Late Night Refactor",
+  "Refining the Core",
+  "Architecting the Future"
+];
 
 function mapCommitToNarrative(msg: string): string {
   const lower = msg.toLowerCase();
   
-  if (lower.includes("init") || lower.includes("first commit")) return "Laying the absolute foundation";
-  if (lower.includes("feat") || lower.includes("add")) {
-    const match = msg.match(/(?:feat|add)(?:\([^)]+\))?:\s*(.*)/i);
-    const subject = match ? match[1].trim() : "";
-    return subject ? `Building the foundation for ${cleanSubject(subject)}` : "Expanding capabilities and shaping new features";
-  }
-  if (lower.includes("fix") || lower.includes("bug")) {
-    const match = msg.match(/(?:fix|bug)(?:\([^)]+\))?:\s*(.*)/i);
-    const subject = match ? match[1].trim() : "";
-    return subject ? `Restoring balance by resolving ${cleanSubject(subject)}` : "Restoring balance and resolving critical issues";
-  }
-  if (lower.includes("refactor")) {
-    const match = msg.match(/refactor(?:\([^)]+\))?:\s*(.*)/i);
-    const subject = match ? match[1].trim() : "";
-    return subject ? `Architectural evolution of ${cleanSubject(subject)}` : "Architectural evolution and structural refinement";
-  }
-  if (lower.includes("chore") || lower.includes("update") || lower.includes("bump") || lower.includes("dependabot")) {
-    return "Polishing the edges and maintaining momentum";
-  }
-  if (lower.includes("docs")) return "Documenting the journey for future clarity";
-  if (lower.includes("style")) return "Refining the visual language and structure";
-  if (lower.includes("test")) return "Fortifying the system with rigorous testing";
-  if (lower.includes("perf")) return "Optimizing execution and runtime performance";
-  if (lower.includes("merge")) return "Synthesizing parallel streams of thought";
+  if (lower.includes("init") || lower.includes("first commit")) return "Strengthening the Foundation";
+  if (lower.includes("feat") || lower.includes("add")) return "Architecting the Future";
+  if (lower.includes("fix") || lower.includes("bug")) return "Finding the Signal";
+  if (lower.includes("refactor")) return "Late Night Refactor";
+  if (lower.includes("chore") || lower.includes("update") || lower.includes("bump") || lower.includes("dependabot")) return "Refining the Core";
+  if (lower.includes("docs")) return "Building the Atmosphere";
+  if (lower.includes("style")) return "Building the Atmosphere";
+  if (lower.includes("test")) return "Strengthening the Foundation";
+  if (lower.includes("perf")) return "Refining the Core";
+  if (lower.includes("merge")) return "Finding the Signal";
   
-  const clean = msg.replace(/^[^:]+:\s*/, "");
-  if (clean.length > 5 && clean.length < 50) {
-    return `Iterative progress on ${cleanSubject(clean)}`;
+  let index = 0;
+  for (let i = 0; i < msg.length; i++) {
+    index += msg.charCodeAt(i);
   }
-  return "Iterative progress and quiet execution";
+  return CINEMATIC_TITLES[index % CINEMATIC_TITLES.length];
 }
 
 const usedInsights = new Set<string>();
@@ -98,71 +86,11 @@ function generateUniqueRepoInsight(repoName: string, repoInfo?: GitHubRepo): str
   }
   
   const templates = [
-    `A blank canvas. You laid the foundation for ${repoName}.`,
-    `The genesis of ${repoName}. Ideas started taking shape.`,
-    `A new frontier. ${repoName} was brought to life in ${lang}.`,
-    `Architecting the future. First lines of ${repoName} written.`,
-    `Setting the stage. ${repoName} became your new focus.`,
-    `Forging ${repoName}, exploring new paradigms in ${lang}.`,
-    `The initial spark of ${repoName}, a quiet beginning to something larger.`,
-    `Diving into ${lang} with ${repoName}, embracing the unknown.`,
-    `With ${repoName}, a new chapter in ${lang} unfolded.`,
-    `Establishing ${repoName}, testing the limits of ${lang}.`,
-    `The dawn of ${repoName}, structured meticulously in ${lang}.`,
-    `A bold step. ${repoName} emerged as a fresh concept.`,
-    `Translating vision into code with ${repoName}.`,
-    `Crafting the skeleton of ${repoName} in ${lang}.`,
-    `The inception of ${repoName} marked a pivot in your journey.`,
-    `Breathing life into ${repoName}, an experiment in ${lang}.`,
-    `Focus shifted to ${repoName}, expanding your ${lang} horizons.`,
-    `Constructing ${repoName} from the ground up.`,
-    `The earliest iterations of ${repoName} began taking form.`,
-    `A pristine workspace. ${repoName} was born.`,
-    `Wiring the core components of ${repoName} in ${lang}.`,
-    `Deploying the initial architecture of ${repoName}.`,
-    `Setting up ${repoName}, preparing for rapid iteration.`,
-    `The first footprint of ${repoName} in your digital history.`,
-    `An ambitious start. ${repoName} pushed your ${lang} skills.`,
-    `The prologue of ${repoName}, written carefully in ${lang}.`,
-    `Structuring ${repoName}, laying bricks for a new system.`,
-    `Cultivating ${repoName}, a new digital garden in ${lang}.`,
-    `Planting the seeds of ${repoName}.`,
-    `The opening act of ${repoName} took center stage.`,
-    `Formulating the blueprint for ${repoName}.`,
-    `The genesis node. ${repoName} initialized in ${lang}.`,
-    `Drafting the fundamental logic of ${repoName}.`,
-    `A fresh repository. ${repoName} was ready for ideas.`,
-    `Unleashing ${repoName}, a new vessel for your ${lang} expertise.`,
-    `The foundational commit that breathed ${repoName} to life.`,
-    `Spinning up ${repoName} to tackle a new problem domain.`,
-    `Opening a new front. ${repoName} entered the timeline.`,
-    `The genesis commit for ${repoName}, written in ${lang}.`,
-    `Charting new territory with ${repoName}.`,
-    `The raw beginnings of ${repoName}, full of potential.`,
-    `Initializing ${repoName}, a sanctuary for new code.`,
-    `The spark of creation. ${repoName} was officially live.`,
-    `Laying the first stone of ${repoName} in ${lang}.`,
-    `A quiet start to ${repoName}, soon to be a major focus.`,
-    `The architecture of ${repoName} began to crystallize.`,
-    `Birthing ${repoName}, a testament to iterative growth.`,
-    `The origin point of ${repoName}, grounded in ${lang}.`,
-    `Drafting the initial contours of ${repoName}.`,
-    `A pristine environment. ${repoName} was established in ${lang}.`,
-    `The structural dawn of ${repoName}, ready for development.`
-  ];
-  
-  const activeSuffixes = [
-    ` It evolved into a highly active project over ${ageInDays} days.`,
-    ` The momentum wouldn't stop, spanning ${ageInDays} days of development.`,
-    ` It quickly became a focal point of your work.`,
-    ` The foundation proved solid for long-term growth.`,
-    ` This repository would see extensive refinement.`
-  ];
-  
-  const starSuffixes = [
-    ` It eventually caught the attention of ${stars} stargazers.`,
-    ` The community noticed, awarding it ${stars} stars.`,
-    ` It resonated with others, gathering ${stars} stars.`
+    "Discipline turned into momentum.",
+    "Foundations strengthened through deliberate practice.",
+    "Experimentation became a working system.",
+    "Curiosity expanded into real-world problem solving.",
+    "The blueprint that shaped technical growth."
   ];
   
   let available = templates.filter(t => !usedInsights.has(t));
@@ -171,17 +99,22 @@ function generateUniqueRepoInsight(repoName: string, repoInfo?: GitHubRepo): str
     available = templates;
   }
   
-  const baseInsight = available[0];
-  usedInsights.add(baseInsight);
-  
-  let finalInsight = baseInsight;
-  if (stars > 0) {
-    finalInsight += starSuffixes[usedInsights.size % starSuffixes.length];
-  } else if (ageInDays > 30) {
-    finalInsight += activeSuffixes[usedInsights.size % activeSuffixes.length];
+  let selected = available[0];
+  if (stars > 0 && available.includes("Experimentation became a working system.")) {
+    selected = "Experimentation became a working system.";
+  } else if (ageInDays > 30 && available.includes("Discipline turned into momentum.")) {
+    selected = "Discipline turned into momentum.";
+  } else if (lang !== "code" && available.includes("Curiosity expanded into real-world problem solving.")) {
+    selected = "Curiosity expanded into real-world problem solving.";
+  } else if (available.includes("The blueprint that shaped technical growth.")) {
+    selected = "The blueprint that shaped technical growth.";
+  } else if (available.includes("Foundations strengthened through deliberate practice.")) {
+    selected = "Foundations strengthened through deliberate practice.";
   }
   
-  return finalInsight;
+  usedInsights.add(selected);
+  
+  return selected;
 }
 
 /**
@@ -393,16 +326,19 @@ export function generateChaptersAndStories(
   const chapters: Chapter[] = [];
   const chunkSize = 4;
   
-  const possibleChapterNames = [
+  const cinematicChapterNames = [
+    "The Beginning",
+    "Midnight Oil",
     "Finding Momentum",
-    "Building the System",
     "The Breakthrough",
-    "Midnight Oil"
+    "Building the System",
+    "Refinement",
+    "The Long Run",
+    "Present Day"
   ];
-  let nameIndex = 0;
 
   let i = 0;
-  let chapterIndex = 1;
+  let chapterIndex = 0;
   while (i < annotatedEvents.length) {
     let currentChunkSize = chunkSize;
     // If the remaining events are 5 or fewer, group them all in this chapter
@@ -412,19 +348,8 @@ export function generateChaptersAndStories(
 
     const chunk = annotatedEvents.slice(i, i + currentChunkSize);
     
-    // Determine chapter theme based on chunk events
-    let cName = possibleChapterNames[nameIndex % possibleChapterNames.length];
-    
-    if (i === 0) {
-      cName = "The Beginning";
-    } else if (chunk.some(e => e.impactType === "volume")) {
-      cName = "The Breakthrough";
-    } else if (chunk.some(e => e.impactBadge === "Midnight Session")) {
-      cName = "Midnight Oil";
-    } else if (chunk.some(e => e.impactType === "language")) {
-      cName = "Finding Momentum";
-    }
-    nameIndex++;
+    // Rotate through chapter names
+    let cName = cinematicChapterNames[chapterIndex % cinematicChapterNames.length];
 
     const startEv = chunk[0];
     const endEv = chunk[chunk.length - 1];
@@ -433,7 +358,7 @@ export function generateChaptersAndStories(
     const mainRepo = chunkRepos[0] || repos[0]?.name || "your codebase";
 
     const chapter: Chapter = {
-      id: `chapter-${chapterIndex}`,
+      id: `chapter-${chapterIndex + 1}`,
       name: cName,
       subtitle: `${startMonthYear} \u00B7 ${chunk.length} commits`,
       narrative: `During ${startMonthYear}, focus sharpened on ${mainRepo}. ${chunk.length} milestones were reached as ideas turned into reality.`,

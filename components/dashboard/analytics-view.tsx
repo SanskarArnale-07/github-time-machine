@@ -21,7 +21,7 @@ export function AnalyticsView({ analytics, commits }: AnalyticsViewProps) {
         description: `The genesis of the journey. First documented code forged in ${firstCommit.repoName}.`,
         date: new Date(firstCommit.date).toLocaleDateString("en-US", { month: "long", year: "numeric" }),
         Icon: Rocket,
-        color: "text-blue-400"
+        color: "text-brass-light"
       });
       
       if (analytics.topLanguages && analytics.topLanguages.length > 0) {
@@ -54,16 +54,16 @@ export function AnalyticsView({ analytics, commits }: AnalyticsViewProps) {
         description: `The continuing saga. Pushing boundaries and exploring new frontiers in ${latestCommit.repoName}.`,
         date: new Date(latestCommit.date).toLocaleDateString("en-US", { month: "long", year: "numeric" }),
         Icon: Flag,
-        color: "text-purple-400"
+        color: "text-brass"
       });
     }
     return list;
   }, [commits, analytics]);
 
   return (
-    <div className="space-y-12 w-full">
+    <div className="w-full space-y-10">
       {/* AI Documentary Insight */}
-      <div className="relative overflow-hidden rounded-3xl border border-brass/20 bg-gradient-to-br from-brass/5 to-transparent p-8 md:p-10 shadow-2xl backdrop-blur-xl">
+      <div className="cinematic-depth-card relative overflow-hidden rounded-3xl border border-brass/20 bg-gradient-to-br from-brass/5 to-transparent p-8 md:p-10 shadow-2xl backdrop-blur-xl transition-all duration-card hover:shadow-[0_0_40px_rgba(212,168,83,0.15)]">
         <div className="absolute top-0 right-0 p-8 opacity-10">
           <Orbit className="h-32 w-32 text-brass" />
         </div>
@@ -80,18 +80,18 @@ export function AnalyticsView({ analytics, commits }: AnalyticsViewProps) {
 
       {/* Narrative Milestone Timeline */}
       <div>
-        <h3 className="font-display text-2xl text-ivory mb-8 flex items-center gap-2">
+        <h3 className="mb-6 flex items-center gap-2 font-display text-2xl text-ivory">
           <Clock className="h-6 w-6 text-brass-light" />
           Narrative Milestone Timeline
         </h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
           {milestones.map((milestone) => {
             const { Icon } = milestone;
             return (
               <div 
                 key={milestone.id}
-                className="cinematic-depth-card group relative overflow-hidden rounded-3xl border border-white/10 bg-black/40 p-8 shadow-2xl transition-all duration-500 hover:-translate-y-2 hover:border-brass/40"
+                className="cinematic-depth-card group relative overflow-hidden rounded-3xl border border-[#2A2520]/80 bg-[#0E0D0B]/65 p-7 shadow-2xl transition-all duration-500 hover:-translate-y-1 hover:border-brass/40 hover:shadow-[0_0_40px_rgba(212,168,83,0.15)]"
                 style={{ transformStyle: 'preserve-3d', perspective: '1000px' }}
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />

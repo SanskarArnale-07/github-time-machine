@@ -115,9 +115,9 @@ export function RepoSection({ repos }: RepoSectionProps) {
     <div className="space-y-8">
       <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <div>
-          <h2 className="font-display text-3xl font-bold text-ivory">Project Cinematic</h2>
+          <h2 className="font-display text-3xl font-bold text-ivory">The Archive</h2>
           <p className="mt-2 text-sm text-muted">
-            Explore and filter your crafted repositories
+            Project Chapters
           </p>
         </div>
 
@@ -187,7 +187,7 @@ export function RepoSection({ repos }: RepoSectionProps) {
             {displayedRepos.map((repo) => (
               <div
                 key={repo.id}
-                className="cinematic-depth-card group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-black/40 p-5 shadow-2xl transition-all duration-500 hover:-translate-y-1 hover:border-brass/40"
+                className="cinematic-depth-card group relative flex min-h-[220px] flex-col justify-between overflow-hidden rounded-2xl border border-[#2A2520]/60 bg-[#0E0D0B]/50 p-5 shadow-2xl transition-all duration-500 hover:-translate-y-1 hover:border-[#C9A86A]/40 hover:shadow-[0_0_30px_rgba(201,168,106,0.12)]"
                 style={{ transformStyle: 'preserve-3d', perspective: '1000px' }}
               >
                 {/* Cinematic Cover Background (subtle) */}

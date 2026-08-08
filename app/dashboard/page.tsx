@@ -38,12 +38,12 @@ export default async function DashboardPage() {
   }
 
   return (
-    <main className="relative flex min-h-screen flex-col bg-[#0B1020]">
+    <main className="relative flex min-h-screen flex-col bg-[#0B0A09]">
       {/* Top navigation with frosted glassmorphism */}
-      <header className="sticky top-0 z-30 border-b border-white/10 bg-[#0B1020]/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-30 border-b border-white/10 bg-[#0B0A09]/80 backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-3.5 sm:px-8">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-[#131C31]">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-[#1A1714]">
               <GitCommitHorizontal className="h-4 w-4 text-commit-300" />
             </div>
             <span className="font-mono text-sm font-medium text-ivory">

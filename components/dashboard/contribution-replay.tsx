@@ -16,12 +16,12 @@ export function ContributionReplay({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Auto-play on mount
-    const timeout = setTimeout(() => {
-      setWaveProgress(-4);
-      setIsPlaying(true);
-    }, 100);
-    return () => clearTimeout(timeout);
+    // Auto-play on mount (and re-mount when tab is revisited)
+    setWaveProgress(-4);
+    setIsPlaying(true);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -45,17 +45,17 @@ export function ContributionReplay({
   const getCellColor = (level: number) => {
     switch (level) {
       case 0:
-        return "#161A1E";
+        return "#211E1A";
       case 1:
-        return "#0E4429";
+        return "#4A3923";
       case 2:
-        return "#006D32";
+        return "#77532A";
       case 3:
-        return "#26A641";
+        return "#A87838";
       case 4:
-        return "#39D353";
+        return "#D8B56C";
       default:
-        return "#161A1E";
+        return "#211E1A";
     }
   };
 
@@ -69,7 +69,7 @@ export function ContributionReplay({
       : new Date().getFullYear();
 
   return (
-    <div className="w-full overflow-hidden rounded-2xl border border-ink-border bg-ink-surface p-6 shadow-sm sm:p-8">
+    <div className="w-full overflow-hidden rounded-2xl border border-[#2A2520] bg-[#1A1714] p-6 shadow-sm sm:p-8">
       <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <span className="font-mono text-xs uppercase tracking-wider text-brass-light">
@@ -83,7 +83,7 @@ export function ContributionReplay({
           </p>
         </div>
 
-        <div className="flex items-center gap-4 rounded-xl border border-ink-border bg-ink/60 px-4 py-2.5">
+        <div className="flex items-center gap-4 rounded-xl border border-[#2A2520] bg-[#0B0A09]/60 px-4 py-2.5">
           <div className="text-right">
             <div className="font-display text-2xl font-bold text-brass-light">
               {currentTotalCommits}
@@ -92,7 +92,7 @@ export function ContributionReplay({
               Contributions
             </div>
           </div>
-          <div className="h-8 w-px bg-ink-border" />
+          <div className="h-8 w-px bg-[#2A2520]" />
           <div className="text-right">
             <div className="font-display text-2xl font-bold text-ivory">
               {currentYear}
@@ -156,7 +156,7 @@ export function ContributionReplay({
         </div>
       </div>
 
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-ink-border pt-6">
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-[#2A2520] pt-6">
         <div className="flex items-center gap-2 font-mono text-xs text-muted">
           <span>Less</span>
           <div className="flex gap-1">

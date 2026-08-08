@@ -29,9 +29,9 @@ export function ProfileCard({
     : null;
 
   return (
-    <div className="relative flex items-center justify-between overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-r from-white/[0.05] to-transparent p-4 md:p-6 shadow-lg backdrop-blur-md">
+    <div className="relative flex items-center justify-between overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-r from-[#C9A86A]/[0.03] to-transparent p-4 md:p-6 shadow-lg backdrop-blur-md">
       <div className="flex items-center gap-4">
-        <div className="relative h-16 w-16 overflow-hidden rounded-full border-2 border-white/10 bg-[#0B1020] shadow-md">
+        <div className="relative h-16 w-16 overflow-hidden rounded-full border-2 border-white/10 bg-[#0B0A09] shadow-md">
           {avatarUrl ? (
             <Image src={avatarUrl} alt={name} fill priority className="object-cover" />
           ) : (
@@ -39,7 +39,7 @@ export function ProfileCard({
               {username.slice(0, 1).toUpperCase()}
             </div>
           )}
-          <div className="absolute bottom-0 right-0 rounded-full bg-orange-500 p-0.5 border border-[#0B1020]">
+          <div className="absolute bottom-0 right-0 rounded-full bg-orange-500 p-0.5 border border-[#0B0A09]">
             <Flame className="h-2.5 w-2.5 text-white" />
           </div>
         </div>

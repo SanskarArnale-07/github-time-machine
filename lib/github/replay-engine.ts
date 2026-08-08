@@ -11,11 +11,11 @@ import {
 import { generateChaptersAndStories } from "./story-generator";
 
 const ERA_COLORS: Record<number, { accent: string; glow: string; border: string }> = {
-  0: { accent: "#D4A853", glow: "rgba(212,168,83,0.16)", border: "rgba(212,168,83,0.35)" }, // Vintage Brass
-  1: { accent: "#39D353", glow: "rgba(57,211,83,0.16)", border: "rgba(57,211,83,0.35)" }, // GitHub Emerald
-  2: { accent: "#38BDF8", glow: "rgba(56,189,248,0.16)", border: "rgba(56,189,248,0.35)" }, // Cosmic Cyan
-  3: { accent: "#818CF8", glow: "rgba(129,140,248,0.16)", border: "rgba(129,140,248,0.35)" }, // Indigo
-  4: { accent: "#F472B6", glow: "rgba(244,114,182,0.16)", border: "rgba(244,114,182,0.35)" }, // Rose
+  0: { accent: "#D8B56C", glow: "rgba(216,181,108,0.15)", border: "rgba(216,181,108,0.38)" }, // Muted gold
+  1: { accent: "#C9A86A", glow: "rgba(201,168,106,0.15)", border: "rgba(201,168,106,0.35)" }, // Aged brass
+  2: { accent: "#B58A4A", glow: "rgba(181,138,74,0.14)", border: "rgba(181,138,74,0.33)" }, // Burnished amber
+  3: { accent: "#9B7543", glow: "rgba(155,117,67,0.14)", border: "rgba(155,117,67,0.32)" }, // Archive bronze
+  4: { accent: "#D0A15D", glow: "rgba(208,161,93,0.14)", border: "rgba(208,161,93,0.34)" }, // Faded gold
 };
 
 /**

@@ -10,43 +10,34 @@ const config: Config = {
     extend: {
       colors: {
         ink: {
-          DEFAULT: "#07111f", // Deep Navy
-          deep: "#030811",
-          soft: "#0b1a2e",
-          surface: "#0b1a2e",
-          border: "#162b47",
-          card: "rgba(11, 26, 46, 0.85)",
-        },
-        navy: {
-          DEFAULT: "#07111f",
-          deep: "#030811",
-          soft: "#0b1a2e",
-          surface: "#0b1a2e",
-          border: "#162b47",
-          glow: "rgba(212, 168, 83, 0.08)",
+          DEFAULT: '#0B0A09',  // charcoal black
+          deep: '#060504',     // near-black
+          soft: '#141210',     // deep graphite
+          surface: '#1A1714',  // warm dark surface
+          border: '#2A2520',   // warm border
+          card: 'rgba(20, 18, 16, 0.85)',  // warm card
         },
         cosmic: {
-          blue: "#3F3F46", // Graphite/Zinc base
-          cyan: "#A1A1AA",
-          indigo: "#6366F1",
-          amber: "#F59E0B",
-          gold: "#D4A853",
+          graphite: '#3F3F46',
+          warm: '#C8C1B6',
+          amber: '#F59E0B',
+          gold: '#C9A86A',
         },
         commit: {
-          50: "#18181B",
-          100: "#27272A",
-          200: "#D4A853", // Using gold accent for highlights
-          300: "#E3BC6E",
-          glow: "rgba(212, 168, 83, 0.4)",
+          50: '#18181B',
+          100: '#27272A',
+          200: '#C9A86A',
+          300: '#D8B56C',
+          glow: 'rgba(201, 168, 106, 0.4)',
         },
         brass: {
-          DEFAULT: "#D4A853",
-          light: "#E3BC6E",
-          dim: "#8A6D2F",
-          glow: "rgba(212, 168, 83, 0.2)",
+          DEFAULT: '#C9A86A',  // aged brass
+          light: '#D8B56C',    // muted gold
+          dim: '#7A6530',      // deep brass
+          glow: 'rgba(201, 168, 106, 0.2)',
         },
-        ivory: "#F5F2EA", // Warm off-white
-        muted: "#A1A1AA",
+        ivory: '#F5F1EA',
+        muted: '#C8C1B6', // warm gray
       },
       fontFamily: {
         display: ["var(--font-playfair)", "Georgia", "serif"],
@@ -92,14 +83,14 @@ const config: Config = {
         "float-slow": "float-slow 6s ease-in-out infinite",
         "shimmer": "shimmer 2s ease-in-out infinite",
         "fade-in-up": "fade-in-up 0.5s ease-out forwards",
-        "pulse-glow": "pulse-glow 4s ease-in-out infinite",
+        "pulse-glow": "pulse-glow 8s ease-in-out infinite",
         "particle-drift": "particle-drift 12s ease-in-out infinite",
       },
       backgroundImage: {
         "radial-fade":
-          "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(212,168,83,0.08), transparent 70%)",
+          "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(201,168,106,0.08), transparent 70%)",
         "cosmic-radial":
-          "radial-gradient(circle at 50% 30%, rgba(99, 102, 241, 0.05), rgba(212, 168, 83, 0.03) 45%, transparent 70%)",
+          "radial-gradient(circle at 50% 30%, rgba(201, 168, 106, 0.04), rgba(201, 168, 106, 0.02) 45%, transparent 70%)",
       },
       transitionDuration: {
         "150": "150ms", // hover
