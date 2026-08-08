@@ -229,7 +229,9 @@ export function DashboardContent({
 
       {/* Tab content */}
       <div>
-        {activeTab === "replay" && <TimelineReplay commits={commits} />}
+        {activeTab === "replay" && (
+          <TimelineReplay commits={commits} repos={repos} profile={profile} />
+        )}
         {activeTab === "timeline" && (
           <TimelineView
             yearGroups={yearGroups}

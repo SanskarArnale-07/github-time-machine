@@ -90,3 +90,63 @@ export interface ReplayState {
   speed: 1 | 2 | 5;
   total: number;
 }
+
+export type ReplayEventType =
+  | "commit"
+  | "repo_created"
+  | "year_milestone"
+  | "major_streak"
+  | "inactive_period";
+
+export interface ReplayEvent {
+  id: string;
+  type: ReplayEventType;
+  date: string;
+  timestamp: number;
+  year: number;
+  month: number;
+  monthName: string;
+  title: string;
+  subtitle?: string;
+  description?: string;
+  repoName?: string;
+  repoUrl?: string;
+  commitSha?: string;
+  commitShortSha?: string;
+  authorName?: string;
+  authorAvatar?: string | null;
+  language?: string;
+  languageColor?: string;
+  stargazersCount?: number;
+  streakCount?: number;
+  gapDays?: number;
+  relativeActivity?: "high" | "medium" | "steady" | "breakthrough";
+  chapterId?: string;
+  chapterName?: string;
+  commit?: GitHubCommit;
+  repo?: GitHubRepo;
+}
+
+export interface Chapter {
+  id: string;
+  name: string;
+  subtitle: string;
+  narrative: string;
+  startEventIndex: number;
+  endEventIndex: number;
+  startDate: string;
+  endDate: string;
+  totalCommits: number;
+  primaryLanguage?: string;
+  highlightRepos: string[];
+}
+
+export interface ReplayStats {
+  currentYear: number;
+  currentRepo: string;
+  currentStreak: number;
+  commitsReplayed: number;
+  remainingEvents: number;
+  elapsedSeconds: number;
+  formattedDuration: string;
+}
