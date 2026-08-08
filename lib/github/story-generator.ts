@@ -32,7 +32,8 @@ export function getLanguageColor(lang?: string | null): string {
 }
 
 /**
- * Parses user commit logs and repositories to generate the 7 requested cinematic chapters
+ * Parses user commit logs and repositories to generate the exact requested chapters:
+ * "The Beginning", "First Real Project", "Building Consistency", "Learning DSA", "Expanding Projects", "Late Night Coding", "The Present"
  * with personalized, emotionally evocative AI-style narrative summaries.
  */
 export function generateChaptersAndStories(
@@ -85,7 +86,7 @@ export function generateChaptersAndStories(
     {
       id: "the-beginning",
       name: "The Beginning",
-      subtitle: "Inaugural Repositories & First Commits",
+      subtitle: "Inaugural Repositories & First Steps",
       narrativeTemplate: (startMonthYear: string, rName: string) =>
         `${startMonthYear}: Your developer journey commenced with the inception of ${
           rName || "your first repository"
@@ -94,29 +95,29 @@ export function generateChaptersAndStories(
     {
       id: "first-real-project",
       name: "First Real Project",
-      subtitle: "Foundational Code & Breakthroughs",
+      subtitle: "Foundational Code & Architecture",
       narrativeTemplate: (startMonthYear: string, rName: string) =>
-        `${startMonthYear}: You stopped experimenting and started building. ${
-          rName || "Your cornerstone repository"
-        } marked the beginning of a concrete, functional project architecture in ${primaryLang}.`,
+        `${startMonthYear}: You stopped experimenting and started building consistently. ${
+          rName || "Your cornerstone codebase"
+        } marked the beginning of a concrete project in ${primaryLang}.`,
     },
     {
       id: "building-consistency",
       name: "Building Consistency",
-      subtitle: "Unbroken Momentum & Habit Formation",
+      subtitle: "Unbroken Rhythm & Daily Discipline",
       narrativeTemplate: (startMonthYear: string, rName: string) =>
         `${startMonthYear}: You maintained an unbroken rhythm of contributions across multiple weeks, turning programming from an occasional activity into an instinctive daily craft.`,
     },
     {
-      id: "dsa-era",
-      name: "DSA Era",
-      subtitle: "Algorithmic Precision & Practice",
+      id: "learning-dsa",
+      name: "Learning DSA",
+      subtitle: "Algorithmic Precision & Problem Solving",
       narrativeTemplate: (startMonthYear: string, rName: string) =>
         `${startMonthYear}: This was the season of algorithmic focus. You moved from isolated tests to consistent problem solving, refining data structures and runtime efficiency.`,
     },
     {
-      id: "project-expansion",
-      name: "Project Expansion",
+      id: "expanding-projects",
+      name: "Expanding Projects",
       subtitle: "Multi-Repository Architecture",
       narrativeTemplate: (startMonthYear: string, rName: string) =>
         `${startMonthYear}: After establishing your core foundation, your activity accelerated across ${
@@ -124,18 +125,18 @@ export function generateChaptersAndStories(
         } repositories, branching into ${secondaryLang} and advanced tooling.`,
     },
     {
-      id: "late-night-builder",
-      name: "Late Night Builder",
+      id: "late-night-coding",
+      name: "Late Night Coding",
       subtitle: "Midnight Refactors & Velocity",
       narrativeTemplate: (startMonthYear: string, rName: string) =>
-        `${startMonthYear}: Concentrated velocity after twilight. Late-night pushes and architectural cleanups demonstrated deep focus and creative autonomy.`,
+        `${startMonthYear}: Concentrated velocity after dark. Late-night pushes and architectural cleanups demonstrated deep focus, curiosity, and creative momentum.`,
     },
     {
-      id: "present-day",
-      name: "Present Day",
+      id: "the-present",
+      name: "The Present",
       subtitle: "Mature Craftsmanship & Future Horizons",
       narrativeTemplate: (startMonthYear: string, rName: string) =>
-        `From your first repository to your latest project, this journey was built one commit at a time. Your GitHub history is not just a graph. It is an evolving story.`,
+        `From your first repository to your latest project, this journey was built one commit at a time. Your GitHub history is not a graph. It is a story.`,
     },
   ];
 
@@ -288,7 +289,7 @@ export function generateChaptersAndStories(
       ev.impactType = "language";
     }
 
-    // Default impact if none was assigned
+    // Default impact
     if (!ev.impactBadge) {
       if (ev.title.length > 50 || ev.title.toLowerCase().includes("refactor")) {
         ev.impactBadge = "Architecture Refactor";

@@ -11,16 +11,16 @@ import {
 import { generateChaptersAndStories } from "./story-generator";
 
 const ERA_COLORS: Record<number, { accent: string; glow: string; border: string }> = {
-  0: { accent: "#D4A853", glow: "rgba(212,168,83,0.18)", border: "rgba(212,168,83,0.4)" }, // Vintage Brass
-  1: { accent: "#39D353", glow: "rgba(57,211,83,0.18)", border: "rgba(57,211,83,0.4)" }, // GitHub Emerald
-  2: { accent: "#58A6FF", glow: "rgba(88,166,255,0.18)", border: "rgba(88,166,255,0.4)" }, // Cyber Cyan
-  3: { accent: "#BC8CFF", glow: "rgba(188,140,255,0.18)", border: "rgba(188,140,255,0.4)" }, // Royal Violet
-  4: { accent: "#F778BA", glow: "rgba(247,120,186,0.18)", border: "rgba(247,120,186,0.4)" }, // Rose Quartz
+  0: { accent: "#D4A853", glow: "rgba(212,168,83,0.16)", border: "rgba(212,168,83,0.35)" }, // Vintage Brass
+  1: { accent: "#39D353", glow: "rgba(57,211,83,0.16)", border: "rgba(57,211,83,0.35)" }, // GitHub Emerald
+  2: { accent: "#38BDF8", glow: "rgba(56,189,248,0.16)", border: "rgba(56,189,248,0.35)" }, // Cosmic Cyan
+  3: { accent: "#818CF8", glow: "rgba(129,140,248,0.16)", border: "rgba(129,140,248,0.35)" }, // Indigo
+  4: { accent: "#F472B6", glow: "rgba(244,114,182,0.16)", border: "rgba(244,114,182,0.35)" }, // Rose
 };
 
 /**
  * Builds normalized ascending events (commits, repo creations, milestones)
- * annotated with AI-inspired narrative chapters.
+ * sorted in strictly ascending chronological order.
  */
 export function buildNormalizedReplayEvents(
   commits: GitHubCommit[],
@@ -97,7 +97,7 @@ export function buildNormalizedReplayEvents(
         month: event.month,
         monthName: event.monthName,
         title: `Entered Year ${event.year}`,
-        subtitle: `Commencing the ${event.year} developer voyage`,
+        subtitle: `Commencing the ${event.year} developer chapter`,
       });
     }
 
@@ -124,6 +124,7 @@ export interface ReplayEngineControls {
   speed: 1 | 2 | 5;
   progress: number; // 0 to 100
   total: number;
+  isFullscreen: boolean;
 
   // Active item & metadata
   currentEvent: ReplayEvent | null;
@@ -138,11 +139,11 @@ export interface ReplayEngineControls {
   // Real-time Replay Statistics
   stats: ReplayStats;
 
-  // Derived slices synchronized with the single playhead
+  // Derived slices
   visibleEvents: ReplayEvent[];
   visibleCommits: GitHubCommit[];
   visibleRepos: GitHubRepo[];
-  yearProgress: number; // 0 to 1 progress within the current year
+  yearProgress: number;
 
   // Actions
   play: () => void;
@@ -153,11 +154,18 @@ export interface ReplayEngineControls {
   seekFraction: (fraction: number) => void;
   stepBack: () => void;
   stepForward: () => void;
+  skipBy: (count: number) => void;
   skipYear: (direction: 1 | -1) => void;
   jumpToChapter: (chapterId: string) => void;
   setSpeed: (speed: 1 | 2 | 5) => void;
+  toggleFullscreen: () => void;
 }
 
+/**
+ * Unified Replay Engine Hook.
+ * Paced at 2.5s per commit (1x) for an unhurried, documentary feel.
+ * Survives tab switches cleanly with requestAnimationFrame & delta-timing.
+ */
 export function useReplayEngine(
   commits: GitHubCommit[],
   repos: GitHubRepo[],
@@ -172,16 +180,17 @@ export function useReplayEngine(
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState<1 | 2 | 5>(1);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
+  // 1x = 2500ms (2.5 seconds per event), 2x = 1250ms, 5x = 500ms
   const speedIntervalMap: Record<1 | 2 | 5, number> = {
-    1: 1400,
-    2: 700,
-    5: 280,
+    1: 2500, // Cinematic 2.5s per commit
+    2: 1250, // 1.25s
+    5: 500,  // 0.5s
   };
 
   const animFrameRef = useRef<number | null>(null);
   const lastAdvanceTimeRef = useRef<number | null>(null);
-  const startTimeRef = useRef<number | null>(null);
 
   const currentIndexRef = useRef(currentIndex);
   currentIndexRef.current = currentIndex;
@@ -305,6 +314,13 @@ export function useReplayEngine(
     seek(currentIndex + 1);
   }, [currentIndex, seek]);
 
+  const skipBy = useCallback(
+    (count: number) => {
+      seek(currentIndex + count);
+    },
+    [currentIndex, seek]
+  );
+
   const skipYear = useCallback(
     (direction: 1 | -1) => {
       if (total === 0) return;
@@ -337,6 +353,10 @@ export function useReplayEngine(
     [chapters, seek]
   );
 
+  const toggleFullscreen = useCallback(() => {
+    setIsFullscreen((prev) => !prev);
+  }, []);
+
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -367,6 +387,15 @@ export function useReplayEngine(
         } else {
           stepForward();
         }
+      } else if (e.code === "KeyJ") {
+        e.preventDefault();
+        skipBy(-5); // Jump back 5 commits (~10-12s)
+      } else if (e.code === "KeyL") {
+        e.preventDefault();
+        skipBy(5); // Jump forward 5 commits
+      } else if (e.code === "KeyF") {
+        e.preventDefault();
+        toggleFullscreen();
       } else if (e.code === "KeyR") {
         e.preventDefault();
         replay();
@@ -381,7 +410,7 @@ export function useReplayEngine(
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [togglePlay, stepBack, stepForward, skipYear, replay]);
+  }, [togglePlay, stepBack, stepForward, skipBy, skipYear, replay, toggleFullscreen]);
 
   // Active event & derived properties
   const currentEvent = total > 0 ? events[currentIndex] || events[0] : null;
@@ -402,7 +431,7 @@ export function useReplayEngine(
     );
   }, [chapters, currentIndex, currentEvent]);
 
-  // Era color tailored to the year
+  // Era color
   const eraColor = useMemo(() => {
     if (!currentEvent) return ERA_COLORS[0];
     const yearDiff = Math.abs(currentEvent.year - startYear);
@@ -469,6 +498,7 @@ export function useReplayEngine(
     speed,
     progress,
     total,
+    isFullscreen,
     currentEvent,
     currentChapter,
     currentYear,
@@ -490,8 +520,10 @@ export function useReplayEngine(
     seekFraction,
     stepBack,
     stepForward,
+    skipBy,
     skipYear,
     jumpToChapter,
     setSpeed,
+    toggleFullscreen,
   };
 }
