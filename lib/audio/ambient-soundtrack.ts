@@ -25,6 +25,9 @@ class AmbientSoundEngine {
   private intervalTimer: any = null;
   private currentTheme: SoundtrackTheme = "odyssey";
   private destinationNode: MediaStreamAudioDestinationNode | null = null;
+  
+  private tapeHissSource: AudioBufferSourceNode | null = null;
+  private tapeHissGain: GainNode | null = null;
 
   // Chord Progressions per Theme (Hz)
   private themes: Record<SoundtrackTheme, { chords: number[][]; root: number; name: string }> = {
@@ -165,6 +168,35 @@ class AmbientSoundEngine {
     this.intervalTimer = window.setTimeout(this.scheduler, 100);
   };
 
+  private createTapeHiss() {
+    if (!this.ctx || !this.masterGain) return;
+    const bufferSize = this.ctx.sampleRate * 2; // 2 seconds of noise
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const output = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      output[i] = Math.random() * 2 - 1;
+    }
+
+    this.tapeHissSource = this.ctx.createBufferSource();
+    this.tapeHissSource.buffer = buffer;
+    this.tapeHissSource.loop = true;
+    
+    // Apply a bandpass filter to make it sound like warm tape rather than harsh white noise
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.value = 1200;
+    filter.Q.value = 0.5;
+
+    this.tapeHissGain = this.ctx.createGain();
+    this.tapeHissGain.gain.value = 0.005; // Very subtle
+
+    this.tapeHissSource.connect(filter);
+    filter.connect(this.tapeHissGain);
+    this.tapeHissGain.connect(this.masterGain);
+    
+    this.tapeHissSource.start();
+  }
+
   /**
    * Starts the adaptive cinematic soundtrack.
    */
@@ -193,6 +225,8 @@ class AmbientSoundEngine {
 
     this.chordStep = 0;
     this.nextNoteTime = now + 0.1; // start slightly in the future
+    
+    this.createTapeHiss();
     this.scheduler();
   }
 
@@ -217,6 +251,11 @@ class AmbientSoundEngine {
     if (this.intervalTimer) {
       clearTimeout(this.intervalTimer);
       this.intervalTimer = null;
+    }
+
+    if (this.tapeHissSource) {
+      this.tapeHissSource.stop(now + 1.2);
+      this.tapeHissSource = null;
     }
 
     // Set playing to false immediately so scheduler stops
@@ -272,6 +311,33 @@ class AmbientSoundEngine {
 
       osc.start(now);
       osc.stop(now + 0.06);
+    } catch {}
+  }
+
+  /**
+   * Mechanical projector click for chapter transitions
+   */
+  public triggerProjectorClick() {
+    if (!this.ctx || !this.masterGain || !this.isPlaying) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      // Sharp mechanical transient
+      osc.type = "square";
+      osc.frequency.setValueAtTime(150, now);
+      osc.frequency.exponentialRampToValueAtTime(40, now + 0.03);
+
+      gain.gain.setValueAtTime(0.06, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+
+      osc.start(now);
+      osc.stop(now + 0.04);
     } catch {}
   }
 

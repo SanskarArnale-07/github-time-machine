@@ -82,11 +82,71 @@ export function buildNormalizedReplayEvents(
   // Sort strictly ascending (oldest first)
   rawEvents.sort((a, b) => a.timestamp - b.timestamp);
 
-  // 3. Inject year milestone markers
+  // 3. Inject year milestone markers and month summaries
   const preProcessedEvents: ReplayEvent[] = [];
   let currentYearTracker: number | null = null;
+  let currentMonthTracker: number | null = null;
+  
+  // Month tracking state
+  let monthCommits = 0;
+  let lastMonthCommits = 0;
+  let monthLangs: Record<string, number> = {};
+  let monthRepoCounts: Record<string, number> = {};
+  let newReposCreated = 0;
 
   for (const event of rawEvents) {
+    if (currentMonthTracker !== null && (event.year > currentYearTracker! || event.month !== currentMonthTracker)) {
+      // Month ended, inject a summary event
+      const topLang = Object.entries(monthLangs).sort((a, b) => b[1] - a[1])[0]?.[0] || "Code";
+      const topRepo = Object.entries(monthRepoCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "Unknown";
+      
+      let commitDeltaPct = 0;
+      if (lastMonthCommits > 0) {
+        commitDeltaPct = Math.round(((monthCommits - lastMonthCommits) / lastMonthCommits) * 100);
+      } else if (monthCommits > 0) {
+        commitDeltaPct = 100;
+      }
+      
+      let primaryFocus: "Features" | "Refactoring" | "Bug Fixing" | "Exploration" | "Documentation" | "General" = "General";
+      if (newReposCreated > 1) primaryFocus = "Exploration";
+      else if (topLang === "Markdown" || topLang === "MDX") primaryFocus = "Documentation";
+      else if (monthCommits > 20) primaryFocus = "Features";
+      else primaryFocus = "General";
+
+      let narrative = `A steady month focused on ${topRepo}.`;
+      if (commitDeltaPct > 50) narrative = `Massive surge in activity! A ${commitDeltaPct}% increase driven by work on ${topRepo}.`;
+      else if (newReposCreated > 0) narrative = `Exploration phase. Created new repositories and experimented with ${topLang}.`;
+
+      preProcessedEvents.push({
+        id: `month-summary-${currentYearTracker}-${currentMonthTracker}`,
+        type: "month_summary",
+        date: event.date,
+        timestamp: event.timestamp - 2,
+        year: currentYearTracker!,
+        month: currentMonthTracker,
+        monthName: new Date(currentYearTracker!, currentMonthTracker, 1).toLocaleString("default", { month: "short" }),
+        title: `Month in Review`,
+        monthlySummary: {
+          year: currentYearTracker!,
+          month: currentMonthTracker,
+          monthName: new Date(currentYearTracker!, currentMonthTracker, 1).toLocaleString("default", { month: "short" }),
+          totalCommits: monthCommits,
+          commitDeltaPct,
+          topLanguage: topLang,
+          topRepo,
+          newReposCreated,
+          primaryFocus,
+          whatChangedNarrative: narrative
+        }
+      });
+
+      lastMonthCommits = monthCommits;
+      monthCommits = 0;
+      monthLangs = {};
+      monthRepoCounts = {};
+      newReposCreated = 0;
+    }
+
     if (currentYearTracker !== null && event.year > currentYearTracker) {
       preProcessedEvents.push({
         id: `milestone-${event.year}`,
@@ -102,6 +162,16 @@ export function buildNormalizedReplayEvents(
     }
 
     currentYearTracker = event.year;
+    currentMonthTracker = event.month;
+    
+    if (event.type === "commit") {
+      monthCommits++;
+      if (event.language) monthLangs[event.language] = (monthLangs[event.language] || 0) + 1;
+      if (event.repoName) monthRepoCounts[event.repoName] = (monthRepoCounts[event.repoName] || 0) + 1;
+    } else if (event.type === "repo_created") {
+      newReposCreated++;
+    }
+    
     preProcessedEvents.push(event);
   }
 

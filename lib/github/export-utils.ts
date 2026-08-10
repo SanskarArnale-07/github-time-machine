@@ -169,22 +169,14 @@ export function downloadReplaySummaryPDF(
   const chaptersHtml = chapters
     .map(
       (ch, idx) => `
-      <div style="margin-bottom: 20px; padding: 18px; border: 1px solid #1E293B; border-radius: 12px; background: #131C31;">
-        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
-          <h3 style="font-family: Georgia, serif; font-size: 18px; color: #F2F0EB; margin: 0;">Chapter ${
-            idx + 1
-          }: ${ch.name}</h3>
-          <span style="font-family: monospace; font-size: 11px; color: #D4A853;">${
-            ch.subtitle
-          }</span>
+      <div class="chapter-card">
+        <div class="chapter-header">
+          <h3>Chapter ${idx + 1}: ${ch.name}</h3>
+          <span>${ch.subtitle}</span>
         </div>
-        <p style="font-size: 13px; line-height: 1.6; color: #8B949E; margin: 0 0 8px 0;">${
-          ch.narrative
-        }</p>
-        <div style="font-family: monospace; font-size: 11px; color: #39D353;">
-          ${ch.totalCommits} commits · Highlights: ${
-        ch.highlightRepos.join(", ") || "Core Architecture"
-      }
+        <p class="chapter-narrative">${ch.narrative}</p>
+        <div class="chapter-footer">
+          ${ch.totalCommits} commits · Highlights: ${ch.highlightRepos.join(", ") || "Core Architecture"}
         </div>
       </div>
     `
@@ -195,49 +187,165 @@ export function downloadReplaySummaryPDF(
     <!DOCTYPE html>
     <html>
       <head>
-        <title>GitHub Time Machine — ${username}'s Developer Documentary</title>
+        <title>Developer Yearbook — ${username}</title>
         <style>
-          body {
-            font-family: system-ui, -apple-system, sans-serif;
-            background: #0B1020;
-            color: #F2F0EB;
-            padding: 40px;
-            max-width: 800px;
-            margin: 0 auto;
+          :root {
+            --bg-color: #F8F5F2;
+            --text-main: #2A2520;
+            --text-muted: #5A524A;
+            --accent: #8E6B35;
+            --border: #D6CEC1;
+            --card-bg: #FFFFFF;
           }
-          h1 { font-family: Georgia, serif; font-size: 32px; color: #F2F0EB; margin-bottom: 4px; }
-          .header { border-bottom: 1px solid #1E293B; padding-bottom: 20px; margin-bottom: 30px; }
-          .stat-badge { display: inline-block; background: #131C31; border: 1px solid #1E293B; border-radius: 8px; padding: 10px 18px; margin-right: 12px; margin-bottom: 12px; }
-          .stat-val { font-size: 20px; font-weight: bold; color: #D4A853; font-family: Georgia, serif; }
-          .stat-lbl { font-size: 10px; text-transform: uppercase; color: #8B949E; font-family: monospace; }
+          body {
+            font-family: Georgia, serif;
+            background: var(--bg-color);
+            color: var(--text-main);
+            padding: 40px;
+            max-width: 900px;
+            margin: 0 auto;
+            line-height: 1.5;
+          }
+          .yearbook-title {
+            text-align: center;
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 24px;
+            margin-bottom: 40px;
+          }
+          .yearbook-title span {
+            display: block;
+            font-family: monospace;
+            font-size: 12px;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.25em;
+            margin-bottom: 8px;
+          }
+          .yearbook-title h1 { 
+            font-size: 42px; 
+            margin: 0 0 8px 0; 
+            font-weight: normal;
+          }
+          .yearbook-title p {
+            color: var(--text-muted);
+            font-size: 16px;
+            font-style: italic;
+            margin: 0;
+          }
+          .stats-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 50px;
+          }
+          .stat-badge { 
+            background: var(--card-bg);
+            border: 1px solid var(--border); 
+            border-radius: 4px; 
+            padding: 16px 24px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+          }
+          .stat-val { 
+            font-size: 28px; 
+            color: var(--accent); 
+            margin-bottom: 4px;
+          }
+          .stat-lbl { 
+            font-size: 10px; 
+            text-transform: uppercase; 
+            color: var(--text-muted); 
+            font-family: monospace; 
+            letter-spacing: 0.1em;
+          }
+          h2 { 
+            font-size: 26px; 
+            text-align: center;
+            margin-bottom: 30px;
+            font-weight: normal;
+            color: var(--text-main);
+          }
+          .chapters-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+          }
+          .chapter-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 24px;
+            border-radius: 4px;
+            page-break-inside: avoid;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+          }
+          .chapter-header {
+            margin-bottom: 12px;
+            border-bottom: 1px solid #EEE;
+            padding-bottom: 12px;
+          }
+          .chapter-header h3 {
+            font-size: 18px;
+            margin: 0 0 6px 0;
+            color: var(--text-main);
+          }
+          .chapter-header span {
+            font-family: monospace;
+            font-size: 11px;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+          }
+          .chapter-narrative {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin: 0 0 16px 0;
+          }
+          .chapter-footer {
+            font-family: monospace;
+            font-size: 11px;
+            color: var(--text-main);
+            background: #F8F5F2;
+            padding: 8px 12px;
+            border-radius: 4px;
+          }
+          footer {
+            margin-top: 60px;
+            border-top: 1px solid var(--border);
+            padding-top: 24px;
+            font-family: monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+          }
           @media print {
-            body { background: #FFFFFF; color: #000000; }
-            .header { border-color: #DDDDDD; }
-            .stat-badge { background: #F6F8FA; border-color: #DDDDDD; color: #000000; }
-            .stat-val { color: #8A6D2F; }
+            body { background: #FFF; padding: 0; }
+            .stat-badge, .chapter-card, .chapter-footer { box-shadow: none; }
           }
         </style>
       </head>
       <body>
-        <div class="header">
-          <span style="font-family: monospace; font-size: 11px; color: #D4A853; text-transform: uppercase; letter-spacing: 0.2em;">GitHub Time Machine · Documentary Chronicle</span>
+        <div class="yearbook-title">
+          <span>GitHub Time Machine · Class of ${endYear}</span>
           <h1>${username}</h1>
-          <p style="color: #8B949E; font-size: 14px; margin: 4px 0 16px 0;">Replaying ${startYear} – ${endYear} · A Cinematic Journey Through Code</p>
-          <div>
-            <div class="stat-badge"><div class="stat-val">${commitCount}</div><div class="stat-lbl">Total Commits</div></div>
-            <div class="stat-badge"><div class="stat-val">${repoCount}</div><div class="stat-lbl">Active Repositories</div></div>
-            <div class="stat-badge"><div class="stat-val">${chapters.length}</div><div class="stat-lbl">Chronicle Chapters</div></div>
-            <div class="stat-badge"><div class="stat-val">${
-              endYear - startYear + 1
-            }y</div><div class="stat-lbl">Years Spanned</div></div>
-          </div>
+          <p>The Developer Yearbook: ${startYear} – ${endYear}</p>
+        </div>
+        
+        <div class="stats-container">
+          <div class="stat-badge"><div class="stat-val">${commitCount}</div><div class="stat-lbl">Contributions</div></div>
+          <div class="stat-badge"><div class="stat-val">${repoCount}</div><div class="stat-lbl">Repositories</div></div>
+          <div class="stat-badge"><div class="stat-val">${chapters.length}</div><div class="stat-lbl">Chapters</div></div>
+          <div class="stat-badge"><div class="stat-val">${endYear - startYear + 1}y</div><div class="stat-lbl">Tenure</div></div>
         </div>
 
-        <h2 style="font-family: Georgia, serif; font-size: 22px; color: #F2F0EB; margin-bottom: 16px;">Documentary Chapters</h2>
-        ${chaptersHtml}
+        <h2>Chronicles of a Developer</h2>
+        <div class="chapters-grid">
+          ${chaptersHtml}
+        </div>
 
-        <footer style="margin-top: 40px; border-top: 1px solid #1E293B; padding-top: 16px; font-family: monospace; font-size: 11px; color: #8B949E; text-align: center;">
-          Generated with GitHub Time Machine · time-machine.git
+        <footer>
+          Preserved by GitHub Time Machine · time-machine.git
         </footer>
       </body>
     </html>
@@ -267,7 +375,8 @@ export async function exportReplayVideoFormat(
   events: ReplayEvent[],
   chapters: Chapter[],
   onProgress?: (msg: string) => void,
-  withAudio: boolean = false
+  withAudio: boolean = false,
+  durationPreset: "full" | "30s" | "60s" = "full"
 ): Promise<boolean> {
   if (typeof window === "undefined" || events.length === 0) return false;
 
@@ -330,10 +439,17 @@ export async function exportReplayVideoFormat(
     const introFrames = 75;
     // 2. Events: 75 frames per commit (2.5s per commit for true 1x unhurried documentary pacing)
     const framesPerEvent = 75;
-    // Take events sequentially (up to 35 key moments to create a rich 45-90s movie)
-    const sampledEvents = events.length > 35
-      ? events.filter((_, idx) => idx % Math.ceil(events.length / 35) === 0)
+    
+    // Determine max events based on duration preset
+    let maxEvents = 35; // Default for "full"
+    if (durationPreset === "30s") maxEvents = 10;
+    else if (durationPreset === "60s") maxEvents = 22;
+
+    // Take events sequentially
+    const sampledEvents = events.length > maxEvents
+      ? events.filter((_, idx) => idx % Math.ceil(events.length / maxEvents) === 0).slice(0, maxEvents)
       : events;
+      
     const eventFrames = sampledEvents.length * framesPerEvent;
     // 3. Outro finale sequence: 90 frames (3.0s)
     const outroFrames = 90;

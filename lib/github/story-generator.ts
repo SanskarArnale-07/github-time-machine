@@ -410,6 +410,30 @@ export function generateChaptersAndStories(
   const avgCommitsPerActiveWeek = Math.max(1, Math.round(total / Math.max(1, Math.ceil(total / 4))));
   const commitConsistencyScore = Math.min(98, Math.max(50, Math.round(65 + maxStreak * 3 - (maxGap > 45 ? 12 : 0))));
 
+  const numRepos = repos.length;
+  const numLangs = Object.keys(langCount).length;
+  const explorationScore = Math.min(99, Math.max(40, 50 + (numRepos * 2) + (numLangs * 5)));
+  
+  // Craftsmanship heuristic: higher if they have high commits relative to repos
+  const craftsmanshipScore = Math.min(99, Math.max(50, 60 + Math.round((total / Math.max(1, numRepos)) * 0.5)));
+  
+  // Focus heuristic: higher if few repos take most commits
+  const focusScore = Math.min(99, Math.max(30, 90 - (numRepos * 1.5)));
+  
+  // Night owl score: based on late night percentage
+  const nightOwlScore = Math.min(99, Math.round((hourCounts.LateNight / Math.max(1, total)) * 100 * 2));
+
+  let insightNarrative = "You are a steady contributor.";
+  if (explorationScore > focusScore && explorationScore > 80) {
+    insightNarrative = "You shifted from consistency to rapid experimentation, touching many technologies.";
+  } else if (focusScore > explorationScore && focusScore > 80) {
+    insightNarrative = "This repository evolved through deep focus and multiple architectural rewrites.";
+  } else if (nightOwlScore > 40) {
+    insightNarrative = "You find your best flow state in the quiet hours of the night.";
+  } else if (commitConsistencyScore > 85) {
+    insightNarrative = "Your consistency is remarkable, laying down code with disciplined cadence.";
+  }
+
   const insights: DeveloperInsights = {
     bestCodingMonth,
     mostProductiveWeekday,
@@ -419,6 +443,11 @@ export function generateChaptersAndStories(
     fastestRepoGrowth: repos[0]?.name || "Core Codebase",
     mostFrequentlyUsedLanguage: primaryLang,
     commitConsistencyScore,
+    explorationScore,
+    craftsmanshipScore,
+    focusScore,
+    nightOwlScore,
+    insightNarrative,
     weekdayDistribution,
     timeOfDayDistribution,
   };

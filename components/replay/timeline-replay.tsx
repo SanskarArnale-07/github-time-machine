@@ -84,6 +84,7 @@ function ReplayMilestoneCard({
 
   const isRepository = event?.type === "repo_created";
   const isYearMarker = event?.type === "year_milestone";
+  const isMonthSummary = event?.type === "month_summary";
   const formattedDate = event?.date
     ? new Date(event.date).toLocaleDateString("en-US", {
         month: "short",
@@ -92,15 +93,19 @@ function ReplayMilestoneCard({
     : "";
   const title = isRepository
     ? event?.repoName
-    : isYearMarker
+    : isYearMarker || isMonthSummary
       ? event?.title
       : event?.title || "A meaningful step forward";
-  const description = isRepository
-    ? event?.description || "A new repository entered the archive."
-    : event?.description ||
+  
+  let description = event?.description ||
       event?.impactDescription ||
       event?.commit?.message?.split("\n")[0] ||
       "Another line in the story takes shape.";
+      
+  if (isRepository) description = event?.description || "A new repository entered the archive.";
+  if (isMonthSummary && event?.monthlySummary) {
+    description = event.monthlySummary.whatChangedNarrative;
+  }
 
   return (
     <article
@@ -116,8 +121,8 @@ function ReplayMilestoneCard({
       <div className="relative flex h-full min-h-[210px] flex-col justify-between gap-5">
         <div className="flex items-center justify-between gap-3 border-b border-[#3A332B]/70 pb-3">
           <span className="inline-flex min-w-0 items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.15em] text-brass-light">
-            {isRepository ? <FolderGit2 className="h-3.5 w-3.5 shrink-0" /> : <Clock3 className="h-3.5 w-3.5 shrink-0" />}
-            {isRepository ? "Repository founded" : isYearMarker ? "New chapter" : event?.repoName || "Milestone"}
+            {isRepository ? <FolderGit2 className="h-3.5 w-3.5 shrink-0" /> : isMonthSummary ? <Clock3 className="h-3.5 w-3.5 shrink-0" /> : <Clock3 className="h-3.5 w-3.5 shrink-0" />}
+            {isRepository ? "Repository founded" : isYearMarker ? "New chapter" : isMonthSummary ? "Monthly Summary" : event?.repoName || "Milestone"}
           </span>
           <span className="shrink-0 font-mono text-[10px] text-muted">{formattedDate}</span>
         </div>
@@ -127,26 +132,43 @@ function ReplayMilestoneCard({
           <p className="mt-3 line-clamp-2 max-w-3xl text-[15px] leading-relaxed text-muted sm:text-base">{description}</p>
         </div>
 
-        <div className="flex min-h-4 items-center justify-between gap-3 border-t border-[#3A332B]/70 pt-3 font-mono text-[10px] text-muted">
-          {event?.language ? (
-            <span className="inline-flex items-center gap-1.5 text-ivory">
-              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: event.languageColor || accent }} />
-              {event.language}
-            </span>
-          ) : (
-            <span>{event?.commitShortSha ? `Commit ${event.commitShortSha}` : "A preserved moment"}</span>
-          )}
-          {event?.repoUrl ? (
-            <a
-              href={event.repoUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 text-brass-light transition-colors hover:text-ivory"
-            >
-              View repository <ExternalLink className="h-3 w-3" />
-            </a>
-          ) : null}
-        </div>
+        {isMonthSummary && event?.monthlySummary ? (
+          <div className="grid grid-cols-3 gap-2 border-t border-[#3A332B]/70 pt-3">
+            <div className="flex flex-col">
+              <span className="text-[9px] uppercase tracking-wider text-muted font-mono">Commits</span>
+              <span className="text-sm font-semibold text-ivory font-mono">{event.monthlySummary.totalCommits} <span className={event.monthlySummary.commitDeltaPct > 0 ? "text-green-500" : "text-muted"}>{event.monthlySummary.commitDeltaPct > 0 ? `+${event.monthlySummary.commitDeltaPct}%` : ""}</span></span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[9px] uppercase tracking-wider text-muted font-mono">Focus</span>
+              <span className="text-sm font-semibold text-ivory font-mono">{event.monthlySummary.primaryFocus}</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[9px] uppercase tracking-wider text-muted font-mono">Top Lang</span>
+              <span className="text-sm font-semibold text-ivory font-mono">{event.monthlySummary.topLanguage}</span>
+            </div>
+          </div>
+        ) : (
+          <div className="flex min-h-4 items-center justify-between gap-3 border-t border-[#3A332B]/70 pt-3 font-mono text-[10px] text-muted">
+            {event?.language ? (
+              <span className="inline-flex items-center gap-1.5 text-ivory">
+                <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: event.languageColor || accent }} />
+                {event.language}
+              </span>
+            ) : (
+              <span>{event?.commitShortSha ? `Commit ${event.commitShortSha}` : "A preserved moment"}</span>
+            )}
+            {event?.repoUrl ? (
+              <a
+                href={event.repoUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-brass-light transition-colors hover:text-ivory"
+              >
+                View repository <ExternalLink className="h-3 w-3" />
+              </a>
+            ) : null}
+          </div>
+        )}
       </div>
     </article>
   );
@@ -164,8 +186,9 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
   const [showChapterSelector, setShowChapterSelector] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [previousChapterId, setPreviousChapterId] = useState<string | null>(null);
+  const previousChapterIdRef = useRef<string | null>(null);
   const [showChapterOverlay, setShowChapterOverlay] = useState(false);
+  const [volume, setVolume] = useState(0.22);
 
   const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
@@ -190,6 +213,12 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
       if (localStorage.getItem("github_time_machine_sound_enabled") === "true") {
         setSoundEnabled(true);
         ambientSoundtrack.start();
+        const savedVol = localStorage.getItem("github_time_machine_volume");
+        if (savedVol) {
+          const v = parseFloat(savedVol);
+          setVolume(v);
+          ambientSoundtrack.setVolume(v);
+        }
       }
     } catch {
       // Local preferences are optional and should never block the replay.
@@ -291,17 +320,22 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
   useEffect(() => {
     if (!engine.currentChapter) return;
     
-    if (previousChapterId !== null && engine.currentChapter.id !== previousChapterId) {
+    if (previousChapterIdRef.current !== engine.currentChapter.id) {
+      if (soundEnabled && previousChapterIdRef.current !== null) {
+        ambientSoundtrack.triggerProjectorClick();
+      }
+      
       setShowChapterOverlay(true);
+      
       const timer = setTimeout(() => {
         setShowChapterOverlay(false);
-      }, 800);
-      setPreviousChapterId(engine.currentChapter.id);
+      }, 1500);
+      
+      previousChapterIdRef.current = engine.currentChapter.id;
+      
       return () => clearTimeout(timer);
-    } else if (previousChapterId === null) {
-      setPreviousChapterId(engine.currentChapter.id);
     }
-  }, [engine.currentChapter, previousChapterId]);
+  }, [engine.currentChapter, soundEnabled]);
 
   if (engine.total === 0) {
     return (
@@ -324,11 +358,11 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
       <AnimatePresence>
         {showChapterOverlay && (
           <motion.div
+            key="chapter-overlay"
             className="pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#0B0A09]/90 backdrop-blur-sm"
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
+            animate={{ opacity: 1, transition: { duration: 0.3 } }}
+            exit={{ opacity: 0, transition: { duration: 0.5 } }}
           >
             <p className="mb-4 font-mono text-sm uppercase tracking-[0.2em] text-brass-light">
               Chapter {chapterIndex + 1}
@@ -447,6 +481,26 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
                   Chronicle
                 </Button>
               </div>
+              <div className="mt-3 border-t border-[#3A332B]/70 pt-3">
+                <div className="flex items-center justify-between font-mono text-[10px] text-muted mb-2">
+                  <span>Volume</span>
+                  <span>{Math.round(volume * 100)}%</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="1" 
+                  step="0.01" 
+                  value={volume}
+                  onChange={(e) => {
+                    const v = parseFloat(e.target.value);
+                    setVolume(v);
+                    ambientSoundtrack.setVolume(v);
+                    try { localStorage.setItem("github_time_machine_volume", v.toString()); } catch {}
+                  }}
+                  className="w-full accent-brass-light"
+                />
+              </div>
             </div>
           ) : null}
         </header>
@@ -492,9 +546,18 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
               <span className="mx-2 text-[#4A4035]">·</span>
               <span className="text-brass-light">{engine.currentMonthName} {engine.currentYear}</span>
             </div>
-            <div className="mx-auto mt-3 h-px w-full overflow-hidden rounded-full bg-[#3A332B]">
-              <div className="h-full bg-gradient-to-r from-[#8E6B35] via-brass to-brass-light transition-[width] duration-700 ease-out" style={{ width: `${engine.progress}%` }} />
-            </div>
+            <button 
+              className="mx-auto mt-3 h-2 w-full overflow-hidden rounded-full bg-[#3A332B] hover:bg-[#4A4035] transition-colors cursor-pointer block focus:outline-none focus:ring-1 focus:ring-brass-light"
+              onClick={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const percentage = Math.max(0, Math.min(1, x / rect.width));
+                engine.seek(Math.floor(percentage * engine.total));
+              }}
+              title="Scrub timeline"
+            >
+              <div className="h-full bg-gradient-to-r from-[#8E6B35] via-brass to-brass-light transition-[width] duration-300 ease-out" style={{ width: `${engine.progress}%` }} />
+            </button>
             <p className="mt-3 text-xs text-muted">
               {engine.stats.remainingEvents} meaningful milestone{engine.stats.remainingEvents === 1 ? "" : "s"} remaining
             </p>

@@ -15,6 +15,7 @@ interface ReplayPageProps {
   initialAvatar?: string;
   initialEmail?: string;
   initialProfile: GitHubUserProfile | null;
+  repoFilter?: string; // e.g. "owner/repo"
 }
 
 export function ReplayPage({
@@ -22,6 +23,7 @@ export function ReplayPage({
   initialAvatar: _initialAvatar,
   initialEmail: _initialEmail,
   initialProfile,
+  repoFilter,
 }: ReplayPageProps) {
   const [profile, setProfile] = useState<GitHubUserProfile | null>(initialProfile);
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
@@ -41,10 +43,22 @@ export function ReplayPage({
     contributions?: ContributionWeek[];
   }) => {
     if (data.profile) setProfile(data.profile);
-    if (data.repos) setRepos(data.repos);
-    if (data.commits) setCommits(data.commits);
+    if (data.repos) {
+      if (repoFilter) {
+        setRepos(data.repos.filter(r => r.full_name === repoFilter));
+      } else {
+        setRepos(data.repos);
+      }
+    }
+    if (data.commits) {
+      if (repoFilter) {
+        setCommits(data.commits.filter(c => c.repoFullName === repoFilter));
+      } else {
+        setCommits(data.commits);
+      }
+    }
     if (data.contributions) setContributions(data.contributions);
-  }, []);
+  }, [repoFilter]);
 
   const loadCommitHistory = useCallback(async () => {
     setIsLoading(true);

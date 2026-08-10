@@ -266,8 +266,8 @@ export function DashboardContent({
           </div>
 
           {/* Tab navigation bar */}
-          <div className="mt-2 flex flex-wrap items-center justify-between gap-3 bg-black/30 rounded-xl border border-white/5 p-3 sm:mt-4">
-            <div className="glass-card flex items-center gap-1 p-1">
+          <div className="mt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-black/30 rounded-xl border border-white/5 p-3 sm:mt-4">
+            <div className="glass-card flex items-center gap-1 p-1 w-full sm:w-auto overflow-x-auto overflow-y-hidden scrollbar-hide">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
@@ -306,7 +306,7 @@ export function DashboardContent({
                 totalCommits={commits.length}
               />
             )}
-            {activeTab === "repos" && <RepoSection repos={repos} />}
+            {activeTab === "repos" && <RepoSection repos={repos} commits={commits} />}
             {activeTab === "contributions" && (
               <ContributionReplay contributions={contributions} />
             )}

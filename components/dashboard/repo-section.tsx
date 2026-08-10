@@ -1,14 +1,17 @@
 "use client";
 import React, { useState, useMemo } from "react";
-import { GitHubRepo } from "@/lib/github/types";
+import { useRouter } from "next/navigation";
+import { GitHubRepo, GitHubCommit } from "@/lib/github/types";
 import { Star, GitFork, Clock, Search, FolderGit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface RepoSectionProps {
   repos: GitHubRepo[];
+  commits?: GitHubCommit[];
 }
 
-export function RepoSection({ repos }: RepoSectionProps) {
+export function RepoSection({ repos, commits = [] }: RepoSectionProps) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<"stars" | "updated" | "created">("stars");
   const [selectedLang, setSelectedLang] = useState<string | null>(null);
@@ -23,13 +26,25 @@ export function RepoSection({ repos }: RepoSectionProps) {
   }, [repos]);
 
   const filteredAndSortedRepos = useMemo(() => {
+    const searchLower = search.toLowerCase();
     const result = repos.filter((repo) => {
-      const matchesSearch =
-        repo.name.toLowerCase().includes(search.toLowerCase()) ||
-        (repo.description &&
-          repo.description.toLowerCase().includes(search.toLowerCase()));
+      // Basic repo search
+      let matchesSearch =
+        repo.name.toLowerCase().includes(searchLower) ||
+        (repo.description && repo.description.toLowerCase().includes(searchLower));
+
+      // Deep search into commits if a search query exists and basic search didn't match
+      if (!matchesSearch && searchLower.length > 2 && commits.length > 0) {
+        matchesSearch = commits.some(c => 
+          c.repoName === repo.name && 
+          (c.message.toLowerCase().includes(searchLower) || 
+           c.year.toString().includes(searchLower) || 
+           c.monthName.toLowerCase().includes(searchLower))
+        );
+      }
+
       const matchesLang = selectedLang ? repo.language === selectedLang : true;
-      return matchesSearch && matchesLang;
+      return (searchLower === "" || matchesSearch) && matchesLang;
     });
 
     result.sort((a, b) => {
@@ -44,7 +59,7 @@ export function RepoSection({ repos }: RepoSectionProps) {
     });
 
     return result;
-  }, [repos, search, sortBy, selectedLang]);
+  }, [repos, commits, search, sortBy, selectedLang]);
 
   const displayedRepos = showAll
     ? filteredAndSortedRepos
@@ -248,7 +263,7 @@ export function RepoSection({ repos }: RepoSectionProps) {
                         {getRelativeTime(repo.updated_at)}
                       </div>
                     </div>
-                    <Button variant="outline" size="sm" className="w-full h-8 text-xs border-white/10 text-muted hover:border-brass/50 hover:text-brass-light bg-transparent hover:bg-brass/5 transition-colors">
+                    <Button onClick={() => router.push(`/repo/${repo.full_name}`)} variant="outline" size="sm" className="w-full h-8 text-xs border-white/10 text-muted hover:border-brass/50 hover:text-brass-light bg-transparent hover:bg-brass/5 transition-colors">
                       <Clock className="mr-1.5 h-3 w-3" />
                       View Timeline
                     </Button>

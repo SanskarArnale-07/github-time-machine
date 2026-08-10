@@ -67,14 +67,45 @@ export function AnalyticsView({ analytics, commits }: AnalyticsViewProps) {
         <div className="absolute top-0 right-0 p-8 opacity-10">
           <Orbit className="h-32 w-32 text-brass" />
         </div>
-        <div className="relative z-10 max-w-3xl">
+        <div className="relative z-10 max-w-4xl">
           <h2 className="flex items-center gap-4 font-display text-3xl font-bold text-ivory md:text-4xl">
             <Trophy className="h-10 w-10 text-brass" />
             Documentary Insight
           </h2>
-          <p className="mt-4 text-lg leading-relaxed text-muted/90 italic">
-            "Your coding journey reflects a steady evolution. With a peak activity in {analytics.mostActiveYear || 'recent years'}, you've shown resilience. The high volume of commits ({analytics.totalCommits || 0}) across {analytics.totalRepos || 0} repositories signifies a developer who isn't afraid to explore, learn, and consistently build."
+          <p className="mt-6 text-xl leading-relaxed text-brass-light italic">
+            "{analytics.insights?.insightNarrative || 'You are a steady contributor.'}"
           </p>
+          
+          <div className="mt-10 grid grid-cols-2 gap-6 md:grid-cols-4">
+            <div className="flex flex-col gap-2 rounded-2xl bg-black/40 p-5 border border-white/5">
+              <span className="text-xs font-mono text-muted uppercase tracking-wider">Exploration</span>
+              <div className="flex items-end gap-2">
+                <span className="text-3xl font-display font-bold text-ivory">{analytics.insights?.explorationScore || 0}</span>
+                <span className="text-sm text-muted/70 mb-1">/100</span>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 rounded-2xl bg-black/40 p-5 border border-white/5">
+              <span className="text-xs font-mono text-muted uppercase tracking-wider">Craftsmanship</span>
+              <div className="flex items-end gap-2">
+                <span className="text-3xl font-display font-bold text-ivory">{analytics.insights?.craftsmanshipScore || 0}</span>
+                <span className="text-sm text-muted/70 mb-1">/100</span>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 rounded-2xl bg-black/40 p-5 border border-white/5">
+              <span className="text-xs font-mono text-muted uppercase tracking-wider">Focus</span>
+              <div className="flex items-end gap-2">
+                <span className="text-3xl font-display font-bold text-ivory">{analytics.insights?.focusScore || 0}</span>
+                <span className="text-sm text-muted/70 mb-1">/100</span>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 rounded-2xl bg-black/40 p-5 border border-white/5">
+              <span className="text-xs font-mono text-muted uppercase tracking-wider">Night Owl</span>
+              <div className="flex items-end gap-2">
+                <span className="text-3xl font-display font-bold text-ivory">{analytics.insights?.nightOwlScore || 0}</span>
+                <span className="text-sm text-muted/70 mb-1">/100</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

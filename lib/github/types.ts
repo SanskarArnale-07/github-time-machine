@@ -82,6 +82,7 @@ export interface AnalyticsData {
   lateNightPercentage: number;
   weekendPercentage: number;
   commitsByYear: Record<number, number>;
+  insights: DeveloperInsights;
 }
 
 export interface ReplayState {
@@ -96,7 +97,8 @@ export type ReplayEventType =
   | "repo_created"
   | "year_milestone"
   | "major_streak"
-  | "inactive_period";
+  | "inactive_period"
+  | "month_summary";
 
 export interface ReplayEvent {
   id: string;
@@ -128,6 +130,7 @@ export interface ReplayEvent {
   impactType?: "milestone" | "streak" | "language" | "comeback" | "volume" | "repository";
   commit?: GitHubCommit;
   repo?: GitHubRepo;
+  monthlySummary?: MonthlySummary;
 }
 
 export interface Chapter {
@@ -163,6 +166,24 @@ export interface DeveloperInsights {
   fastestRepoGrowth: string;
   mostFrequentlyUsedLanguage: string;
   commitConsistencyScore: number; // 0 to 100
+  explorationScore: number;
+  craftsmanshipScore: number;
+  focusScore: number;
+  nightOwlScore: number;
+  insightNarrative: string;
   weekdayDistribution: { day: string; count: number; percentage: number }[];
   timeOfDayDistribution: { label: string; count: number; percentage: number }[];
+}
+
+export interface MonthlySummary {
+  year: number;
+  month: number;
+  monthName: string;
+  totalCommits: number;
+  commitDeltaPct: number;
+  topLanguage: string;
+  topRepo: string;
+  newReposCreated: number;
+  primaryFocus: "Features" | "Refactoring" | "Bug Fixing" | "Exploration" | "Documentation" | "General";
+  whatChangedNarrative: string;
 }
