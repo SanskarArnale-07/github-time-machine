@@ -268,18 +268,11 @@ export function TimelineReplay({
   return (
     <div
       ref={containerRef}
-      className={`relative transition-opacity duration-1000 ease-in-out ${
-        isFullscreen
-          ? "bg-[#09090B] flex flex-col items-center justify-center fixed inset-0 z-[100] h-[100dvh] w-screen font-sans"
-          : "glass-card-glow relative w-full h-full flex flex-col"
+      className={`relative flex flex-col overflow-hidden font-sans transition-opacity duration-1000 ease-in-out ${
+        isFullscreen ? "fixed inset-0 z-[100] bg-[#09090B] h-screen w-screen" : "h-full w-full bg-transparent"
       }`}
     >
-      {/* 16:9 Cinematic Inner Container for Fullscreen */}
-      <div className={`${
-        isFullscreen
-          ? "relative w-full aspect-video max-h-screen max-w-[calc(100vh*16/9)] mx-auto flex flex-col justify-between px-12 py-8 pb-24"
-          : "relative w-full h-full flex flex-col justify-between p-6 sm:p-8 pb-28 overflow-hidden"
-      }`}>
+      <div className="relative flex h-full w-full flex-col justify-between p-4 pb-28 sm:p-6 sm:pb-32 lg:p-8 lg:pb-32">
       {/* 1. Ambient cosmic glow */}
       <div
         className="pointer-events-none absolute -left-20 -top-20 h-96 w-96 rounded-full blur-3xl transition-all duration-1000 ease-out"
@@ -592,12 +585,10 @@ export function TimelineReplay({
             </div>
           </div>
         ) : (
-          /* Minimalist, Clean Replay Card (Centered at 65-70% Frame with Details panel) */
+          /* Minimalist, Clean Replay Card (Centered, Max 300px height) */
           <div
-            className={`glass-card cinematic-depth-card relative w-[75vw] max-w-[1200px] mx-auto overflow-hidden transition-opacity duration-1000 ease-in-out shadow-2xl flex flex-col justify-between border-zinc-800 bg-[#161618]/95 ${
-              isFullscreen ? 'p-12 min-h-[40vh]' : 'p-8 sm:p-10 min-h-[40vh]'
-            }`}
-            style={{ borderColor: engine.eraColor.border }}
+            className={`glass-card cinematic-depth-card relative w-full max-w-3xl mx-auto overflow-hidden transition-opacity duration-1000 ease-in-out shadow-2xl flex flex-col border-zinc-800 bg-[#161618]/95 p-6 sm:p-8`}
+            style={{ borderColor: engine.eraColor.border, maxHeight: "300px" }}
           >
             <div className="pointer-events-none absolute inset-0 bg-scan-line opacity-5" />
 
@@ -731,10 +722,11 @@ export function TimelineReplay({
 
       </div>
 
-      {/* 4. Streamlined Centerpiece Playback Bar */}
-      <div className="glass-card flex flex-wrap items-center justify-between gap-4 p-3.5 fixed bottom-6 left-1/2 -translate-x-1/2 w-[90vw] max-w-5xl z-50 shadow-2xl">
-        {/* Speed Controls */}
-        <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-ink-surface p-1">
+      {/* Persistent Cinematic Control Dock */}
+      <div className="fixed bottom-0 left-0 w-full bg-gradient-to-t from-black/90 via-black/60 to-transparent pt-12 pb-6 px-4 z-50">
+        <div className="glass-card flex flex-wrap items-center justify-between gap-4 p-3.5 mx-auto max-w-5xl shadow-2xl border-white/5 bg-[#0B0A09]/90 backdrop-blur-xl">
+          {/* Speed Controls */}
+          <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-ink-surface p-1">
           <span className="px-2 font-mono text-[10px] uppercase text-muted">
             Speed
           </span>
@@ -829,6 +821,7 @@ export function TimelineReplay({
             Fullscreen
           </span>
         </div>
+      </div>
       </div>
       </div>
     </div>

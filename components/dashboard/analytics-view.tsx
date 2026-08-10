@@ -10,51 +10,51 @@ interface AnalyticsViewProps {
 
 export function AnalyticsView({ analytics, commits }: AnalyticsViewProps) {
   const milestones = useMemo(() => {
-    const list: any[] = [];
+    const list: { id: string; title: string; narrative: string; date: string; icon: any; accent: string }[] = [];
     
     if (commits.length > 0) {
       const sorted = [...commits].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
       const firstCommit = sorted[0];
       list.push({
         id: "first-commit",
-        title: "Chapter I: First Repo Founded",
-        description: `The genesis of the journey. First documented code forged in ${firstCommit.repoName}.`,
+        title: "The Spark",
+        narrative: `The genesis of the journey. First documented code forged in ${firstCommit.repoName}.`,
         date: new Date(firstCommit.date).toLocaleDateString("en-US", { month: "long", year: "numeric" }),
-        Icon: Rocket,
-        color: "text-brass-light"
+        icon: Rocket,
+        accent: "text-brass-light"
       });
       
       if (analytics.topLanguages && analytics.topLanguages.length > 0) {
         const topLang = analytics.topLanguages[0].name;
         list.push({
           id: "first-major",
-          title: "Chapter II: First Major Project",
-          description: `A breakthrough moment. Adopted ${topLang} to build something substantial and defining.`,
+          title: "First Breakthrough",
+          narrative: `A breakthrough moment. Adopted ${topLang} to build something substantial and defining.`,
           date: "Key Milestone",
-          Icon: Trophy,
-          color: "text-brass-light"
+          icon: Trophy,
+          accent: "text-brass-light"
         });
       }
 
       if (analytics.longestStreak > 0) {
         list.push({
           id: "streak",
-          title: "Chapter III: Longest Streak",
-          description: `An era of unbreakable flow. Maintained relentless focus for a ${analytics.longestStreak}-day coding streak.`,
+          title: "The Grind",
+          narrative: `An era of unbreakable flow. Maintained relentless focus for a ${analytics.longestStreak}-day coding streak.`,
           date: "Momentum Peak",
-          Icon: Zap,
-        color: "text-brass-light"
+          icon: Zap,
+          accent: "text-brass-light"
         });
       }
       
       const latestCommit = sorted[sorted.length - 1];
       list.push({
         id: "latest",
-        title: "Chapter IV: Present Chapter",
-        description: `The continuing saga. Pushing boundaries and exploring new frontiers in ${latestCommit.repoName}.`,
+        title: "Present Chapter",
+        narrative: `The continuing saga. Pushing boundaries and exploring new frontiers in ${latestCommit.repoName}.`,
         date: new Date(latestCommit.date).toLocaleDateString("en-US", { month: "long", year: "numeric" }),
-        Icon: Flag,
-        color: "text-brass"
+        icon: Flag,
+        accent: "text-brass"
       });
     }
     return list;
@@ -87,7 +87,7 @@ export function AnalyticsView({ analytics, commits }: AnalyticsViewProps) {
         
         <div className="grid auto-rows-fr grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {milestones.map((milestone) => {
-            const { Icon } = milestone;
+            const { icon: Icon } = milestone;
             return (
               <div 
                 key={milestone.id}
@@ -98,7 +98,7 @@ export function AnalyticsView({ analytics, commits }: AnalyticsViewProps) {
                 <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/5 blur-3xl transition-all duration-500 group-hover:bg-brass/20" />
                 
                 <div className="relative z-10 flex h-full flex-col items-start gap-6" style={{ transform: 'translateZ(30px)' }}>
-                  <div className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-brass/15 bg-brass/5 shadow-inner ${milestone.color}`}>
+                  <div className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-brass/15 bg-brass/5 shadow-inner ${milestone.accent}`}>
                     <Icon className="h-8 w-8" />
                   </div>
                   <div className="flex flex-1 flex-col">
@@ -109,7 +109,7 @@ export function AnalyticsView({ analytics, commits }: AnalyticsViewProps) {
                       {milestone.title}
                     </h4>
                     <p className="mt-3 text-sm leading-relaxed text-muted/80">
-                      {milestone.description}
+                      {milestone.narrative}
                     </p>
                   </div>
                 </div>

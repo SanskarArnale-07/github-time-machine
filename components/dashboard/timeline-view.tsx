@@ -182,13 +182,13 @@ export function TimelineView({
                     {groupCommitsByDay(month.commits).map(([date, dayCommits]) => (
                       <div key={date} className="relative">
                         <div className="mb-3 flex items-center gap-3">
-                          <div className="h-2 w-2 rounded-full bg-brass-dim hidden md:block -ml-[93px] border-2 border-ink box-content" />
+                          <div className="absolute -left-12 h-2 w-2 rounded-full bg-brass-dim hidden md:block border-2 border-ink box-content" style={{ transform: 'translateX(-50%)' }} />
                           <span className="font-mono text-xs font-semibold uppercase tracking-wider text-muted">
                             {date}
                           </span>
                         </div>
                         
-                        <div className="space-y-3 pl-4 md:pl-0 border-l-2 md:border-l-0 border-ink-border ml-1 md:ml-0">
+                        <div className="space-y-4 pl-4 md:pl-0 border-l-2 md:border-l-0 border-ink-border ml-1 md:ml-0">
                           {dayCommits.map((group) => (
                             <div
                               key={group.sha}

@@ -1,29 +1,23 @@
 "use client";
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { ContributionWeek, GitHubCommit } from "@/lib/github/types";
+import { ContributionWeek } from "@/lib/github/types";
 
 interface ContributionReplayProps {
   contributions: ContributionWeek[];
-  commits: GitHubCommit[];
 }
 
 export function ContributionReplay({
   contributions,
-  commits,
 }: ContributionReplayProps) {
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isPlaying, setIsPlaying] = useState(true);
   const [waveProgress, setWaveProgress] = useState(-4);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Reset and auto-play bloom on every mount (tab revisit)
   useEffect(() => {
-    // Auto-play on mount (and re-mount when tab is revisited)
     setWaveProgress(-4);
     setIsPlaying(true);
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
   }, []);
-
   useEffect(() => {
     if (isPlaying) {
       if (waveProgress < contributions.length + 4) {

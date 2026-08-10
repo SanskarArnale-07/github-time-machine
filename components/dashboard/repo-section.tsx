@@ -183,11 +183,11 @@ export function RepoSection({ repos }: RepoSectionProps) {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-10 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
             {displayedRepos.map((repo) => (
               <div
                 key={repo.id}
-                className="cinematic-depth-card group relative flex min-h-[250px] flex-col justify-between overflow-hidden rounded-2xl border border-[#3A332B]/80 bg-[#141210]/80 p-8 shadow-[0_24px_60px_rgba(0,0,0,0.5)] transition-all duration-500 hover:-translate-y-1.5 hover:border-[#C9A86A]/55 hover:shadow-[0_24px_70px_rgba(0,0,0,0.5),0_0_50px_rgba(201,168,106,0.18)]"
+                className="cinematic-depth-card group relative flex min-h-[250px] flex-col justify-between overflow-hidden rounded-2xl border border-[#3A332B]/80 bg-[#141210]/80 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.5)] transition-all duration-300 ease-out hover:-translate-y-[3px] hover:scale-[1.01] hover:border-brass/30 hover:shadow-[0_12px_35px_rgba(0,0,0,0.4),0_0_15px_rgba(201,168,106,0.12)]"
                 style={{ transformStyle: 'preserve-3d', perspective: '1000px' }}
               >
                 {/* Cinematic Cover Background (subtle) */}

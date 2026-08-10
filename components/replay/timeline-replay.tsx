@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Check,
   ChevronLeft,
@@ -63,7 +64,10 @@ function ReplayMilestoneCard({
 }: ReplayMilestoneCardProps) {
   if (isFinal) {
     return (
-      <article className="replay-milestone-card relative w-[74vw] max-w-[70rem] overflow-hidden rounded-2xl border border-brass/35 bg-[#1A1714]/95 p-7 text-center shadow-[0_30px_95px_rgba(0,0,0,0.58)] backdrop-blur-xl max-sm:w-[calc(100vw-2rem)] sm:p-8">
+      <article
+        className="replay-milestone-card relative w-[72vw] max-w-[960px] overflow-hidden rounded-2xl border border-brass/35 bg-[#1A1714]/95 p-5 text-center shadow-[0_30px_95px_rgba(0,0,0,0.58)] backdrop-blur-xl max-sm:w-[calc(100vw-2rem)] sm:p-6"
+        style={{ maxHeight: '300px' }}
+      >
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brass to-transparent" />
         <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.24em] text-brass-light">
           Documentary finale
@@ -100,8 +104,8 @@ function ReplayMilestoneCard({
 
   return (
     <article
-      className="replay-milestone-card relative w-[74vw] max-w-[70rem] overflow-hidden rounded-2xl border bg-[#1A1714]/95 p-7 shadow-[0_30px_95px_rgba(0,0,0,0.6)] backdrop-blur-xl max-sm:w-[calc(100vw-2rem)] sm:p-8"
-      style={{ borderColor: border }}
+      className="replay-milestone-card relative w-[72vw] max-w-[960px] overflow-hidden rounded-2xl border bg-[#1A1714]/95 p-5 shadow-[0_30px_95px_rgba(0,0,0,0.6)] backdrop-blur-xl max-sm:w-[calc(100vw-2rem)] sm:p-6"
+      style={{ borderColor: border, maxHeight: '300px' }}
     >
       <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.055),transparent_42%)]" />
       <div
@@ -160,6 +164,8 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
   const [showChapterSelector, setShowChapterSelector] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [previousChapterId, setPreviousChapterId] = useState<string | null>(null);
+  const [showChapterOverlay, setShowChapterOverlay] = useState(false);
 
   const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
@@ -282,6 +288,21 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
     window.setTimeout(() => setCopiedLink(false), 2200);
   }, [engine.currentIndex, username]);
 
+  useEffect(() => {
+    if (!engine.currentChapter) return;
+    
+    if (previousChapterId !== null && engine.currentChapter.id !== previousChapterId) {
+      setShowChapterOverlay(true);
+      const timer = setTimeout(() => {
+        setShowChapterOverlay(false);
+      }, 800);
+      setPreviousChapterId(engine.currentChapter.id);
+      return () => clearTimeout(timer);
+    } else if (previousChapterId === null) {
+      setPreviousChapterId(engine.currentChapter.id);
+    }
+  }, [engine.currentChapter, previousChapterId]);
+
   if (engine.total === 0) {
     return (
       <div className="replay-theater flex items-center justify-center px-6 text-center">
@@ -300,6 +321,24 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
 
   return (
     <div ref={theaterRef} className="replay-theater">
+      <AnimatePresence>
+        {showChapterOverlay && (
+          <motion.div
+            className="pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#0B0A09]/90 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <p className="mb-4 font-mono text-sm uppercase tracking-[0.2em] text-brass-light">
+              Chapter {chapterIndex + 1}
+            </p>
+            <h2 className="px-4 text-center font-display text-4xl text-ivory sm:text-5xl md:text-6xl">
+              {engine.currentChapter?.name}
+            </h2>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <div className="replay-fullscreen-background">
         <ReplayBackground />
       </div>
@@ -417,7 +456,7 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
             <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.26em] text-brass-light">
               Chapter {String(chapterIndex + 1).padStart(2, "0")} · {engine.currentYear}
             </p>
-            <h1 className="replay-chapter-title mt-2 font-display text-4xl leading-none text-ivory sm:text-5xl xl:text-6xl">
+            <h1 className="replay-chapter-title mt-2 font-display text-3xl font-semibold leading-none text-ivory sm:text-4xl lg:text-5xl">
               {engine.currentChapter?.name || "The Developer Journey"}
             </h1>
             {engine.currentChapter?.narrative ? (
@@ -427,15 +466,25 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
             ) : null}
           </div>
 
-          <ReplayMilestoneCard
-            event={engine.currentEvent}
-            accent={engine.eraColor.accent}
-            border={engine.eraColor.border}
-            isFinal={isFinal}
-            commitsReplayed={engine.stats.commitsReplayed}
-            repoCount={repos.length}
-            yearsSpan={yearsSpan}
-          />
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={engine.currentEvent?.id || engine.currentIndex}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.5, ease: 'easeInOut' }}
+            >
+              <ReplayMilestoneCard
+                event={engine.currentEvent}
+                accent={engine.eraColor.accent}
+                border={engine.eraColor.border}
+                isFinal={isFinal}
+                commitsReplayed={engine.stats.commitsReplayed}
+                repoCount={repos.length}
+                yearsSpan={yearsSpan}
+              />
+            </motion.div>
+          </AnimatePresence>
 
           <section className="replay-progress w-[74vw] max-w-[70rem] text-center max-sm:w-[calc(100vw-2rem)]">
             <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted">
@@ -453,7 +502,7 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
         </main>
 
         <section className="relative z-10 flex w-full items-center justify-center">
-          <div className="replay-transport">
+          <div className="replay-transport pb-[env(safe-area-inset-bottom)]">
             <div className="hidden items-center gap-1 rounded-lg border border-[#3A332B] bg-[#0B0A09]/60 p-1 sm:flex">
               <span className="px-1.5 font-mono text-[9px] uppercase tracking-[0.12em] text-muted">Speed</span>
               {([1, 2, 5] as const).map((speed) => (
