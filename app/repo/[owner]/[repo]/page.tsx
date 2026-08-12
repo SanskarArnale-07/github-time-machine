@@ -6,11 +6,10 @@ import { DashboardContent } from "@/components/dashboard/dashboard-content";
 import { fetchGitHubProfile } from "@/lib/github/api";
 import Link from "next/link";
 
-export default async function RepositoryTimelinePage({
-  params,
-}: {
-  params: { owner: string; repo: string };
+export default async function RepositoryTimelinePage(props: {
+  params: Promise<{ owner: string; repo: string }>;
 }) {
+  const params = await props.params;
   const supabase = await createClient();
   const {
     data: { user },

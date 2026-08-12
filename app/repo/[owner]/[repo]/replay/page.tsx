@@ -3,11 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { ReplayPage } from "@/components/replay/replay-page";
 import { fetchGitHubProfile } from "@/lib/github/api";
 
-export default async function RepositoryReplayPageRoute({
-  params,
-}: {
-  params: { owner: string; repo: string };
+export default async function RepositoryReplayPageRoute(props: {
+  params: Promise<{ owner: string; repo: string }>;
 }) {
+  const params = await props.params;
   const supabase = await createClient();
   const {
     data: { user },

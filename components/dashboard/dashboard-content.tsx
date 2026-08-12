@@ -229,7 +229,7 @@ export function DashboardContent({
         </div>
       ) : (
         /* Loaded state — progressive full documentary dashboard */
-        <div className="flex flex-col gap-6 py-4 sm:gap-8 sm:py-6">
+        <div className="flex flex-col gap-3 py-2 sm:gap-4 sm:py-3">
           <div>
             <div className="flex items-center gap-3 px-1">
               {(profile?.avatar_url || initialAvatar) && (
@@ -251,31 +251,31 @@ export function DashboardContent({
           </div>
 
           {/* Cinematic Movie Title Card Hero */}
-          <div className="relative z-10 mt-4 mb-8">
+          <div className="relative z-10 mt-1 mb-2">
             {/* Stronger breathing glow (cinematic lighting) behind the hero card */}
             <div className="absolute -inset-3 rounded-[2rem] bg-brass/20 blur-2xl opacity-70" />
-            <div className="relative min-h-[22vh] overflow-hidden rounded-3xl border border-brass/20 bg-[#0E0D0B]/75 p-5 shadow-[0_30px_90px_rgba(0,0,0,0.52)] sm:p-7 lg:min-h-[25vh] lg:p-8">
+            <div className="relative overflow-hidden rounded-2xl border border-brass/20 bg-[#0E0D0B]/75 p-3 shadow-[0_30px_90px_rgba(0,0,0,0.52)] sm:p-4 lg:p-5">
               <div className="absolute inset-0 bg-gradient-to-br from-brass/12 via-[#141210]/70 to-[#0B0A09]" />
-              <div className="absolute right-0 top-0 h-56 w-56 -translate-y-1/3 translate-x-1/4 rounded-full bg-brass/20 blur-[120px] motion-safe:animate-pulse" />
-              <div className="relative z-10 flex min-h-[calc(22vh-3.5rem)] flex-col items-start justify-center lg:min-h-[calc(25vh-6rem)]">
-                <div className="max-w-2xl pb-2">
-                  <p className="font-mono text-xs font-bold uppercase tracking-widest text-brass-light mb-2 opacity-90">Current Chapter</p>
-                  <h2 className="font-display text-3xl md:text-5xl font-bold text-ivory leading-tight drop-shadow-2xl mb-3">
+              <div className="absolute right-0 top-0 h-48 w-48 -translate-y-1/3 translate-x-1/4 rounded-full bg-brass/20 blur-[120px] motion-safe:animate-pulse" />
+              <div className="relative z-10 flex flex-col items-start justify-center">
+                <div className="max-w-2xl pb-1">
+                  <p className="font-mono text-[10px] font-bold uppercase tracking-widest text-brass-light mb-1.5 opacity-90">Current Chapter</p>
+                  <h2 className="font-display text-3xl md:text-5xl font-bold text-ivory leading-tight drop-shadow-2xl mb-2">
                     The {analytics?.mostActiveYear || new Date().getFullYear()} Chapter
                   </h2>
                   <p className="text-sm md:text-base text-zinc-300 leading-snug italic border-l-2 border-brass/50 pl-4">
                     "You've been forging ahead, deeply engaged in expanding your technical repertoire. With a surge of {commits.length} contributions lately, the focus has shifted towards refining core logic and embracing new architectural patterns. The journey is accelerating."
                   </p>
-                  <div className="mt-8 flex flex-wrap gap-5 items-center">
+                  <div className="mt-4 flex flex-wrap gap-3 items-center">
                     <Button 
                       onClick={() => router.push("/replay")}
-                      className="rounded-full bg-brass text-ink hover:bg-[#FCE3B4] font-bold px-8 py-5 text-base shadow-[0_0_50px_rgba(212,168,83,0.6)] transition-all hover:scale-105 hover:shadow-[0_0_60px_rgba(212,168,83,0.8)] border border-brass-light/50 ring-2 ring-brass/20 ring-offset-2 ring-offset-black"
+                      className="rounded-full bg-brass text-ink hover:bg-[#FCE3B4] font-bold px-6 py-3 text-sm shadow-[0_0_40px_rgba(212,168,83,0.5)] transition-all hover:scale-105 hover:shadow-[0_0_50px_rgba(212,168,83,0.7)] border border-brass-light/50 ring-2 ring-brass/20 ring-offset-2 ring-offset-black"
                     >
-                      <Play className="mr-3 h-6 w-6 fill-current" />
-                      Resume Documentary
+                      <Play className="mr-2 h-4 w-4 fill-current" />
+                      Play Documentary
                     </Button>
-                    <div className="flex items-center gap-2 rounded-full border border-brass/30 bg-brass/10 px-4 py-2 text-sm text-brass-light shadow-inner">
-                      <Sparkles className="h-4 w-4" />
+                    <div className="flex items-center gap-1.5 rounded-full border border-brass/30 bg-brass/10 px-3 py-1.5 text-xs text-brass-light shadow-inner">
+                      <Sparkles className="h-3.5 w-3.5" />
                       Latest Milestone: Over {repos.length} repositories
                     </div>
                   </div>
@@ -285,13 +285,13 @@ export function DashboardContent({
           </div>
 
           {/* Tab navigation bar */}
-          <div className="mt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-black/30 rounded-xl border border-white/5 p-3 sm:mt-4">
+          <div className="mt-1 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 bg-black/60 rounded-xl border border-white/5 p-2 shadow-lg">
             <div className="glass-card flex items-center gap-1 p-1 w-full sm:w-auto overflow-x-auto overflow-y-hidden scrollbar-hide">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all ${
+                  className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm sm:text-base font-medium transition-all ${
                     activeTab === tab.id
                       ? "bg-brass text-ink font-semibold shadow-md"
                       : "text-muted hover:text-ivory"
@@ -316,7 +316,8 @@ export function DashboardContent({
           </div>
 
           {/* Tab content wrapped in Suspense for smooth lazy loading */}
-          <Suspense fallback={<TimelineSkeleton />}>
+          <div className="mt-4 pb-12">
+            <Suspense fallback={<TimelineSkeleton />}>
 
             {activeTab === "timeline" && (
               <TimelineView
@@ -332,7 +333,8 @@ export function DashboardContent({
             {activeTab === "analytics" && analytics && (
               <AnalyticsView analytics={analytics} commits={commits} />
             )}
-          </Suspense>
+            </Suspense>
+          </div>
         </div>
       )}
     </div>

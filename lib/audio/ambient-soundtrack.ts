@@ -188,7 +188,7 @@ class AmbientSoundEngine {
     filter.Q.value = 0.5;
 
     this.tapeHissGain = this.ctx.createGain();
-    this.tapeHissGain.gain.value = 0.005; // Very subtle
+    this.tapeHissGain.gain.value = 0.012; // Warmer documentary tape hiss
 
     this.tapeHissSource.connect(filter);
     filter.connect(this.tapeHissGain);

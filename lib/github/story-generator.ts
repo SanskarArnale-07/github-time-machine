@@ -206,6 +206,11 @@ export function generateChaptersAndStories(
         commitConsistencyScore: 80,
         weekdayDistribution: [],
         timeOfDayDistribution: [],
+        explorationScore: 0,
+        craftsmanshipScore: 0,
+        focusScore: 0,
+        nightOwlScore: 0,
+        insightNarrative: "Insufficient data for insights.",
       },
     };
   }

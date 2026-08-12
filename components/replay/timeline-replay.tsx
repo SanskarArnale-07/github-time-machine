@@ -56,6 +56,8 @@ interface ReplayMilestoneCardProps {
   yearsSpan: number;
   chapterIndex: number;
   chapterName: string;
+  topLanguage?: string;
+  mostActiveMonth?: string;
 }
 
 function ExportDialog({ isOpen, onClose, onCopyLink }: { isOpen: boolean, onClose: () => void, onCopyLink: () => void }) {
@@ -116,6 +118,8 @@ function ReplayMilestoneCard({
   yearsSpan,
   chapterIndex,
   chapterName,
+  topLanguage,
+  mostActiveMonth,
 }: ReplayMilestoneCardProps) {
   if (isFinal) {
     return (
@@ -143,15 +147,45 @@ function ReplayMilestoneCard({
         >
           This is how a developer is built.
         </motion.h2>
-        <motion.p 
+        <motion.div 
           variants={{
-            initial: { opacity: 0, y: 10 },
-            animate: { opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.3 } },
+            initial: { opacity: 0, scale: 0.95 },
+            animate: { opacity: 1, scale: 1, transition: { duration: 0.8, delay: 0.4 } },
             exit: { opacity: 0, transition: { duration: 0.3 } }
           }}
-          className="mt-6 text-lg text-muted/80"
+          className="mt-12 grid grid-cols-2 md:grid-cols-5 gap-6 text-left max-w-4xl mx-auto border-t border-[#3A332B] pt-8"
         >
-          {commitsReplayed} commits, {repoCount} repositories, and {yearsSpan} year{yearsSpan === 1 ? "" : "s"} of becoming.
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] uppercase tracking-widest text-muted">Contributions</span>
+            <span className="font-mono text-2xl text-ivory">{commitsReplayed}</span>
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] uppercase tracking-widest text-muted">Repositories</span>
+            <span className="font-mono text-2xl text-ivory">{repoCount}</span>
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] uppercase tracking-widest text-muted">Active Years</span>
+            <span className="font-mono text-2xl text-ivory">{yearsSpan}</span>
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] uppercase tracking-widest text-muted">Primary Language</span>
+            <span className="font-mono text-xl text-ivory pt-1 truncate">{topLanguage || "TypeScript"}</span>
+          </div>
+          <div className="flex flex-col gap-1 col-span-2 md:col-span-1">
+            <span className="text-[10px] uppercase tracking-widest text-muted">Most Active</span>
+            <span className="font-mono text-xl text-ivory pt-1">{mostActiveMonth || "October"}</span>
+          </div>
+        </motion.div>
+        
+        <motion.p
+          variants={{
+            initial: { opacity: 0 },
+            animate: { opacity: 1, transition: { duration: 1.5, delay: 2.5 } },
+            exit: { opacity: 0 }
+          }}
+          className="mt-24 font-display text-2xl italic text-brass-light/80"
+        >
+          To be continued...
         </motion.p>
       </motion.article>
     );
@@ -166,15 +200,19 @@ function ReplayMilestoneCard({
         year: "numeric",
       })
     : "";
+  const isCommit = !!event?.commit && !isRepository && !isYearMarker && !isMonthSummary;
+
   const title = isRepository
     ? event?.repoName
     : isYearMarker || isMonthSummary
       ? event?.title
-      : event?.title || "A meaningful step forward";
+      : isCommit && event?.commit?.message
+        ? event.commit.message.split("\n")[0]
+        : event?.title || event?.commit?.repoName || event?.repoName || "A meaningful step forward";
   
   let description = event?.description ||
       event?.impactDescription ||
-      event?.commit?.message?.split("\n")[0] ||
+      (isCommit ? event?.title : undefined) ||
       "Another line in the story takes shape.";
       
   if (isRepository) description = event?.description || "A new repository entered the archive.";
@@ -253,7 +291,7 @@ function ReplayMilestoneCard({
               </>
             )}
             <span>·</span>
-            <span>{isRepository ? "Repository Founded" : isYearMarker ? "New Chapter" : "Milestone"}</span>
+            <span>{isRepository ? "Repository Founded" : isYearMarker ? "New Chapter" : event?.commit ? "Commit" : "Milestone"}</span>
             {event?.repoUrl && (
               <>
                 <span>·</span>
@@ -436,7 +474,7 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
       
       const timer = setTimeout(() => {
         setShowChapterOverlay(false);
-      }, 1500);
+      }, 3400);
       
       previousChapterIdRef.current = engine.currentChapter.id;
       
@@ -460,6 +498,13 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
   const isFinal = engine.currentIndex >= engine.total - 1;
   const yearsSpan = Math.max(1, engine.endYear - engine.startYear + 1);
 
+  const topLanguage = repos.length ? Object.entries(repos.reduce((acc, r) => {
+    if (r.language) acc[r.language] = (acc[r.language] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>)).sort((a,b) => b[1] - a[1])[0]?.[0] || "TypeScript" : "TypeScript";
+
+  const mostActiveMonth = engine.events.filter(e => e.type === "month_summary").sort((a,b) => (b.monthlySummary?.totalCommits || 0) - (a.monthlySummary?.totalCommits || 0))[0]?.monthName || "October";
+
   return (
     <div ref={theaterRef} className="replay-theater">
       <AnimatePresence mode="wait">
@@ -468,7 +513,7 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
             key={`chapter-${engine.currentChapter?.id}`}
             className="pointer-events-none absolute inset-0 z-[100] flex flex-col items-center justify-center bg-[#0B0A09]/95 backdrop-blur-md"
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1, transition: { duration: 0.35 } }}
+            animate={{ opacity: 1, transition: { duration: 0.4 } }}
             exit={{ opacity: 0, transition: { duration: 0.5 } }}
           >
             {/* Cinematic depth for title card */}
@@ -487,8 +532,8 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
       <div className="replay-fullscreen-background">
         <ReplayBackground />
       </div>
-      <div className="replay-safe-frame flex flex-col h-[100dvh] pt-4 pb-0 justify-between">
-        <header className="relative z-30 flex items-center justify-between px-4 sm:px-8">
+      <div className="replay-safe-frame absolute inset-0 flex flex-col items-center justify-center overflow-hidden">
+        <header className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 sm:px-8 pt-4 pb-0">
           <a
             href="/dashboard"
             className="inline-flex items-center gap-1.5 rounded-full border border-[#3A332B] bg-[#0B0A09]/60 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] text-muted backdrop-blur-md transition-colors hover:border-brass/50 hover:text-ivory"
@@ -508,14 +553,11 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
             </button>
             <button
               type="button"
-              onClick={toggleSoundtrack}
-              className={`inline-flex h-9 items-center justify-center gap-2 rounded-full border px-3 font-mono text-[10px] uppercase tracking-[0.1em] backdrop-blur-md transition-colors ${
-                soundEnabled
-                  ? "border-brass/40 bg-brass/10 text-brass-light"
-                  : "border-[#3A332B] bg-[#0B0A09]/60 text-muted hover:text-ivory"
-              }`}
+              onClick={() => setShowExport(true)}
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-brass/30 bg-brass/10 px-4 font-mono text-[10px] uppercase tracking-[0.1em] text-brass-light backdrop-blur-md transition-colors hover:border-brass/60 hover:bg-brass/20 hover:text-ivory"
             >
-              {soundEnabled ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
+              <Download className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Export</span>
             </button>
             <button
               type="button"
@@ -568,18 +610,18 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
           </div>
         </header>
 
-        <main className="relative z-10 flex flex-1 items-center justify-center overflow-hidden">
+        <main className="relative z-10 flex w-full flex-1 items-center justify-center overflow-hidden">
           <AnimatePresence mode="wait">
             <motion.div
               key={engine.currentEvent?.id || engine.currentIndex}
               className="absolute inset-0 flex items-center justify-center"
-              initial={{ opacity: 0, scale: 1.0, filter: "blur(8px)" }}
-              animate={{ opacity: 1, scale: 1.02, filter: "blur(0px)" }}
+              initial={{ opacity: 0, scale: 0.98, filter: "blur(4px)" }}
+              animate={{ opacity: 1, scale: 1.0, filter: "blur(0px)" }}
               exit={{ opacity: 0, filter: "blur(4px)" }}
               transition={{ 
-                opacity: { duration: 0.6, ease: "easeInOut", delay: 0.1 },
-                filter: { duration: 0.6, ease: "easeInOut", delay: 0.1 },
-                scale: { duration: 8, ease: "linear" } 
+                opacity: { duration: 0.4, ease: "easeInOut" },
+                filter: { duration: 0.4, ease: "easeInOut" },
+                scale: { duration: 0.6, ease: "easeOut" } 
               }}
             >
               <ReplayMilestoneCard
@@ -591,12 +633,14 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
                 yearsSpan={yearsSpan}
                 chapterIndex={chapterIndex}
                 chapterName={engine.currentChapter?.name || "The Developer Journey"}
+                topLanguage={topLanguage}
+                mostActiveMonth={mostActiveMonth}
               />
             </motion.div>
           </AnimatePresence>
         </main>
 
-        <section className="relative z-20 w-full border-t border-[#3A332B]/50 bg-[#0B0A09]/80 backdrop-blur-xl">
+        <section className="absolute bottom-0 left-0 right-0 z-50 w-full border-t border-[#3A332B]/50 bg-[#0B0A09]/80 backdrop-blur-xl">
           <div className="group relative h-1.5 w-full bg-[#1A1714] cursor-pointer" onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
             const percentage = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
@@ -651,14 +695,14 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
                 className="group relative flex h-12 w-12 items-center justify-center rounded-full bg-brass text-[#0B0A09] shadow-[0_0_24px_rgba(201,168,106,0.25)] transition-all duration-200 hover:scale-105 hover:bg-brass-light hover:shadow-[0_0_32px_rgba(216,181,108,0.4)] active:scale-95"
                 title="Play/Pause (Space)"
               >
-                <AnimatePresence mode="wait">
+                <AnimatePresence>
                   {engine.isPlaying ? (
                     <motion.div
                       key="pause"
-                      initial={{ opacity: 0, scale: 0.5 }}
+                      initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.5 }}
-                      transition={{ duration: 0.2 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      transition={{ duration: 0.15 }}
                       className="absolute inset-0 flex items-center justify-center"
                     >
                       <Pause className="h-5 w-5 fill-[#0B0A09]" strokeWidth={1} />
@@ -666,10 +710,10 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
                   ) : (
                     <motion.div
                       key="play"
-                      initial={{ opacity: 0, scale: 0.5 }}
+                      initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.5 }}
-                      transition={{ duration: 0.2 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      transition={{ duration: 0.15 }}
                       className="absolute inset-0 flex items-center justify-center pl-1"
                     >
                       <Play className="h-5 w-5 fill-[#0B0A09]" strokeWidth={1} />
@@ -705,6 +749,18 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
                   </button>
                 ))}
               </div>
+              <button
+                type="button"
+                onClick={toggleSoundtrack}
+                className={`inline-flex h-10 w-10 items-center justify-center rounded-md border backdrop-blur-md transition-colors mr-1 sm:mr-2 ${
+                  soundEnabled
+                    ? "border-brass/40 bg-brass/10 text-brass-light hover:bg-brass/20"
+                    : "border-transparent text-muted hover:bg-white/5 hover:text-ivory"
+                }`}
+                title="Mute/Unmute"
+              >
+                {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+              </button>
               <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="h-10 w-10 text-muted hover:bg-white/5 hover:text-ivory" title="Fullscreen (F)">
                 {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
               </Button>
@@ -712,9 +768,6 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
           </div>
         </section>
 
-        <p className="relative z-10 text-center font-mono text-[9px] tracking-wide text-muted/65 lg:hidden">
-          Space play · ← → step · F fullscreen
-        </p>
         <ExportDialog isOpen={showExport} onClose={() => setShowExport(false)} onCopyLink={handleCopyFromExport} />
       </div>
     </div>

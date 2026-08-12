@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { GitHubRepo, GitHubCommit } from "@/lib/github/types";
 import { Star, GitFork, Clock, Search, FolderGit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
 
 interface RepoSectionProps {
   repos: GitHubRepo[];
@@ -128,28 +129,28 @@ export function RepoSection({ repos, commits = [] }: RepoSectionProps) {
 
   return (
     <div className="space-y-10">
-      <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+      <div className="flex flex-col items-start justify-between gap-5 md:flex-row md:items-center">
         <div>
-          <h2 className="font-display text-3xl font-bold text-ivory">The Archive</h2>
-          <p className="mt-2 text-sm text-muted">
+          <h2 className="font-display text-3xl sm:text-4xl font-bold text-ivory">The Archive</h2>
+          <p className="mt-2 text-sm sm:text-base text-muted">
             Project Chapters
           </p>
         </div>
 
-        <div className="flex w-full flex-wrap items-center gap-3 md:w-auto">
+        <div className="flex w-full flex-wrap items-center gap-4 md:w-auto">
           <div className="relative flex-grow md:flex-grow-0">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+            <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" />
             <input
               type="text"
               placeholder="Search cinematic projects..."
-              className="w-full rounded-full border border-ink-border bg-ink-soft/50 py-2.5 pl-10 pr-4 text-sm text-ivory placeholder-muted focus:border-brass focus:outline-none focus:ring-1 focus:ring-brass/50 md:w-64 transition-all"
+              className="w-full rounded-full border border-ink-border bg-ink-soft/50 py-3 pl-12 pr-5 text-base text-ivory placeholder-muted focus:border-brass focus:outline-none focus:ring-1 focus:ring-brass/50 md:w-72 transition-all"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
 
           <select
-            className="cursor-pointer rounded-full border border-ink-border bg-ink-soft/50 px-5 py-2.5 text-sm text-ivory focus:border-brass focus:outline-none focus:ring-1 focus:ring-brass/50 transition-all"
+            className="cursor-pointer rounded-full border border-ink-border bg-ink-soft/50 px-6 py-3 text-base text-ivory focus:border-brass focus:outline-none focus:ring-1 focus:ring-brass/50 transition-all"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
             aria-label="Sort repositories"
@@ -198,13 +199,24 @@ export function RepoSection({ repos, commits = [] }: RepoSectionProps) {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {displayedRepos.map((repo) => (
-              <div
-                key={repo.id}
-                className="cinematic-depth-card group relative flex min-h-[250px] flex-col justify-between overflow-hidden rounded-2xl border border-[#3A332B]/80 bg-[#141210]/80 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.5)] transition-all duration-300 ease-out hover:-translate-y-[3px] hover:scale-[1.01] hover:border-brass/30 hover:shadow-[0_12px_35px_rgba(0,0,0,0.4),0_0_15px_rgba(201,168,106,0.12)]"
-                style={{ transformStyle: 'preserve-3d', perspective: '1000px' }}
-              >
+          <div 
+            className="mt-12 pb-24 relative"
+            style={{ 
+              WebkitMaskImage: displayedRepos.length > 6 ? "linear-gradient(to bottom, black 85%, transparent 100%)" : "none",
+              maskImage: displayedRepos.length > 6 ? "linear-gradient(to bottom, black 85%, transparent 100%)" : "none"
+            }}
+          >
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {displayedRepos.map((repo, index) => (
+                <motion.div
+                  key={repo.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-40px" }}
+                  transition={{ duration: 0.4, delay: (index % 3) * 0.1, ease: "easeOut" }}
+                  className="cinematic-depth-card group relative flex min-h-[250px] flex-col justify-between overflow-hidden rounded-2xl border border-[#3A332B]/80 bg-[#141210]/80 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.5)] transition-all duration-300 ease-out hover:-translate-y-[3px] hover:scale-[1.01] hover:border-brass/30 hover:shadow-[0_12px_35px_rgba(0,0,0,0.4),0_0_15px_rgba(201,168,106,0.12)]"
+                  style={{ transformStyle: 'preserve-3d', perspective: '1000px' }}
+                >
                 {/* Cinematic Cover Background (subtle) */}
                 <div 
                   className="absolute inset-0 opacity-[0.12] transition-opacity duration-500 group-hover:opacity-25"
@@ -267,10 +279,11 @@ export function RepoSection({ repos, commits = [] }: RepoSectionProps) {
                       <Clock className="mr-1.5 h-3 w-3" />
                       View Timeline
                     </Button>
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
+                </motion.div>
+              ))}
+            </div>
           </div>
 
           {!showAll && filteredAndSortedRepos.length > 12 && (

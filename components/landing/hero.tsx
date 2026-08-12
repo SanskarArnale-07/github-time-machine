@@ -72,13 +72,13 @@ export function Hero() {
   }, [simulatedCommits.length]);
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center overflow-x-hidden bg-[#050507] pt-24 px-6 sm:px-12 lg:px-16 selection:bg-brass/20 selection:text-brass-light">
+    <div className="relative min-h-screen flex flex-col items-center overflow-x-hidden bg-[#050507] pt-12 lg:pt-16 px-6 sm:px-12 lg:px-16 selection:bg-brass/20 selection:text-brass-light">
       {/* 1. Cinematic Background: Git-inspired timeline */}
       <GitBackground />
 
       {/* 2. Hero Content Container — Premium editorial layout */}
-      <div className="relative z-10 mx-auto w-full max-w-7xl pt-12 pb-32 lg:pt-24 lg:pb-40">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-24 items-center">
+      <div className="relative z-10 mx-auto w-full max-w-7xl pt-8 pb-16 lg:pt-12 lg:pb-24">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
           
           {/* Left Column: Core Headline, Value Proposition, & CTAs */}
           <div className="lg:col-span-7 flex flex-col items-center lg:items-start text-center lg:text-left">
@@ -100,7 +100,7 @@ export function Hero() {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
-              className="font-display text-5xl sm:text-6xl lg:text-[5.5rem] font-semibold tracking-tight text-ivory leading-[1.05]"
+              className="font-display text-5xl sm:text-6xl lg:text-[5.2rem] font-semibold tracking-tight text-ivory leading-none"
             >
               Your coding journey as a <span className="italic text-brass font-normal">film.</span>
             </motion.h1>
@@ -110,7 +110,7 @@ export function Hero() {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="mt-8 max-w-xl font-sans text-lg sm:text-xl leading-relaxed text-zinc-400"
+              className="mt-6 max-w-xl font-sans text-lg sm:text-[1.15rem] leading-snug text-zinc-400"
             >
               Replay years of commits, repository milestones, and late-night refactors as an unhurried, beautifully composed developer documentary.
             </motion.p>
@@ -120,7 +120,7 @@ export function Hero() {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
-              className="mt-12 flex flex-col sm:flex-row items-center gap-5 w-full sm:w-auto"
+              className="mt-8 flex flex-col sm:flex-row items-center gap-5 w-full sm:w-auto"
             >
               <form action={signInWithGithub} className="w-full sm:w-auto">
                 <Button
@@ -149,7 +149,7 @@ export function Hero() {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.5 }}
-              className="mt-16 w-full border-t border-zinc-800/60 pt-8"
+              className="mt-10 w-full border-t border-zinc-800/60 pt-6"
             >
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-left">
                 {timelineMilestones.map((m, idx) => (
@@ -176,9 +176,9 @@ export function Hero() {
             {/* Ambient halo behind preview card */}
             <div className="pointer-events-none absolute -inset-6 rounded-[3rem] bg-brass/10 blur-[80px] opacity-60 animate-pulse-glow" />
 
-            <div className="glass-card-glow relative overflow-hidden p-12 shadow-2xl">
+            <div className="glass-card-glow relative overflow-hidden p-6 lg:p-8 shadow-2xl">
               {/* Top bar */}
-              <div className="flex items-center justify-between border-b border-zinc-800/60 pb-6 font-mono text-xs">
+              <div className="flex items-center justify-between border-b border-zinc-800/60 pb-5 font-mono text-[11px]">
                 <div className="flex items-center gap-3">
                   <span className="relative flex h-3 w-3">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brass opacity-75"></span>
@@ -205,9 +205,9 @@ export function Hero() {
               </div>
 
               {/* Sample Repository & Milestone */}
-              <div className="mt-10 relative flex flex-col min-h-[180px]">
+              <div className="mt-6 relative flex flex-col min-h-[140px]">
                 {/* Timeline vertical line */}
-                <div className="absolute left-[11px] top-8 bottom-0 w-[2px] bg-gradient-to-b from-brass/50 to-transparent" />
+                <div className="absolute left-[11px] top-6 bottom-0 w-[2px] bg-gradient-to-b from-brass/50 to-transparent" />
                 
                 <AnimatePresence mode="wait">
                   <motion.div 
@@ -243,8 +243,8 @@ export function Hero() {
               </div>
 
               {/* Mini Heatmap Grid Preview */}
-              <div className="mt-8 rounded-2xl border border-zinc-800/50 bg-zinc-950/80 p-5 shadow-inner">
-                <div className="flex items-center justify-between font-mono text-xs text-zinc-500 mb-3">
+              <div className="mt-6 rounded-2xl border border-zinc-800/50 bg-zinc-950/80 p-4 shadow-inner">
+                <div className="flex items-center justify-between font-mono text-[11px] text-zinc-500 mb-2">
                   <span>Activity Progression</span>
                   <AnimatePresence mode="wait">
                     <motion.span
@@ -271,8 +271,8 @@ export function Hero() {
               </div>
 
               {/* Glowing Progress Track */}
-              <div className="mt-8">
-                <div className="flex justify-between font-mono text-xs text-zinc-500 mb-2">
+              <div className="mt-6">
+                <div className="flex justify-between font-mono text-[11px] text-zinc-500 mb-2">
                   <span>Rendering Timeline</span>
                   <AnimatePresence mode="wait">
                     <motion.span

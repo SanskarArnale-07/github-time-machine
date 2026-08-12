@@ -97,29 +97,29 @@ export function TimelineView({
   };
 
   return (
-    <div className="space-y-12">
-      <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+    <div className="space-y-8">
+      <div className="flex flex-col items-start justify-between gap-5 md:flex-row md:items-center">
         <div>
-          <h2 className="font-display text-3xl font-bold text-ivory">Developer Journal</h2>
-          <p className="mt-2 text-sm text-muted">
+          <h2 className="font-display text-3xl sm:text-4xl font-bold text-ivory">Developer Journal</h2>
+          <p className="mt-2 text-sm sm:text-base text-muted max-w-xl">
             {totalCommits} entries across time. Merge commits are hidden and repetitive updates are grouped for a focused narrative.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+            <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" />
             <input
               type="text"
               placeholder="Search entries..."
-              className="w-full rounded-full border border-ink-border bg-ink-soft/50 py-2.5 pl-10 pr-4 text-sm text-ivory placeholder-muted focus:border-brass focus:outline-none focus:ring-1 focus:ring-brass/50 md:w-64 transition-all"
+              className="w-full rounded-full border border-ink-border bg-ink-soft/50 py-3 pl-12 pr-5 text-base text-ivory placeholder-muted focus:border-brass focus:outline-none focus:ring-1 focus:ring-brass/50 md:w-72 transition-all"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
 
           <select
-            className="cursor-pointer rounded-full border border-ink-border bg-ink-soft/50 px-5 py-2.5 text-sm text-ivory focus:border-brass focus:outline-none focus:ring-1 focus:ring-brass/50 transition-all"
+            className="cursor-pointer rounded-full border border-ink-border bg-ink-soft/50 px-6 py-3 text-base text-ivory focus:border-brass focus:outline-none focus:ring-1 focus:ring-brass/50 transition-all"
             value={selectedRepo}
             onChange={(e) => setSelectedRepo(e.target.value)}
             aria-label="Filter by repository"
