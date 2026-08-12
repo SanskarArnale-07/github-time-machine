@@ -357,11 +357,23 @@ export function generateChaptersAndStories(
     const chunkRepos = Array.from(new Set(chunk.map((s) => s.repoName).filter(Boolean))) as string[];
     const mainRepo = chunkRepos[0] || repos[0]?.name || "your codebase";
 
+    const reposCreated = chunk.filter(c => c.type === "repo_created").length;
+    const maxStreakInChunk = Math.max(0, ...chunk.map(c => c.streakCount || 0));
+    
+    let narrative = `During ${startMonthYear}, focus sharpened on ${mainRepo}. ${chunk.length} milestones were reached as ideas turned into reality.`;
+    if (reposCreated > 0 && maxStreakInChunk > 5) {
+      narrative = `In ${startMonthYear}, you created ${reposCreated === 1 ? "a new repository" : `${reposCreated} new repositories`} and maintained a powerful ${maxStreakInChunk}-day coding streak.`;
+    } else if (reposCreated > 0) {
+      narrative = `In ${startMonthYear}, you expanded your archive by creating ${reposCreated === 1 ? "a new repository" : `${reposCreated} new repositories`}, laying down ${chunk.length} meaningful milestones.`;
+    } else if (maxStreakInChunk > 7) {
+      narrative = `In ${startMonthYear}, you maintained a relentless ${maxStreakInChunk}-day coding streak, pushing ${chunk.length} major updates to ${mainRepo}.`;
+    }
+
     const chapter: Chapter = {
       id: `chapter-${chapterIndex + 1}`,
       name: cName,
       subtitle: `${startMonthYear} \u00B7 ${chunk.length} commits`,
-      narrative: `During ${startMonthYear}, focus sharpened on ${mainRepo}. ${chunk.length} milestones were reached as ideas turned into reality.`,
+      narrative,
       startEventIndex: i,
       endEventIndex: i + chunk.length - 1,
       startDate: startEv.date,

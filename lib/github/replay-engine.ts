@@ -113,9 +113,17 @@ export function buildNormalizedReplayEvents(
       else if (monthCommits > 20) primaryFocus = "Features";
       else primaryFocus = "General";
 
-      let narrative = `A steady month focused on ${topRepo}.`;
-      if (commitDeltaPct > 50) narrative = `Massive surge in activity! A ${commitDeltaPct}% increase driven by work on ${topRepo}.`;
-      else if (newReposCreated > 0) narrative = `Exploration phase. Created new repositories and experimented with ${topLang}.`;
+      const monthNameLong = new Date(currentYearTracker!, currentMonthTracker, 1).toLocaleString("default", { month: "long" });
+      let narrative = `In ${monthNameLong} ${currentYearTracker}, you maintained a steady rhythm with a focus on ${topRepo}.`;
+      if (commitDeltaPct > 50 && newReposCreated > 0) {
+        narrative = `In ${monthNameLong} ${currentYearTracker}, your output surged by ${commitDeltaPct}%. You created ${newReposCreated === 1 ? "a new repository" : `${newReposCreated} new repositories`} and pushed ${monthCommits} commits.`;
+      } else if (commitDeltaPct > 50) {
+        narrative = `In ${monthNameLong} ${currentYearTracker}, you experienced a massive surge in activity. You pushed ${monthCommits} commits, a ${commitDeltaPct}% increase driven by deep focus on ${topRepo}.`;
+      } else if (newReposCreated > 0) {
+        narrative = `In ${monthNameLong} ${currentYearTracker}, you expanded your archive by creating ${newReposCreated === 1 ? "a new repository" : `${newReposCreated} new repositories`} while experimenting with ${topLang}.`;
+      } else if (monthCommits > 40) {
+        narrative = `In ${monthNameLong} ${currentYearTracker}, you had a highly productive month, laying down ${monthCommits} commits primarily across ${topRepo}.`;
+      }
 
       preProcessedEvents.push({
         id: `month-summary-${currentYearTracker}-${currentMonthTracker}`,
@@ -249,11 +257,27 @@ export function useReplayEngine(
   const [speed, setSpeed] = useState<1 | 2 | 5>(1);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
-  // 1x = 2500ms (2.5 seconds per event), 2x = 1250ms, 5x = 500ms
-  const speedIntervalMap: Record<1 | 2 | 5, number> = {
-    1: 2500, // Cinematic 2.5s per commit
-    2: 1250, // 1.25s
-    5: 500,  // 0.5s
+  // Dynamic timing function based on narrative weight
+  const getEventDuration = (event: ReplayEvent | null, spd: 1 | 2 | 5, isFinal: boolean) => {
+    if (!event) return 2500 / spd;
+
+    let baseDuration = 2500; // Standard commit: 2.5s
+    
+    if (isFinal) {
+      baseDuration = 4000;
+    } else if (event.type === "repo_created") {
+      baseDuration = 3000;
+    } else if (event.type === "year_milestone" || event.type === "month_summary") {
+      baseDuration = 4500;
+    } else if (
+      event.title?.toLowerCase().includes("major") || 
+      event.title?.toLowerCase().includes("refactor") ||
+      event.title?.toLowerCase().includes("initial")
+    ) {
+      baseDuration = 5500;
+    }
+    
+    return baseDuration / spd;
   };
 
   const animFrameRef = useRef<number | null>(null);
@@ -300,7 +324,9 @@ export function useReplayEngine(
       }
 
       const elapsed = now - lastAdvanceTimeRef.current;
-      const targetInterval = speedIntervalMap[speedRef.current];
+      const currentEvt = events[currentIndexRef.current];
+      const isFin = currentIndexRef.current >= total - 1;
+      const targetInterval = getEventDuration(currentEvt, speedRef.current, isFin);
 
       if (elapsed >= targetInterval) {
         const nextIndex = currentIndexRef.current + 1;

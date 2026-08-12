@@ -45,6 +45,7 @@ interface DashboardContentProps {
   initialAvatar?: string;
   initialEmail?: string;
   initialProfile: GitHubUserProfile | null;
+  repoFilter?: string;
 }
 
 export function DashboardContent({
@@ -52,6 +53,7 @@ export function DashboardContent({
   initialAvatar,
   initialEmail,
   initialProfile,
+  repoFilter,
 }: DashboardContentProps) {
   const router = useRouter();
   const [profile, setProfile] = useState<GitHubUserProfile | null>(initialProfile);
@@ -77,8 +79,14 @@ export function DashboardContent({
         const parsed = JSON.parse(cached);
         if (parsed && parsed.commits) {
           if (parsed.profile) setProfile(parsed.profile);
-          if (parsed.repos) setRepos(parsed.repos);
-          if (parsed.commits) setCommits(parsed.commits);
+          if (parsed.repos) {
+            if (repoFilter) setRepos(parsed.repos.filter((r: GitHubRepo) => r.full_name === repoFilter));
+            else setRepos(parsed.repos);
+          }
+          if (parsed.commits) {
+            if (repoFilter) setCommits(parsed.commits.filter((c: GitHubCommit) => c.repoFullName === repoFilter));
+            else setCommits(parsed.commits);
+          }
           if (parsed.yearGroups) setYearGroups(parsed.yearGroups);
           if (parsed.contributions) setContributions(parsed.contributions);
           if (parsed.analytics) setAnalytics(parsed.analytics);
@@ -87,7 +95,7 @@ export function DashboardContent({
         }
       }
     } catch {}
-  }, [cacheKey]); // Note: We don't auto-fetch in this effect anymore to avoid dependency cycle with loadCommitHistory
+  }, [cacheKey, repoFilter]); // Note: We don't auto-fetch in this effect anymore to avoid dependency cycle with loadCommitHistory
 
   const loadCommitHistory = useCallback(async () => {
     setIsLoading(true);
@@ -100,12 +108,23 @@ export function DashboardContent({
       }
 
       const data = await res.json();
-      if (data.profile) setProfile(data.profile);
-      if (data.repos) setRepos(data.repos);
-      if (data.commits) setCommits(data.commits);
-      if (data.yearGroups) setYearGroups(data.yearGroups);
-      if (data.contributions) setContributions(data.contributions);
-      if (data.analytics) setAnalytics(data.analytics);
+      
+      const applyData = (parsed: any) => {
+        if (parsed.profile) setProfile(parsed.profile);
+        if (parsed.repos) {
+          if (repoFilter) setRepos(parsed.repos.filter((r: GitHubRepo) => r.full_name === repoFilter));
+          else setRepos(parsed.repos);
+        }
+        if (parsed.commits) {
+          if (repoFilter) setCommits(parsed.commits.filter((c: GitHubCommit) => c.repoFullName === repoFilter));
+          else setCommits(parsed.commits);
+        }
+        if (parsed.yearGroups) setYearGroups(parsed.yearGroups);
+        if (parsed.contributions) setContributions(parsed.contributions);
+        if (parsed.analytics) setAnalytics(parsed.analytics);
+      };
+
+      applyData(data);
 
       // Save to client cache for next time
       try {
@@ -118,7 +137,7 @@ export function DashboardContent({
     } finally {
       setIsLoading(false);
     }
-  }, [cacheKey]);
+  }, [cacheKey, repoFilter]);
 
   // If no cache was found during mount, auto-fetch
   const hasAttemptedFetch = React.useRef(false);

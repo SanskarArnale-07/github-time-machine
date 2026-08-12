@@ -10,6 +10,8 @@ import {
   ExternalLink,
   FileText,
   FolderGit2,
+  Image,
+  Instagram,
   Maximize2,
   Minimize2,
   Pause,
@@ -19,6 +21,8 @@ import {
   SlidersHorizontal,
   Volume2,
   VolumeX,
+  Download,
+  Film,
 } from "lucide-react";
 import type {
   ContributionWeek,
@@ -46,39 +50,110 @@ interface TimelineReplayProps {
 interface ReplayMilestoneCardProps {
   event: ReplayEvent | null;
   accent: string;
-  border: string;
   isFinal: boolean;
   commitsReplayed: number;
   repoCount: number;
   yearsSpan: number;
+  chapterIndex: number;
+  chapterName: string;
+}
+
+function ExportDialog({ isOpen, onClose, onCopyLink }: { isOpen: boolean, onClose: () => void, onCopyLink: () => void }) {
+  const [processing, setProcessing] = useState<string | null>(null);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[#0B0A09]/90 backdrop-blur-sm p-4">
+      <div className="w-full max-w-md rounded-2xl border border-[#3A332B] bg-[#141210] p-6 shadow-2xl relative">
+        <button onClick={onClose} className="absolute right-4 top-4 text-muted hover:text-ivory">
+           ✕
+        </button>
+        <h3 className="font-display text-2xl text-ivory mb-2">Export Documentary</h3>
+        <p className="text-sm text-muted mb-6">Choose a format to export your GitHub documentary.</p>
+        
+        {processing ? (
+          <div className="py-12 flex flex-col items-center justify-center text-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-brass-light border-t-transparent mb-4" />
+            <p className="text-ivory font-mono text-sm uppercase tracking-widest">{processing}</p>
+            <p className="text-muted text-xs mt-2">Connecting to rendering server...</p>
+            <p className="text-brass-dark text-[10px] mt-4 max-w-[200px] leading-relaxed">
+              (Note: Client-side video encoding is mocked for this sprint. A backend queue like Remotion is required for real video exports.)
+            </p>
+            <Button onClick={() => setProcessing(null)} variant="outline" className="mt-6 text-xs border-[#3A332B] text-muted hover:text-ivory">Cancel</Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+             <Button onClick={() => setProcessing("Rendering MP4 (1080p)...")} className="flex flex-col h-auto py-4 items-center justify-center gap-2 bg-[#1A1714] border border-[#3A332B] hover:border-brass/50 hover:bg-brass/5 text-ivory transition-all">
+               <Film className="h-6 w-6 text-brass-light" />
+               <span className="text-xs">MP4 Video</span>
+             </Button>
+             <Button onClick={() => setProcessing("Rendering GIF...")} className="flex flex-col h-auto py-4 items-center justify-center gap-2 bg-[#1A1714] border border-[#3A332B] hover:border-brass/50 hover:bg-brass/5 text-ivory transition-all">
+               <Image className="h-6 w-6 text-brass-light" />
+               <span className="text-xs">GIF Preview</span>
+             </Button>
+             <Button onClick={() => setProcessing("Rendering Vertical (9:16)...")} className="flex flex-col h-auto py-4 items-center justify-center gap-2 bg-[#1A1714] border border-[#3A332B] hover:border-brass/50 hover:bg-brass/5 text-ivory transition-all">
+               <Instagram className="h-6 w-6 text-brass-light" />
+               <span className="text-xs">Vertical Social</span>
+             </Button>
+             <Button onClick={onCopyLink} className="flex flex-col h-auto py-4 items-center justify-center gap-2 bg-[#1A1714] border border-[#3A332B] hover:border-brass/50 hover:bg-brass/5 text-ivory transition-all">
+               <Share2 className="h-6 w-6 text-brass-light" />
+               <span className="text-xs">Shareable Link</span>
+             </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function ReplayMilestoneCard({
   event,
   accent,
-  border,
   isFinal,
   commitsReplayed,
   repoCount,
   yearsSpan,
+  chapterIndex,
+  chapterName,
 }: ReplayMilestoneCardProps) {
   if (isFinal) {
     return (
-      <article
-        className="replay-milestone-card relative w-[72vw] max-w-[960px] overflow-hidden rounded-2xl border border-brass/35 bg-[#1A1714]/95 p-5 text-center shadow-[0_30px_95px_rgba(0,0,0,0.58)] backdrop-blur-xl max-sm:w-[calc(100vw-2rem)] sm:p-6"
-        style={{ maxHeight: '300px' }}
+      <motion.article 
+        className="flex h-full w-full flex-col items-center justify-center text-center px-6"
+        initial="initial" animate="animate" exit="exit"
       >
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brass to-transparent" />
-        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.24em] text-brass-light">
+        <motion.span 
+          variants={{
+            initial: { opacity: 0, y: 10 },
+            animate: { opacity: 1, y: 0, transition: { duration: 0.8 } },
+            exit: { opacity: 0, transition: { duration: 0.3 } }
+          }}
+          className="font-mono text-xs font-semibold uppercase tracking-[0.24em] text-brass-light"
+        >
           Documentary finale
-        </span>
-        <h2 className="mt-2 font-display text-2xl text-ivory sm:text-3xl">
+        </motion.span>
+        <motion.h2 
+          variants={{
+            initial: { opacity: 0, y: 10 },
+            animate: { opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.15 } },
+            exit: { opacity: 0, transition: { duration: 0.5, delay: 0.2 } }
+          }}
+          className="mt-4 font-display text-4xl text-ivory sm:text-5xl md:text-6xl drop-shadow-2xl"
+        >
           This is how a developer is built.
-        </h2>
-        <p className="mt-2 text-sm text-muted">
+        </motion.h2>
+        <motion.p 
+          variants={{
+            initial: { opacity: 0, y: 10 },
+            animate: { opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.3 } },
+            exit: { opacity: 0, transition: { duration: 0.3 } }
+          }}
+          className="mt-6 text-lg text-muted/80"
+        >
           {commitsReplayed} commits, {repoCount} repositories, and {yearsSpan} year{yearsSpan === 1 ? "" : "s"} of becoming.
-        </p>
-      </article>
+        </motion.p>
+      </motion.article>
     );
   }
 
@@ -108,69 +183,94 @@ function ReplayMilestoneCard({
   }
 
   return (
-    <article
-      className="replay-milestone-card relative w-[72vw] max-w-[960px] overflow-hidden rounded-2xl border bg-[#1A1714]/95 p-5 shadow-[0_30px_95px_rgba(0,0,0,0.6)] backdrop-blur-xl max-sm:w-[calc(100vw-2rem)] sm:p-6"
-      style={{ borderColor: border, maxHeight: '300px' }}
+    <motion.article 
+      className="flex h-full w-full flex-col items-center justify-center text-center px-4 sm:px-8"
+      initial="initial" animate="animate" exit="exit"
     >
-      <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.055),transparent_42%)]" />
-      <div
-        className="pointer-events-none absolute -right-14 -top-16 h-44 w-44 rounded-full blur-3xl"
-        style={{ backgroundColor: accent, opacity: 0.12 }}
-      />
+      {/* Top Metadata */}
+      <motion.div 
+        variants={{
+          initial: { opacity: 0, y: 10 },
+          animate: { opacity: 1, y: 0, transition: { duration: 0.8 } },
+          exit: { opacity: 0, transition: { duration: 0.3 } }
+        }}
+        className="flex flex-col items-center gap-3 mb-8"
+      >
+        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-brass-light">
+          Chapter {chapterIndex + 1}
+        </span>
+        <span className="font-mono text-sm tracking-widest text-muted">{formattedDate}</span>
+      </motion.div>
 
-      <div className="relative flex h-full min-h-[210px] flex-col justify-between gap-5">
-        <div className="flex items-center justify-between gap-3 border-b border-[#3A332B]/70 pb-3">
-          <span className="inline-flex min-w-0 items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.15em] text-brass-light">
-            {isRepository ? <FolderGit2 className="h-3.5 w-3.5 shrink-0" /> : isMonthSummary ? <Clock3 className="h-3.5 w-3.5 shrink-0" /> : <Clock3 className="h-3.5 w-3.5 shrink-0" />}
-            {isRepository ? "Repository founded" : isYearMarker ? "New chapter" : isMonthSummary ? "Monthly Summary" : event?.repoName || "Milestone"}
-          </span>
-          <span className="shrink-0 font-mono text-[10px] text-muted">{formattedDate}</span>
-        </div>
-
-        <div>
-          <h2 className="line-clamp-2 font-display text-3xl leading-tight text-ivory sm:text-4xl">{title}</h2>
-          <p className="mt-3 line-clamp-2 max-w-3xl text-[15px] leading-relaxed text-muted sm:text-base">{description}</p>
-        </div>
-
-        {isMonthSummary && event?.monthlySummary ? (
-          <div className="grid grid-cols-3 gap-2 border-t border-[#3A332B]/70 pt-3">
-            <div className="flex flex-col">
-              <span className="text-[9px] uppercase tracking-wider text-muted font-mono">Commits</span>
-              <span className="text-sm font-semibold text-ivory font-mono">{event.monthlySummary.totalCommits} <span className={event.monthlySummary.commitDeltaPct > 0 ? "text-green-500" : "text-muted"}>{event.monthlySummary.commitDeltaPct > 0 ? `+${event.monthlySummary.commitDeltaPct}%` : ""}</span></span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[9px] uppercase tracking-wider text-muted font-mono">Focus</span>
-              <span className="text-sm font-semibold text-ivory font-mono">{event.monthlySummary.primaryFocus}</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[9px] uppercase tracking-wider text-muted font-mono">Top Lang</span>
-              <span className="text-sm font-semibold text-ivory font-mono">{event.monthlySummary.topLanguage}</span>
-            </div>
-          </div>
-        ) : (
-          <div className="flex min-h-4 items-center justify-between gap-3 border-t border-[#3A332B]/70 pt-3 font-mono text-[10px] text-muted">
-            {event?.language ? (
-              <span className="inline-flex items-center gap-1.5 text-ivory">
-                <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: event.languageColor || accent }} />
-                {event.language}
-              </span>
-            ) : (
-              <span>{event?.commitShortSha ? `Commit ${event.commitShortSha}` : "A preserved moment"}</span>
-            )}
-            {event?.repoUrl ? (
-              <a
-                href={event.repoUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-brass-light transition-colors hover:text-ivory"
-              >
-                View repository <ExternalLink className="h-3 w-3" />
-              </a>
-            ) : null}
-          </div>
-        )}
+      {/* Center Narrative */}
+      <div className="max-w-5xl">
+        <motion.h2 
+          variants={{
+            initial: { opacity: 0, y: 10 },
+            animate: { opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.15 } },
+            exit: { opacity: 0, transition: { duration: 0.5, delay: 0.2 } }
+          }}
+          className="font-display text-4xl leading-tight text-ivory sm:text-5xl md:text-6xl lg:text-7xl drop-shadow-2xl"
+        >
+          {title}
+        </motion.h2>
+        <motion.p 
+          variants={{
+            initial: { opacity: 0, y: 10 },
+            animate: { opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.3 } },
+            exit: { opacity: 0, transition: { duration: 0.3 } }
+          }}
+          className="mx-auto mt-6 max-w-3xl text-xl sm:text-2xl italic leading-relaxed text-[#D6CEC1]/90 drop-shadow-lg text-balance"
+        >
+          {description}
+        </motion.p>
       </div>
-    </article>
+
+      {/* Bottom Stats / Documentary Footer */}
+      <motion.div 
+        variants={{
+          initial: { opacity: 0, y: 10 },
+          animate: { opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.45 } },
+          exit: { opacity: 0, transition: { duration: 0.3 } }
+        }}
+        className="mt-12 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 font-mono text-xs uppercase tracking-widest text-muted/60"
+      >
+        {isMonthSummary && event?.monthlySummary ? (
+          <>
+            <span>{event.monthlySummary.totalCommits} Commits</span>
+            <span>·</span>
+            <span>{event.monthlySummary.primaryFocus}</span>
+            <span>·</span>
+            <span>{event.monthlySummary.topLanguage}</span>
+          </>
+        ) : (
+          <>
+            <span>{event?.repoName || "Archive"}</span>
+            {event?.language && (
+              <>
+                <span>·</span>
+                <span>{event.language}</span>
+              </>
+            )}
+            <span>·</span>
+            <span>{isRepository ? "Repository Founded" : isYearMarker ? "New Chapter" : "Milestone"}</span>
+            {event?.repoUrl && (
+              <>
+                <span>·</span>
+                <a
+                  href={event.repoUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-brass-light/70 transition-colors hover:text-ivory hover:underline"
+                >
+                  View Source
+                </a>
+              </>
+            )}
+          </>
+        )}
+      </motion.div>
+    </motion.article>
   );
 }
 
@@ -309,6 +409,8 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
     }
   }, [soundEnabled]);
 
+  const [showExport, setShowExport] = useState(false);
+
   const copyReplayLink = useCallback(async () => {
     const result = await copyShareableReplayLink(username, engine.currentIndex);
     if (!result.success) return;
@@ -316,6 +418,11 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
     setCopiedLink(true);
     window.setTimeout(() => setCopiedLink(false), 2200);
   }, [engine.currentIndex, username]);
+
+  const handleCopyFromExport = useCallback(() => {
+    copyReplayLink();
+    setShowExport(false);
+  }, [copyReplayLink]);
 
   useEffect(() => {
     if (!engine.currentChapter) return;
@@ -355,19 +462,23 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
 
   return (
     <div ref={theaterRef} className="replay-theater">
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {showChapterOverlay && (
           <motion.div
-            key="chapter-overlay"
-            className="pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#0B0A09]/90 backdrop-blur-sm"
+            key={`chapter-${engine.currentChapter?.id}`}
+            className="pointer-events-none absolute inset-0 z-[100] flex flex-col items-center justify-center bg-[#0B0A09]/95 backdrop-blur-md"
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1, transition: { duration: 0.3 } }}
+            animate={{ opacity: 1, transition: { duration: 0.35 } }}
             exit={{ opacity: 0, transition: { duration: 0.5 } }}
           >
-            <p className="mb-4 font-mono text-sm uppercase tracking-[0.2em] text-brass-light">
+            {/* Cinematic depth for title card */}
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_20%,rgba(11,10,9,0.9)_100%)]" />
+            <div className="absolute inset-0 opacity-[0.08] mix-blend-overlay" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
+            
+            <p className="relative z-10 mb-6 font-mono text-sm uppercase tracking-[0.3em] text-brass-light/80">
               Chapter {chapterIndex + 1}
             </p>
-            <h2 className="px-4 text-center font-display text-4xl text-ivory sm:text-5xl md:text-6xl">
+            <h2 className="relative z-10 px-4 text-center font-display text-5xl text-ivory sm:text-6xl md:text-7xl drop-shadow-2xl">
               {engine.currentChapter?.name}
             </h2>
           </motion.div>
@@ -376,238 +487,227 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
       <div className="replay-fullscreen-background">
         <ReplayBackground />
       </div>
-      <div className="replay-safe-frame">
-        <header className="relative z-30 flex min-h-9 items-center justify-between gap-3">
+      <div className="replay-safe-frame flex flex-col h-[100dvh] pt-4 pb-0 justify-between">
+        <header className="relative z-30 flex items-center justify-between px-4 sm:px-8">
           <a
             href="/dashboard"
-            className="inline-flex items-center gap-1.5 rounded-full border border-[#3A332B] bg-[#141210]/80 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-muted backdrop-blur-md transition-colors hover:border-brass/50 hover:text-ivory"
+            className="inline-flex items-center gap-1.5 rounded-full border border-[#3A332B] bg-[#0B0A09]/60 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] text-muted backdrop-blur-md transition-colors hover:border-brass/50 hover:text-ivory"
           >
             <ChevronLeft className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Back to </span>Archive
+            <span className="hidden sm:inline">Exit</span>
           </a>
 
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-2 relative">
+            <button
+              type="button"
+              onClick={() => setShowExport(true)}
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-brass/30 bg-brass/10 px-4 font-mono text-[10px] uppercase tracking-[0.1em] text-brass-light backdrop-blur-md transition-colors hover:border-brass/60 hover:bg-brass/20 hover:text-ivory"
+            >
+              <Download className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Export</span>
+            </button>
             <button
               type="button"
               onClick={toggleSoundtrack}
-              className={`inline-flex h-8 items-center gap-1.5 rounded-full border px-2.5 font-mono text-[10px] uppercase tracking-[0.1em] transition-colors ${
+              className={`inline-flex h-9 items-center justify-center gap-2 rounded-full border px-3 font-mono text-[10px] uppercase tracking-[0.1em] backdrop-blur-md transition-colors ${
                 soundEnabled
-                  ? "border-brass/50 bg-brass/10 text-brass-light"
-                  : "border-[#3A332B] bg-[#141210]/80 text-muted hover:text-ivory"
+                  ? "border-brass/40 bg-brass/10 text-brass-light"
+                  : "border-[#3A332B] bg-[#0B0A09]/60 text-muted hover:text-ivory"
               }`}
-              aria-pressed={soundEnabled}
-              title="Toggle ambient soundtrack"
             >
               {soundEnabled ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
-              <span className="hidden md:inline">{soundEnabled ? "Sound on" : "Muted"}</span>
             </button>
-
             <button
               type="button"
-              onClick={() => {
-                setShowChapterSelector((open) => !open);
-                setShowControls(false);
-              }}
-              className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[#3A332B] bg-[#141210]/80 px-2.5 font-mono text-[10px] uppercase tracking-[0.1em] text-muted transition-colors hover:border-brass/50 hover:text-ivory"
-              aria-expanded={showChapterSelector}
+              onClick={() => setShowControls(!showControls)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#3A332B] bg-[#0B0A09]/60 text-muted backdrop-blur-md transition-colors hover:border-brass/50 hover:text-ivory"
             >
-              <span className="hidden sm:inline">Chapter </span>{chapterIndex + 1}/{engine.chapters.length}
+              <SlidersHorizontal className="h-3.5 w-3.5" />
             </button>
-
-            <button
-              type="button"
-              onClick={toggleFullscreen}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#3A332B] bg-[#141210]/80 text-muted transition-colors hover:border-brass/50 hover:text-ivory"
-              title="Toggle fullscreen (F)"
-            >
-              {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setShowControls((open) => !open);
-                setShowChapterSelector(false);
-              }}
-              className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[#3A332B] bg-[#141210]/80 px-2.5 font-mono text-[10px] uppercase tracking-[0.1em] text-muted transition-colors hover:border-brass/50 hover:text-ivory"
-              aria-expanded={showControls}
-            >
-              <SlidersHorizontal className="h-3.5 w-3.5 text-brass-light" />
-              <span className="hidden sm:inline">Controls</span>
-            </button>
-          </div>
-
-          {showChapterSelector ? (
-            <div className="replay-popover right-0 top-11 w-[min(24rem,calc(100vw-2rem))] p-2">
-              <p className="px-2 pb-2 pt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-muted">Select a chapter</p>
-              <div className="max-h-[55dvh] space-y-1 overflow-y-auto pr-1">
-                {engine.chapters.map((chapter, index) => (
-                  <button
-                    key={chapter.id}
-                    type="button"
-                    onClick={() => {
-                      engine.jumpToChapter(chapter.id);
-                      setShowChapterSelector(false);
-                    }}
-                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left transition-colors ${
-                      chapter.id === engine.currentChapter?.id
-                        ? "bg-brass/15 text-brass-light"
-                        : "text-muted hover:bg-white/5 hover:text-ivory"
-                    }`}
+            
+            {showControls && (
+              <div className="absolute right-0 top-12 w-64 rounded-xl border border-[#3A332B] bg-[#0B0A09]/95 p-4 shadow-2xl backdrop-blur-xl">
+                <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-muted">Controls</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button variant="outline" size="sm" onClick={copyReplayLink} className="border-[#3A332B] font-mono text-[10px] text-muted">
+                    {copiedLink ? <Check className="mr-1.5 h-3 w-3 text-brass-light" /> : <Share2 className="mr-1.5 h-3 w-3" />}
+                    {copiedLink ? "Copied" : "Share"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => downloadReplaySummaryPDF(profile, engine.chapters, commits, repos)}
+                    className="border-[#3A332B] font-mono text-[10px] text-muted"
                   >
-                    <span className="font-sans text-sm">{chapter.name}</span>
-                    <span className="font-mono text-[10px]">{String(index + 1).padStart(2, "0")}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          {showControls ? (
-            <div className="replay-popover right-0 top-11 w-[min(22rem,calc(100vw-2rem))] p-3">
-              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted">Documentary tools</p>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <Button variant="outline" size="sm" onClick={copyReplayLink} className="border-[#3A332B] font-mono text-[10px] text-muted">
-                  {copiedLink ? <Check className="mr-1.5 h-3 w-3 text-brass-light" /> : <Share2 className="mr-1.5 h-3 w-3" />}
-                  {copiedLink ? "Copied" : "Share"}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => downloadReplaySummaryPDF(profile, engine.chapters, commits, repos)}
-                  className="border-[#3A332B] font-mono text-[10px] text-muted"
-                >
-                  <FileText className="mr-1.5 h-3 w-3 text-brass-light" />
-                  Chronicle
-                </Button>
-              </div>
-              <div className="mt-3 border-t border-[#3A332B]/70 pt-3">
-                <div className="flex items-center justify-between font-mono text-[10px] text-muted mb-2">
-                  <span>Volume</span>
-                  <span>{Math.round(volume * 100)}%</span>
+                    <FileText className="mr-1.5 h-3 w-3 text-brass-light" />
+                    Chronicle
+                  </Button>
                 </div>
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="1" 
-                  step="0.01" 
-                  value={volume}
-                  onChange={(e) => {
-                    const v = parseFloat(e.target.value);
-                    setVolume(v);
-                    ambientSoundtrack.setVolume(v);
-                    try { localStorage.setItem("github_time_machine_volume", v.toString()); } catch {}
-                  }}
-                  className="w-full accent-brass-light"
-                />
+                <div className="mt-4 border-t border-[#3A332B]/70 pt-4">
+                  <div className="flex items-center justify-between font-mono text-[10px] text-muted mb-2">
+                    <span>Volume</span>
+                    <span>{Math.round(volume * 100)}%</span>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="0" 
+                    max="1" 
+                    step="0.01" 
+                    value={volume}
+                    onChange={(e) => {
+                      const v = parseFloat(e.target.value);
+                      setVolume(v);
+                      ambientSoundtrack.setVolume(v);
+                      try { localStorage.setItem("github_time_machine_volume", v.toString()); } catch {}
+                    }}
+                    className="w-full accent-brass-light"
+                  />
+                </div>
               </div>
-            </div>
-          ) : null}
+            )}
+          </div>
         </header>
 
-        <main className="replay-main relative z-10">
-          <div className="w-full max-w-4xl text-center">
-            <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.26em] text-brass-light">
-              Chapter {String(chapterIndex + 1).padStart(2, "0")} · {engine.currentYear}
-            </p>
-            <h1 className="replay-chapter-title mt-2 font-display text-3xl font-semibold leading-none text-ivory sm:text-4xl lg:text-5xl">
-              {engine.currentChapter?.name || "The Developer Journey"}
-            </h1>
-            {engine.currentChapter?.narrative ? (
-              <p className="mx-auto mt-5 max-w-3xl text-balance font-display text-lg italic leading-relaxed text-[#D6CEC1] sm:text-xl">
-                “{engine.currentChapter.narrative}”
-              </p>
-            ) : null}
-          </div>
-
+        <main className="relative z-10 flex flex-1 items-center justify-center overflow-hidden">
           <AnimatePresence mode="wait">
             <motion.div
               key={engine.currentEvent?.id || engine.currentIndex}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.5, ease: 'easeInOut' }}
+              className="absolute inset-0 flex items-center justify-center"
+              initial={{ opacity: 0, scale: 1.0, filter: "blur(8px)" }}
+              animate={{ opacity: 1, scale: 1.02, filter: "blur(0px)" }}
+              exit={{ opacity: 0, filter: "blur(4px)" }}
+              transition={{ 
+                opacity: { duration: 0.6, ease: "easeInOut", delay: 0.1 },
+                filter: { duration: 0.6, ease: "easeInOut", delay: 0.1 },
+                scale: { duration: 8, ease: "linear" } 
+              }}
             >
               <ReplayMilestoneCard
                 event={engine.currentEvent}
                 accent={engine.eraColor.accent}
-                border={engine.eraColor.border}
                 isFinal={isFinal}
                 commitsReplayed={engine.stats.commitsReplayed}
                 repoCount={repos.length}
                 yearsSpan={yearsSpan}
+                chapterIndex={chapterIndex}
+                chapterName={engine.currentChapter?.name || "The Developer Journey"}
               />
             </motion.div>
           </AnimatePresence>
-
-          <section className="replay-progress w-[74vw] max-w-[70rem] text-center max-sm:w-[calc(100vw-2rem)]">
-            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted">
-              Chapter {chapterIndex + 1} of {engine.chapters.length}
-              <span className="mx-2 text-[#4A4035]">·</span>
-              <span className="text-brass-light">{engine.currentMonthName} {engine.currentYear}</span>
-            </div>
-            <button 
-              className="mx-auto mt-3 h-2 w-full overflow-hidden rounded-full bg-[#3A332B] hover:bg-[#4A4035] transition-colors cursor-pointer block focus:outline-none focus:ring-1 focus:ring-brass-light"
-              onClick={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const percentage = Math.max(0, Math.min(1, x / rect.width));
-                engine.seek(Math.floor(percentage * engine.total));
-              }}
-              title="Scrub timeline"
-            >
-              <div className="h-full bg-gradient-to-r from-[#8E6B35] via-brass to-brass-light transition-[width] duration-300 ease-out" style={{ width: `${engine.progress}%` }} />
-            </button>
-            <p className="mt-3 text-xs text-muted">
-              {engine.stats.remainingEvents} meaningful milestone{engine.stats.remainingEvents === 1 ? "" : "s"} remaining
-            </p>
-          </section>
         </main>
 
-        <section className="relative z-10 flex w-full items-center justify-center">
-          <div className="replay-transport pb-[env(safe-area-inset-bottom)]">
-            <div className="hidden items-center gap-1 rounded-lg border border-[#3A332B] bg-[#0B0A09]/60 p-1 sm:flex">
-              <span className="px-1.5 font-mono text-[9px] uppercase tracking-[0.12em] text-muted">Speed</span>
-              {([1, 2, 5] as const).map((speed) => (
-                <button
-                  key={speed}
-                  type="button"
-                  onClick={() => engine.setSpeed(speed)}
-                  className={`rounded-md px-2 py-1 font-mono text-[10px] font-semibold transition-colors ${
-                    engine.speed === speed ? "bg-brass text-ink" : "text-muted hover:text-ivory"
-                  }`}
-                  aria-pressed={engine.speed === speed}
+        <section className="relative z-20 w-full border-t border-[#3A332B]/50 bg-[#0B0A09]/80 backdrop-blur-xl">
+          <div className="group relative h-1.5 w-full bg-[#1A1714] cursor-pointer" onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const percentage = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+            engine.seek(Math.floor(percentage * engine.total));
+          }}>
+            {/* Chapter markers */}
+            {engine.chapters.map((chapter, i) => {
+              const leftPercent = (chapter.startEventIndex / Math.max(1, engine.total)) * 100;
+              return (
+                <div 
+                  key={chapter.id}
+                  className="group/marker absolute top-0 bottom-0 w-px bg-white/20 z-30 hover:bg-brass-light hover:w-0.5 transition-all"
+                  style={{ left: `${leftPercent}%` }}
                 >
-                  {speed}×
-                </button>
-              ))}
+                  <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 opacity-0 transition-opacity group-hover/marker:opacity-100 bg-[#1A1714] border border-[#3A332B] px-2 py-1 rounded text-[10px] font-mono whitespace-nowrap text-brass-light z-50 shadow-xl">
+                    Chapter {i + 1}: {chapter.name}
+                  </div>
+                </div>
+              );
+            })}
+            
+            {/* Month markers */}
+            {engine.events.map((ev, i) => {
+              if (ev.type !== "month_summary") return null;
+              const leftPercent = (i / Math.max(1, engine.total)) * 100;
+              return (
+                <div 
+                  key={ev.id}
+                  className="absolute top-1/2 -translate-y-1/2 h-1 w-px bg-white/10 z-10"
+                  style={{ left: `${leftPercent}%` }}
+                />
+              );
+            })}
+            
+            {/* Progress fill */}
+            <div className="absolute left-0 top-0 bottom-0 bg-gradient-to-r from-[#8E6B35] via-brass to-brass-light transition-[width] duration-300 ease-out z-20" style={{ width: `${engine.progress}%` }}>
+              {/* Glowing playhead */}
+              <div className="absolute right-0 top-1/2 h-2.5 w-2.5 -translate-y-1/2 translate-x-1/2 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.8),0_0_20px_rgba(216,181,108,0.6)] opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
             </div>
-
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <Button variant="outline" size="sm" onClick={engine.replay} className="h-9 w-9 border-[#3A332B] p-0" title="Replay from the beginning (R)">
-                <RotateCcw className="h-3.5 w-3.5 text-muted" />
+          </div>
+          
+          <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-8">
+            <div className="flex w-1/3 items-center gap-2">
+              <Button variant="ghost" size="icon" onClick={engine.replay} className="h-10 w-10 text-muted hover:bg-white/5 hover:text-ivory" title="Replay (R)">
+                <RotateCcw className="h-4 w-4" />
               </Button>
-              <Button variant="outline" size="sm" onClick={engine.stepBack} disabled={engine.currentIndex === 0} className="h-9 w-9 border-[#3A332B] p-0" title="Previous milestone">
-                <ChevronLeft className="h-4 w-4" />
+              <Button variant="ghost" size="icon" onClick={engine.stepBack} disabled={engine.currentIndex === 0} className="h-10 w-10 text-muted hover:bg-white/5 hover:text-ivory" title="Previous">
+                <ChevronLeft className="h-5 w-5" />
               </Button>
               <Button
-                size="sm"
                 onClick={engine.togglePlay}
-                className="h-10 min-w-[8.25rem] rounded-full bg-brass px-5 font-semibold text-ink shadow-[0_0_24px_rgba(201,168,106,0.32)] hover:bg-brass-light"
-                title="Play or pause (Space)"
+                className="group relative flex h-12 w-12 items-center justify-center rounded-full bg-brass text-[#0B0A09] shadow-[0_0_24px_rgba(201,168,106,0.25)] transition-all duration-200 hover:scale-105 hover:bg-brass-light hover:shadow-[0_0_32px_rgba(216,181,108,0.4)] active:scale-95"
+                title="Play/Pause (Space)"
               >
-                {engine.isPlaying ? <Pause className="mr-1.5 h-3.5 w-3.5 fill-current" /> : <Play className="mr-1.5 h-3.5 w-3.5 fill-current" />}
-                {engine.isPlaying ? "Pause" : isFinal ? "Replay story" : "Play story"}
+                <AnimatePresence mode="wait">
+                  {engine.isPlaying ? (
+                    <motion.div
+                      key="pause"
+                      initial={{ opacity: 0, scale: 0.5 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.5 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute inset-0 flex items-center justify-center"
+                    >
+                      <Pause className="h-5 w-5 fill-[#0B0A09]" strokeWidth={1} />
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="play"
+                      initial={{ opacity: 0, scale: 0.5 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.5 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute inset-0 flex items-center justify-center pl-1"
+                    >
+                      <Play className="h-5 w-5 fill-[#0B0A09]" strokeWidth={1} />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </Button>
-              <Button variant="outline" size="sm" onClick={engine.stepForward} disabled={isFinal} className="h-9 w-9 border-[#3A332B] p-0" title="Next milestone">
-                <ChevronRight className="h-4 w-4" />
+              <Button variant="ghost" size="icon" onClick={engine.stepForward} disabled={isFinal} className="h-10 w-10 text-muted hover:bg-white/5 hover:text-ivory" title="Next">
+                <ChevronRight className="h-5 w-5" />
               </Button>
             </div>
 
-            <div className="hidden items-center justify-end gap-2 font-mono text-[9px] text-muted lg:flex">
-              <span><kbd>Space</kbd> play</span>
-              <span><kbd>← →</kbd> step</span>
-              <span><kbd>F</kbd> fullscreen</span>
+            <div className="flex w-1/3 flex-col items-center justify-center text-center">
+              <span className="font-mono text-xs uppercase tracking-[0.2em] text-brass-light">
+                {engine.currentMonthName} {engine.currentYear}
+              </span>
+              <span className="mt-1 font-mono text-[10px] uppercase tracking-wider text-muted">
+                {engine.stats.commitsReplayed} Milestones Replayed
+              </span>
+            </div>
+
+            <div className="flex w-1/3 items-center justify-end gap-1">
+              <div className="mr-4 hidden items-center gap-1 rounded-md border border-[#3A332B] bg-[#141210] p-1 sm:flex">
+                {([1, 2, 5] as const).map((speed) => (
+                  <button
+                    key={speed}
+                    onClick={() => engine.setSpeed(speed)}
+                    className={`rounded px-2 py-1 font-mono text-[10px] font-semibold transition-colors ${
+                      engine.speed === speed ? "bg-brass/20 text-brass-light" : "text-muted hover:text-ivory"
+                    }`}
+                  >
+                    {speed}×
+                  </button>
+                ))}
+              </div>
+              <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="h-10 w-10 text-muted hover:bg-white/5 hover:text-ivory" title="Fullscreen (F)">
+                {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              </Button>
             </div>
           </div>
         </section>
@@ -615,6 +715,7 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
         <p className="relative z-10 text-center font-mono text-[9px] tracking-wide text-muted/65 lg:hidden">
           Space play · ← → step · F fullscreen
         </p>
+        <ExportDialog isOpen={showExport} onClose={() => setShowExport(false)} onCopyLink={handleCopyFromExport} />
       </div>
     </div>
   );
