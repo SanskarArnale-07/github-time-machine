@@ -200,13 +200,13 @@ export function RepoSection({ repos, commits = [] }: RepoSectionProps) {
       ) : (
         <>
           <div 
-            className="mt-12 pb-24 relative"
+            className="mt-16 pb-24 relative"
             style={{ 
               WebkitMaskImage: displayedRepos.length > 6 ? "linear-gradient(to bottom, black 85%, transparent 100%)" : "none",
               maskImage: displayedRepos.length > 6 ? "linear-gradient(to bottom, black 85%, transparent 100%)" : "none"
             }}
           >
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3">
               {displayedRepos.map((repo, index) => (
                 <motion.div
                   key={repo.id}
@@ -214,7 +214,7 @@ export function RepoSection({ repos, commits = [] }: RepoSectionProps) {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-40px" }}
                   transition={{ duration: 0.4, delay: (index % 3) * 0.1, ease: "easeOut" }}
-                  className="cinematic-depth-card group relative flex min-h-[250px] flex-col justify-between overflow-hidden rounded-2xl border border-[#3A332B]/80 bg-[#141210]/80 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.5)] transition-all duration-300 ease-out hover:-translate-y-[3px] hover:scale-[1.01] hover:border-brass/30 hover:shadow-[0_12px_35px_rgba(0,0,0,0.4),0_0_15px_rgba(201,168,106,0.12)]"
+                  className="cinematic-depth-card group relative flex min-h-[260px] flex-col justify-between overflow-hidden rounded-2xl border border-white/5 bg-[#0E0D0B]/80 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.5)] transition-all duration-300 ease-out hover:-translate-y-[4px] hover:scale-[1.01] hover:border-white/20 hover:shadow-[0_12px_35px_rgba(0,0,0,0.6),0_0_20px_rgba(255,255,255,0.05)]"
                   style={{ transformStyle: 'preserve-3d', perspective: '1000px' }}
                 >
                 {/* Cinematic Cover Background (subtle) */}
@@ -226,13 +226,13 @@ export function RepoSection({ repos, commits = [] }: RepoSectionProps) {
                 
                 {/* Content */}
                 <div className="relative z-10 flex flex-col h-full">
-                  <div>
+                  <div className="flex-1 flex flex-col">
                     <div className="flex items-start justify-between gap-3">
                       <a
                         href={repo.html_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="line-clamp-1 font-display text-lg font-semibold text-ivory transition-colors group-hover:text-brass-light"
+                        className="line-clamp-1 font-display text-xl font-bold text-ivory transition-colors group-hover:text-brass-light"
                       >
                         {repo.name}
                       </a>
@@ -241,15 +241,9 @@ export function RepoSection({ repos, commits = [] }: RepoSectionProps) {
                         <span className="font-mono text-[10px] text-ivory">{repo.stargazers_count}</span>
                       </div>
                     </div>
-                    <p className="mt-2 line-clamp-2 text-sm text-muted/80">
-                      {repo.description || "No description provided."}
+                    <p className="mt-4 line-clamp-3 text-base leading-relaxed text-muted/90 italic">
+                      {repo.description && repo.description.length > 10 ? repo.description : generateUniqueRepoInsight(repo.name, repo.language || '')}
                     </p>
-                    {/* Subtle AI Insight */}
-                    <div className="mt-3 border-l-2 border-brass/30 pl-2">
-                      <p className="text-[11px] text-muted/70 italic leading-snug">
-                        "{generateUniqueRepoInsight(repo.name, repo.language || '')}"
-                      </p>
-                    </div>
                   </div>
 
                   <div className="mt-7 flex flex-col gap-3">
@@ -275,8 +269,8 @@ export function RepoSection({ repos, commits = [] }: RepoSectionProps) {
                         {getRelativeTime(repo.updated_at)}
                       </div>
                     </div>
-                    <Button onClick={() => router.push(`/repo/${repo.full_name}`)} variant="outline" size="sm" className="w-full h-8 text-xs border-white/10 text-muted hover:border-brass/50 hover:text-brass-light bg-transparent hover:bg-brass/5 transition-colors">
-                      <Clock className="mr-1.5 h-3 w-3" />
+                    <Button onClick={() => router.push(`/repo/${repo.full_name}`)} variant="outline" size="sm" className="w-full h-9 text-xs font-medium border-white/20 text-muted/90 hover:border-white/40 hover:text-white bg-transparent hover:bg-white/5 transition-all duration-300 hover:shadow-[0_0_15px_rgba(255,255,255,0.07)]">
+                      <Clock className="mr-1.5 h-3.5 w-3.5" />
                       View Timeline
                     </Button>
                     </div>

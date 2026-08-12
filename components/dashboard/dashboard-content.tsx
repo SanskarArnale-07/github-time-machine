@@ -258,7 +258,7 @@ export function DashboardContent({
               <div className="absolute inset-0 bg-gradient-to-br from-brass/12 via-[#141210]/70 to-[#0B0A09]" />
               <div className="absolute right-0 top-0 h-48 w-48 -translate-y-1/3 translate-x-1/4 rounded-full bg-brass/20 blur-[120px] motion-safe:animate-pulse" />
               <div className="relative z-10 flex flex-col items-start justify-center">
-                <div className="max-w-2xl pb-1">
+                <div className="max-w-4xl pb-1">
                   <p className="font-mono text-[10px] font-bold uppercase tracking-widest text-brass-light mb-1.5 opacity-90">Current Chapter</p>
                   <h2 className="font-display text-3xl md:text-5xl font-bold text-ivory leading-tight drop-shadow-2xl mb-2">
                     The {analytics?.mostActiveYear || new Date().getFullYear()} Chapter
@@ -285,8 +285,8 @@ export function DashboardContent({
           </div>
 
           {/* Tab navigation bar */}
-          <div className="mt-1 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 bg-black/60 rounded-xl border border-white/5 p-2 shadow-lg">
-            <div className="glass-card flex items-center gap-1 p-1 w-full sm:w-auto overflow-x-auto overflow-y-hidden scrollbar-hide">
+          <div className="mt-1 flex flex-col sm:flex-row items-center justify-between gap-4 py-2">
+            <div className="glass-card flex items-center gap-1 p-1 overflow-x-auto overflow-y-hidden scrollbar-hide border border-white/5 bg-black/40 rounded-xl">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}

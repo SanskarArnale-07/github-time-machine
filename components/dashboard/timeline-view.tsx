@@ -106,8 +106,8 @@ export function TimelineView({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="relative">
+        <div className="flex w-full md:w-auto md:ml-auto flex-wrap items-center justify-end gap-4">
+          <div className="relative flex-grow md:flex-grow-0">
             <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" />
             <input
               type="text"

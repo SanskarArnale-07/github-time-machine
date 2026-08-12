@@ -474,7 +474,7 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
       
       const timer = setTimeout(() => {
         setShowChapterOverlay(false);
-      }, 3400);
+      }, 1000);
       
       previousChapterIdRef.current = engine.currentChapter.id;
       
@@ -529,6 +529,30 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
           </motion.div>
         )}
       </AnimatePresence>
+      
+      {/* Persistent Chapter HUD */}
+      <AnimatePresence>
+        {!showChapterOverlay && engine.currentChapter && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="absolute bottom-24 right-6 sm:bottom-28 sm:right-8 z-30 flex flex-col items-end text-right"
+          >
+            <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-brass-light/80">
+              Chapter {chapterIndex + 1}
+            </span>
+            <span className="mt-1 font-display text-lg text-ivory/90 sm:text-xl">
+              {engine.currentChapter.name}
+            </span>
+            <span className="mt-1 font-mono text-[10px] uppercase tracking-widest text-muted/80">
+              {engine.currentMonthName} {engine.currentYear}
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="replay-fullscreen-background">
         <ReplayBackground />
       </div>
