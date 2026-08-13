@@ -549,7 +549,7 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className={`absolute bottom-24 right-6 sm:bottom-28 sm:right-8 z-30 flex flex-col items-end text-right transition-all duration-300 ease-in-out ${isHUDVisible ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+            className={`absolute right-6 sm:right-8 z-30 flex flex-col items-end text-right transition-all duration-300 ease-in-out ${isHUDVisible ? "bottom-24 sm:bottom-28 opacity-100" : "bottom-6 sm:bottom-8 opacity-70 pointer-events-none"}`}
           >
             <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-zinc-500">
               Chapter {chapterIndex + 1}
