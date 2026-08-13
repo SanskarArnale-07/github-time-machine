@@ -10,37 +10,37 @@ const config: Config = {
     extend: {
       colors: {
         ink: {
-          DEFAULT: '#0B0A09',  // charcoal black
-          deep: '#060504',     // near-black
-          soft: '#141210',     // deep graphite
-          surface: '#1A1714',  // warm dark surface
-          border: '#2A2520',   // warm border
-          card: 'rgba(20, 18, 16, 0.85)',  // warm card
+          DEFAULT: '#000000',  // pure black
+          deep: '#000000',
+          soft: '#0A0A0A',     // Vercel dark surface
+          surface: '#111111',  // Vercel card surface
+          border: '#222222',   // Vercel border
+          card: 'rgba(10, 10, 10, 0.85)',
         },
         cosmic: {
-          graphite: '#3F3F46',
-          warm: '#C8C1B6',
+          graphite: '#333333',
+          warm: '#888888',
           amber: '#F59E0B',
           gold: '#C9A86A',
         },
         commit: {
-          50: '#18181B',
-          100: '#27272A',
-          200: '#C9A86A',
-          300: '#D8B56C',
-          glow: 'rgba(201, 168, 106, 0.4)',
+          50: '#000000',
+          100: '#111111',
+          200: '#58a6ff',      // GitHub Blue
+          300: '#79c0ff',
+          glow: 'rgba(88, 166, 255, 0.4)',
         },
         brass: {
-          DEFAULT: '#C9A86A',  // aged brass
-          light: '#D8B56C',    // muted gold
-          dim: '#7A6530',      // deep brass
-          glow: 'rgba(201, 168, 106, 0.2)',
+          DEFAULT: '#ffffff',  // Replace brass with white for high contrast
+          light: '#a1a1aa',    
+          dim: '#52525b',      
+          glow: 'rgba(255, 255, 255, 0.1)',
         },
-        ivory: '#F5F1EA',
-        muted: '#C8C1B6', // warm gray
+        ivory: '#FFFFFF',      // Pure white
+        muted: '#888888',      // Vercel gray
       },
       fontFamily: {
-        display: ["var(--font-playfair)", "Georgia", "serif"],
+        display: ["var(--font-inter)", "system-ui", "sans-serif"],
         sans: ["var(--font-inter)", "system-ui", "sans-serif"],
         mono: ["ui-monospace", "SFMono-Regular", "Menlo", "Consolas", "monospace"],
       },

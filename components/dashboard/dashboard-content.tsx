@@ -251,31 +251,28 @@ export function DashboardContent({
           </div>
 
           {/* Cinematic Movie Title Card Hero */}
-          <div className="relative z-10 mt-1 mb-2">
-            {/* Stronger breathing glow (cinematic lighting) behind the hero card */}
-            <div className="absolute -inset-3 rounded-[2rem] bg-brass/20 blur-2xl opacity-70" />
-            <div className="relative overflow-hidden rounded-2xl border border-brass/20 bg-[#0E0D0B]/75 p-3 shadow-[0_30px_90px_rgba(0,0,0,0.52)] sm:p-4 lg:p-5">
-              <div className="absolute inset-0 bg-gradient-to-br from-brass/12 via-[#141210]/70 to-[#0B0A09]" />
-              <div className="absolute right-0 top-0 h-48 w-48 -translate-y-1/3 translate-x-1/4 rounded-full bg-brass/20 blur-[120px] motion-safe:animate-pulse" />
+          <div className="relative z-10 mt-2 mb-4">
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#0A0A0A] p-4 sm:p-6 lg:p-8 shadow-[0_0_40px_rgba(0,0,0,0.8)]">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent" />
               <div className="relative z-10 flex flex-col items-start justify-center">
                 <div className="max-w-4xl pb-1">
-                  <p className="font-mono text-[10px] font-bold uppercase tracking-widest text-brass-light mb-1.5 opacity-90">Current Chapter</p>
-                  <h2 className="font-display text-3xl md:text-5xl font-bold text-ivory leading-tight drop-shadow-2xl mb-2">
+                  <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400 mb-2">Current Chapter</p>
+                  <h2 className="font-sans text-4xl md:text-6xl font-semibold text-white tracking-tighter leading-tight drop-shadow-2xl mb-4">
                     The {analytics?.mostActiveYear || new Date().getFullYear()} Chapter
                   </h2>
-                  <p className="text-sm md:text-base text-zinc-300 leading-snug italic border-l-2 border-brass/50 pl-4">
-                    "You've been forging ahead, deeply engaged in expanding your technical repertoire. With a surge of {commits.length} contributions lately, the focus has shifted towards refining core logic and embracing new architectural patterns. The journey is accelerating."
+                  <p className="text-base md:text-lg text-zinc-400 leading-relaxed border-l-2 border-white/20 pl-5 max-w-3xl">
+                    You've been forging ahead, deeply engaged in expanding your technical repertoire. With a surge of {commits.length} contributions lately, the focus has shifted towards refining core logic and embracing new architectural patterns. The journey is accelerating.
                   </p>
-                  <div className="mt-4 flex flex-wrap gap-3 items-center">
+                  <div className="mt-8 flex flex-wrap gap-4 items-center">
                     <Button 
                       onClick={() => router.push("/replay")}
-                      className="rounded-full bg-brass text-ink hover:bg-[#FCE3B4] font-bold px-6 py-3 text-sm shadow-[0_0_40px_rgba(212,168,83,0.5)] transition-all hover:scale-105 hover:shadow-[0_0_50px_rgba(212,168,83,0.7)] border border-brass-light/50 ring-2 ring-brass/20 ring-offset-2 ring-offset-black"
+                      className="rounded-full bg-white text-black hover:bg-zinc-200 font-medium px-8 py-4 text-base transition-all hover:scale-[1.02]"
                     >
                       <Play className="mr-2 h-4 w-4 fill-current" />
-                      Play Documentary
+                      Start Replay
                     </Button>
-                    <div className="flex items-center gap-1.5 rounded-full border border-brass/30 bg-brass/10 px-3 py-1.5 text-xs text-brass-light shadow-inner">
-                      <Sparkles className="h-3.5 w-3.5" />
+                    <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-zinc-300">
+                      <Sparkles className="h-4 w-4" />
                       Latest Milestone: Over {repos.length} repositories
                     </div>
                   </div>
@@ -286,15 +283,15 @@ export function DashboardContent({
 
           {/* Tab navigation bar */}
           <div className="mt-1 flex flex-col sm:flex-row items-center justify-between gap-4 py-2">
-            <div className="glass-card flex items-center gap-1 p-1 overflow-x-auto overflow-y-hidden scrollbar-hide border border-white/5 bg-black/40 rounded-xl">
+            <div className="glass-card flex items-center gap-1 p-1.5 overflow-x-auto overflow-y-hidden scrollbar-hide border border-white/5 bg-[#0A0A0A] rounded-full">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm sm:text-base font-medium transition-all ${
+                  className={`flex items-center gap-2 rounded-full px-5 py-2 text-sm font-medium transition-all ${
                     activeTab === tab.id
-                      ? "bg-brass text-ink font-semibold shadow-md"
-                      : "text-muted hover:text-ivory"
+                      ? "bg-white text-black shadow-sm"
+                      : "text-zinc-400 hover:text-white hover:bg-white/5"
                   }`}
                 >
                   <tab.icon className="h-3.5 w-3.5" />

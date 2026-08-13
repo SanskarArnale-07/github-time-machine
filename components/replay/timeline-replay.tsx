@@ -39,6 +39,7 @@ import {
 } from "@/lib/github/export-utils";
 import { Button } from "@/components/ui/button";
 import { ReplayBackground } from "@/components/replay/replay-background";
+import { cleanCommitMessage } from "@/lib/github/story-generator";
 
 interface TimelineReplayProps {
   commits: GitHubCommit[];
@@ -66,40 +67,40 @@ function ExportDialog({ isOpen, onClose, onCopyLink }: { isOpen: boolean, onClos
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[#0B0A09]/90 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md rounded-2xl border border-[#3A332B] bg-[#141210] p-6 shadow-2xl relative">
-        <button onClick={onClose} className="absolute right-4 top-4 text-muted hover:text-ivory">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4">
+      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0A0A0A] p-6 shadow-2xl relative">
+        <button onClick={onClose} className="absolute right-4 top-4 text-zinc-500 hover:text-white">
            ✕
         </button>
-        <h3 className="font-display text-2xl text-ivory mb-2">Export Documentary</h3>
-        <p className="text-sm text-muted mb-6">Choose a format to export your GitHub documentary.</p>
+        <h3 className="font-sans font-semibold tracking-tight text-2xl text-white mb-2">Export Documentary</h3>
+        <p className="text-sm text-zinc-400 mb-6">Choose a format to export your GitHub documentary.</p>
         
         {processing ? (
           <div className="py-12 flex flex-col items-center justify-center text-center">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-brass-light border-t-transparent mb-4" />
-            <p className="text-ivory font-mono text-sm uppercase tracking-widest">{processing}</p>
-            <p className="text-muted text-xs mt-2">Connecting to rendering server...</p>
-            <p className="text-brass-dark text-[10px] mt-4 max-w-[200px] leading-relaxed">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-white border-t-transparent mb-4" />
+            <p className="text-white font-mono text-sm uppercase tracking-widest">{processing}</p>
+            <p className="text-zinc-500 text-xs mt-2">Connecting to rendering server...</p>
+            <p className="text-zinc-600 text-[10px] mt-4 max-w-[200px] leading-relaxed">
               (Note: Client-side video encoding is mocked for this sprint. A backend queue like Remotion is required for real video exports.)
             </p>
-            <Button onClick={() => setProcessing(null)} variant="outline" className="mt-6 text-xs border-[#3A332B] text-muted hover:text-ivory">Cancel</Button>
+            <Button onClick={() => setProcessing(null)} variant="outline" className="mt-6 text-xs border-white/10 text-zinc-400 hover:text-white hover:bg-white/5">Cancel</Button>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
-             <Button onClick={() => setProcessing("Rendering MP4 (1080p)...")} className="flex flex-col h-auto py-4 items-center justify-center gap-2 bg-[#1A1714] border border-[#3A332B] hover:border-brass/50 hover:bg-brass/5 text-ivory transition-all">
-               <Film className="h-6 w-6 text-brass-light" />
+             <Button onClick={() => setProcessing("Rendering MP4 (1080p)...")} className="flex flex-col h-auto py-4 items-center justify-center gap-2 bg-black border border-white/10 hover:border-white/20 hover:bg-white/5 text-white transition-all">
+               <Film className="h-6 w-6 text-white" />
                <span className="text-xs">MP4 Video</span>
              </Button>
-             <Button onClick={() => setProcessing("Rendering GIF...")} className="flex flex-col h-auto py-4 items-center justify-center gap-2 bg-[#1A1714] border border-[#3A332B] hover:border-brass/50 hover:bg-brass/5 text-ivory transition-all">
-               <Image className="h-6 w-6 text-brass-light" />
+             <Button onClick={() => setProcessing("Rendering GIF...")} className="flex flex-col h-auto py-4 items-center justify-center gap-2 bg-black border border-white/10 hover:border-white/20 hover:bg-white/5 text-white transition-all">
+               <Image className="h-6 w-6 text-white" />
                <span className="text-xs">GIF Preview</span>
              </Button>
-             <Button onClick={() => setProcessing("Rendering Vertical (9:16)...")} className="flex flex-col h-auto py-4 items-center justify-center gap-2 bg-[#1A1714] border border-[#3A332B] hover:border-brass/50 hover:bg-brass/5 text-ivory transition-all">
-               <Instagram className="h-6 w-6 text-brass-light" />
+             <Button onClick={() => setProcessing("Rendering Vertical (9:16)...")} className="flex flex-col h-auto py-4 items-center justify-center gap-2 bg-black border border-white/10 hover:border-white/20 hover:bg-white/5 text-white transition-all">
+               <Instagram className="h-6 w-6 text-white" />
                <span className="text-xs">Vertical Social</span>
              </Button>
-             <Button onClick={onCopyLink} className="flex flex-col h-auto py-4 items-center justify-center gap-2 bg-[#1A1714] border border-[#3A332B] hover:border-brass/50 hover:bg-brass/5 text-ivory transition-all">
-               <Share2 className="h-6 w-6 text-brass-light" />
+             <Button onClick={onCopyLink} className="flex flex-col h-auto py-4 items-center justify-center gap-2 bg-black border border-white/10 hover:border-white/20 hover:bg-white/5 text-white transition-all">
+               <Share2 className="h-6 w-6 text-white" />
                <span className="text-xs">Shareable Link</span>
              </Button>
           </div>
@@ -133,7 +134,7 @@ function ReplayMilestoneCard({
             animate: { opacity: 1, y: 0, transition: { duration: 0.8 } },
             exit: { opacity: 0, transition: { duration: 0.3 } }
           }}
-          className="font-mono text-xs font-semibold uppercase tracking-[0.24em] text-brass-light"
+          className="font-mono text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500"
         >
           Documentary finale
         </motion.span>
@@ -143,7 +144,7 @@ function ReplayMilestoneCard({
             animate: { opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.15 } },
             exit: { opacity: 0, transition: { duration: 0.5, delay: 0.2 } }
           }}
-          className="mt-4 font-display text-4xl text-ivory sm:text-5xl md:text-6xl drop-shadow-2xl"
+          className="mt-4 font-sans font-semibold tracking-tight text-4xl text-white sm:text-5xl md:text-6xl drop-shadow-2xl"
         >
           This is how a developer is built.
         </motion.h2>
@@ -153,27 +154,27 @@ function ReplayMilestoneCard({
             animate: { opacity: 1, scale: 1, transition: { duration: 0.8, delay: 0.4 } },
             exit: { opacity: 0, transition: { duration: 0.3 } }
           }}
-          className="mt-12 grid grid-cols-2 md:grid-cols-5 gap-6 text-left max-w-4xl mx-auto border-t border-[#3A332B] pt-8"
+          className="mt-12 grid grid-cols-2 md:grid-cols-5 gap-6 text-left max-w-4xl mx-auto border-t border-white/10 pt-8"
         >
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] uppercase tracking-widest text-muted">Contributions</span>
-            <span className="font-mono text-2xl text-ivory">{commitsReplayed}</span>
+            <span className="text-[10px] uppercase tracking-widest text-zinc-500">Contributions</span>
+            <span className="font-mono text-2xl text-white">{commitsReplayed}</span>
           </div>
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] uppercase tracking-widest text-muted">Repositories</span>
-            <span className="font-mono text-2xl text-ivory">{repoCount}</span>
+            <span className="text-[10px] uppercase tracking-widest text-zinc-500">Repositories</span>
+            <span className="font-mono text-2xl text-white">{repoCount}</span>
           </div>
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] uppercase tracking-widest text-muted">Active Years</span>
-            <span className="font-mono text-2xl text-ivory">{yearsSpan}</span>
+            <span className="text-[10px] uppercase tracking-widest text-zinc-500">Active Years</span>
+            <span className="font-mono text-2xl text-white">{yearsSpan}</span>
           </div>
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] uppercase tracking-widest text-muted">Primary Language</span>
-            <span className="font-mono text-xl text-ivory pt-1 truncate">{topLanguage || "TypeScript"}</span>
+            <span className="text-[10px] uppercase tracking-widest text-zinc-500">Primary Language</span>
+            <span className="font-mono text-xl text-white pt-1 truncate">{topLanguage || "TypeScript"}</span>
           </div>
           <div className="flex flex-col gap-1 col-span-2 md:col-span-1">
-            <span className="text-[10px] uppercase tracking-widest text-muted">Most Active</span>
-            <span className="font-mono text-xl text-ivory pt-1">{mostActiveMonth || "October"}</span>
+            <span className="text-[10px] uppercase tracking-widest text-zinc-500">Most Active</span>
+            <span className="font-mono text-xl text-white pt-1">{mostActiveMonth || "October"}</span>
           </div>
         </motion.div>
         
@@ -183,7 +184,7 @@ function ReplayMilestoneCard({
             animate: { opacity: 1, transition: { duration: 1.5, delay: 2.5 } },
             exit: { opacity: 0 }
           }}
-          className="mt-24 font-display text-2xl italic text-brass-light/80"
+          className="mt-24 font-sans text-2xl text-zinc-600"
         >
           To be continued...
         </motion.p>
@@ -207,7 +208,7 @@ function ReplayMilestoneCard({
     : isYearMarker || isMonthSummary
       ? event?.title
       : isCommit && event?.commit?.message
-        ? event.commit.message.split("\n")[0]
+        ? cleanCommitMessage(event.commit.message)
         : event?.title || event?.commit?.repoName || event?.repoName || "A meaningful step forward";
   
   let description = event?.description ||
@@ -234,10 +235,10 @@ function ReplayMilestoneCard({
         }}
         className="flex flex-col items-center gap-3 mb-8"
       >
-        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-brass-light">
+        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
           Chapter {chapterIndex + 1}
         </span>
-        <span className="font-mono text-sm tracking-widest text-muted">{formattedDate}</span>
+        <span className="font-mono text-sm tracking-widest text-zinc-400">{formattedDate}</span>
       </motion.div>
 
       {/* Center Narrative */}
@@ -248,7 +249,7 @@ function ReplayMilestoneCard({
             animate: { opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.15 } },
             exit: { opacity: 0, transition: { duration: 0.5, delay: 0.2 } }
           }}
-          className="font-display text-4xl leading-tight text-ivory sm:text-5xl md:text-6xl lg:text-7xl drop-shadow-2xl"
+          className="font-sans font-semibold tracking-tight text-4xl leading-tight text-white sm:text-5xl md:text-6xl lg:text-7xl drop-shadow-2xl"
         >
           {title}
         </motion.h2>
@@ -258,7 +259,7 @@ function ReplayMilestoneCard({
             animate: { opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.3 } },
             exit: { opacity: 0, transition: { duration: 0.3 } }
           }}
-          className="mx-auto mt-6 max-w-3xl text-xl sm:text-2xl italic leading-relaxed text-[#D6CEC1]/90 drop-shadow-lg text-balance"
+          className="mx-auto mt-6 max-w-3xl text-xl sm:text-2xl font-light leading-relaxed text-zinc-300 drop-shadow-lg text-balance"
         >
           {description}
         </motion.p>
@@ -325,7 +326,7 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
   const [showControls, setShowControls] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const previousChapterIdRef = useRef<string | null>(null);
-  const [showChapterOverlay, setShowChapterOverlay] = useState(false);
+
   const [volume, setVolume] = useState(0.22);
 
   const toggleFullscreen = useCallback(() => {
@@ -470,15 +471,7 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
         ambientSoundtrack.triggerProjectorClick();
       }
       
-      setShowChapterOverlay(true);
-      
-      const timer = setTimeout(() => {
-        setShowChapterOverlay(false);
-      }, 1000);
-      
       previousChapterIdRef.current = engine.currentChapter.id;
-      
-      return () => clearTimeout(timer);
     }
   }, [engine.currentChapter, soundEnabled]);
 
@@ -507,32 +500,9 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
 
   return (
     <div ref={theaterRef} className="replay-theater">
-      <AnimatePresence mode="wait">
-        {showChapterOverlay && (
-          <motion.div
-            key={`chapter-${engine.currentChapter?.id}`}
-            className="pointer-events-none absolute inset-0 z-[100] flex flex-col items-center justify-center bg-[#0B0A09]/95 backdrop-blur-md"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1, transition: { duration: 0.4 } }}
-            exit={{ opacity: 0, transition: { duration: 0.5 } }}
-          >
-            {/* Cinematic depth for title card */}
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_20%,rgba(11,10,9,0.9)_100%)]" />
-            <div className="absolute inset-0 opacity-[0.08] mix-blend-overlay" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
-            
-            <p className="relative z-10 mb-6 font-mono text-sm uppercase tracking-[0.3em] text-brass-light/80">
-              Chapter {chapterIndex + 1}
-            </p>
-            <h2 className="relative z-10 px-4 text-center font-display text-5xl text-ivory sm:text-6xl md:text-7xl drop-shadow-2xl">
-              {engine.currentChapter?.name}
-            </h2>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      
       {/* Persistent Chapter HUD */}
       <AnimatePresence>
-        {!showChapterOverlay && engine.currentChapter && (
+        {engine.currentChapter && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -540,13 +510,13 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
             transition={{ duration: 0.5, delay: 0.2 }}
             className="absolute bottom-24 right-6 sm:bottom-28 sm:right-8 z-30 flex flex-col items-end text-right"
           >
-            <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-brass-light/80">
+            <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-zinc-500">
               Chapter {chapterIndex + 1}
             </span>
-            <span className="mt-1 font-display text-lg text-ivory/90 sm:text-xl">
+            <span className="mt-1 font-sans font-semibold tracking-tight text-lg text-white sm:text-xl">
               {engine.currentChapter.name}
             </span>
-            <span className="mt-1 font-mono text-[10px] uppercase tracking-widest text-muted/80">
+            <span className="mt-1 font-mono text-[10px] uppercase tracking-widest text-zinc-400">
               {engine.currentMonthName} {engine.currentYear}
             </span>
           </motion.div>
@@ -560,7 +530,7 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
         <header className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 sm:px-8 pt-4 pb-0">
           <a
             href="/dashboard"
-            className="inline-flex items-center gap-1.5 rounded-full border border-[#3A332B] bg-[#0B0A09]/60 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] text-muted backdrop-blur-md transition-colors hover:border-brass/50 hover:text-ivory"
+            className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/60 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-400 backdrop-blur-md transition-colors hover:border-white/20 hover:text-white"
           >
             <ChevronLeft className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Exit</span>
@@ -570,15 +540,7 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
             <button
               type="button"
               onClick={() => setShowExport(true)}
-              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-brass/30 bg-brass/10 px-4 font-mono text-[10px] uppercase tracking-[0.1em] text-brass-light backdrop-blur-md transition-colors hover:border-brass/60 hover:bg-brass/20 hover:text-ivory"
-            >
-              <Download className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Export</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowExport(true)}
-              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-brass/30 bg-brass/10 px-4 font-mono text-[10px] uppercase tracking-[0.1em] text-brass-light backdrop-blur-md transition-colors hover:border-brass/60 hover:bg-brass/20 hover:text-ivory"
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-4 font-mono text-[10px] uppercase tracking-[0.1em] text-white backdrop-blur-md transition-colors hover:bg-white/10"
             >
               <Download className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Export</span>
@@ -586,7 +548,7 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
             <button
               type="button"
               onClick={() => setShowControls(!showControls)}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#3A332B] bg-[#0B0A09]/60 text-muted backdrop-blur-md transition-colors hover:border-brass/50 hover:text-ivory"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/60 text-zinc-400 backdrop-blur-md transition-colors hover:border-white/20 hover:text-white"
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
             </button>
@@ -605,12 +567,12 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
                     onClick={() => downloadReplaySummaryPDF(profile, engine.chapters, commits, repos)}
                     className="border-[#3A332B] font-mono text-[10px] text-muted"
                   >
-                    <FileText className="mr-1.5 h-3 w-3 text-brass-light" />
+                    <FileText className="mr-1.5 h-3 w-3 text-white" />
                     Chronicle
                   </Button>
                 </div>
-                <div className="mt-4 border-t border-[#3A332B]/70 pt-4">
-                  <div className="flex items-center justify-between font-mono text-[10px] text-muted mb-2">
+                <div className="mt-4 border-t border-white/10 pt-4">
+                  <div className="flex items-center justify-between font-mono text-[10px] text-zinc-400 mb-2">
                     <span>Volume</span>
                     <span>{Math.round(volume * 100)}%</span>
                   </div>
@@ -626,7 +588,7 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
                       ambientSoundtrack.setVolume(v);
                       try { localStorage.setItem("github_time_machine_volume", v.toString()); } catch {}
                     }}
-                    className="w-full accent-brass-light"
+                    className="w-full accent-white"
                   />
                 </div>
               </div>
@@ -664,8 +626,8 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
           </AnimatePresence>
         </main>
 
-        <section className="absolute bottom-0 left-0 right-0 z-50 w-full border-t border-[#3A332B]/50 bg-[#0B0A09]/80 backdrop-blur-xl">
-          <div className="group relative h-1.5 w-full bg-[#1A1714] cursor-pointer" onClick={(e) => {
+        <section className="absolute bottom-0 left-0 right-0 z-50 w-full border-t border-white/10 bg-black/80 backdrop-blur-xl">
+          <div className="group relative h-1.5 w-full bg-zinc-900 cursor-pointer" onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
             const percentage = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
             engine.seek(Math.floor(percentage * engine.total));
@@ -676,10 +638,10 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
               return (
                 <div 
                   key={chapter.id}
-                  className="group/marker absolute top-0 bottom-0 w-px bg-white/20 z-30 hover:bg-brass-light hover:w-0.5 transition-all"
+                  className="group/marker absolute top-0 bottom-0 w-px bg-white/20 z-30 hover:bg-white hover:w-0.5 transition-all"
                   style={{ left: `${leftPercent}%` }}
                 >
-                  <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 opacity-0 transition-opacity group-hover/marker:opacity-100 bg-[#1A1714] border border-[#3A332B] px-2 py-1 rounded text-[10px] font-mono whitespace-nowrap text-brass-light z-50 shadow-xl">
+                  <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 opacity-0 transition-opacity group-hover/marker:opacity-100 bg-zinc-900 border border-white/10 px-2 py-1 rounded text-[10px] font-mono whitespace-nowrap text-white z-50 shadow-xl">
                     Chapter {i + 1}: {chapter.name}
                   </div>
                 </div>
@@ -700,9 +662,9 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
             })}
             
             {/* Progress fill */}
-            <div className="absolute left-0 top-0 bottom-0 bg-gradient-to-r from-[#8E6B35] via-brass to-brass-light transition-[width] duration-300 ease-out z-20" style={{ width: `${engine.progress}%` }}>
+            <div className="absolute left-0 top-0 bottom-0 bg-white transition-[width] duration-300 ease-out z-20" style={{ width: `${engine.progress}%` }}>
               {/* Glowing playhead */}
-              <div className="absolute right-0 top-1/2 h-2.5 w-2.5 -translate-y-1/2 translate-x-1/2 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.8),0_0_20px_rgba(216,181,108,0.6)] opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+              <div className="absolute right-0 top-1/2 h-2.5 w-2.5 -translate-y-1/2 translate-x-1/2 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)] opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
             </div>
           </div>
           
@@ -716,7 +678,7 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
               </Button>
               <Button
                 onClick={engine.togglePlay}
-                className="group relative flex h-12 w-12 items-center justify-center rounded-full bg-brass text-[#0B0A09] shadow-[0_0_24px_rgba(201,168,106,0.25)] transition-all duration-200 hover:scale-105 hover:bg-brass-light hover:shadow-[0_0_32px_rgba(216,181,108,0.4)] active:scale-95"
+                className="group relative flex h-12 w-12 items-center justify-center rounded-full bg-white text-black shadow-md transition-all duration-200 hover:scale-105 hover:bg-zinc-200 active:scale-95"
                 title="Play/Pause (Space)"
               >
                 <AnimatePresence>
@@ -729,7 +691,7 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
                       transition={{ duration: 0.15 }}
                       className="absolute inset-0 flex items-center justify-center"
                     >
-                      <Pause className="h-5 w-5 fill-[#0B0A09]" strokeWidth={1} />
+                      <Pause className="h-5 w-5 fill-black" strokeWidth={1} />
                     </motion.div>
                   ) : (
                     <motion.div
@@ -740,33 +702,33 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
                       transition={{ duration: 0.15 }}
                       className="absolute inset-0 flex items-center justify-center pl-1"
                     >
-                      <Play className="h-5 w-5 fill-[#0B0A09]" strokeWidth={1} />
+                      <Play className="h-5 w-5 fill-black" strokeWidth={1} />
                     </motion.div>
                   )}
                 </AnimatePresence>
               </Button>
-              <Button variant="ghost" size="icon" onClick={engine.stepForward} disabled={isFinal} className="h-10 w-10 text-muted hover:bg-white/5 hover:text-ivory" title="Next">
+              <Button variant="ghost" size="icon" onClick={engine.stepForward} disabled={isFinal} className="h-10 w-10 text-zinc-400 hover:bg-white/5 hover:text-white" title="Next">
                 <ChevronRight className="h-5 w-5" />
               </Button>
             </div>
 
             <div className="flex w-1/3 flex-col items-center justify-center text-center">
-              <span className="font-mono text-xs uppercase tracking-[0.2em] text-brass-light">
+              <span className="font-mono text-xs uppercase tracking-[0.2em] text-white">
                 {engine.currentMonthName} {engine.currentYear}
               </span>
-              <span className="mt-1 font-mono text-[10px] uppercase tracking-wider text-muted">
+              <span className="mt-1 font-mono text-[10px] uppercase tracking-wider text-zinc-500">
                 {engine.stats.commitsReplayed} Milestones Replayed
               </span>
             </div>
 
             <div className="flex w-1/3 items-center justify-end gap-1">
-              <div className="mr-4 hidden items-center gap-1 rounded-md border border-[#3A332B] bg-[#141210] p-1 sm:flex">
+              <div className="mr-4 hidden items-center gap-1 rounded-md border border-white/10 bg-black/50 p-1 sm:flex">
                 {([1, 2, 5] as const).map((speed) => (
                   <button
                     key={speed}
                     onClick={() => engine.setSpeed(speed)}
                     className={`rounded px-2 py-1 font-mono text-[10px] font-semibold transition-colors ${
-                      engine.speed === speed ? "bg-brass/20 text-brass-light" : "text-muted hover:text-ivory"
+                      engine.speed === speed ? "bg-white/10 text-white" : "text-zinc-500 hover:text-white"
                     }`}
                   >
                     {speed}×
@@ -778,8 +740,8 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
                 onClick={toggleSoundtrack}
                 className={`inline-flex h-10 w-10 items-center justify-center rounded-md border backdrop-blur-md transition-colors mr-1 sm:mr-2 ${
                   soundEnabled
-                    ? "border-brass/40 bg-brass/10 text-brass-light hover:bg-brass/20"
-                    : "border-transparent text-muted hover:bg-white/5 hover:text-ivory"
+                    ? "border-white/20 bg-white/10 text-white hover:bg-white/20"
+                    : "border-transparent text-zinc-500 hover:bg-white/5 hover:text-white"
                 }`}
                 title="Mute/Unmute"
               >

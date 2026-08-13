@@ -168,8 +168,8 @@ export function RepoSection({ repos, commits = [] }: RepoSectionProps) {
             onClick={() => setSelectedLang(null)}
             className={`rounded-full border px-4 py-1.5 text-xs font-mono transition-all duration-300 ${
               !selectedLang
-                ? "border-brass bg-brass font-bold text-ink shadow-[0_0_15px_rgba(212,168,83,0.3)]"
-                : "border-white/10 bg-white/5 text-muted hover:border-white/20 hover:text-ivory"
+                ? "border-white bg-white font-medium text-black shadow-sm"
+                : "border-white/10 bg-[#0A0A0A] text-zinc-400 hover:border-white/20 hover:text-white"
             }`}
           >
             All Languages
@@ -180,8 +180,8 @@ export function RepoSection({ repos, commits = [] }: RepoSectionProps) {
               onClick={() => setSelectedLang(lang)}
               className={`rounded-full border px-4 py-1.5 text-xs font-mono transition-all duration-300 ${
                 selectedLang === lang
-                  ? "border-white/30 bg-white/10 font-bold text-ivory shadow-[0_0_15px_rgba(255,255,255,0.1)]"
-                  : "border-white/10 bg-white/5 text-muted hover:border-white/20 hover:text-ivory"
+                  ? "border-white bg-white font-medium text-black shadow-sm"
+                  : "border-white/10 bg-[#0A0A0A] text-zinc-400 hover:border-white/20 hover:text-white"
               }`}
             >
               {lang}
@@ -214,15 +214,13 @@ export function RepoSection({ repos, commits = [] }: RepoSectionProps) {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-40px" }}
                   transition={{ duration: 0.4, delay: (index % 3) * 0.1, ease: "easeOut" }}
-                  className="cinematic-depth-card group relative flex min-h-[260px] flex-col justify-between overflow-hidden rounded-2xl border border-white/5 bg-[#0E0D0B]/80 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.5)] transition-all duration-300 ease-out hover:-translate-y-[4px] hover:scale-[1.01] hover:border-white/20 hover:shadow-[0_12px_35px_rgba(0,0,0,0.6),0_0_20px_rgba(255,255,255,0.05)]"
-                  style={{ transformStyle: 'preserve-3d', perspective: '1000px' }}
+                  className="cinematic-depth-card group relative flex min-h-[260px] flex-col justify-between overflow-hidden rounded-2xl border border-white/5 bg-[#0A0A0A] p-6 transition-all duration-300 ease-out"
                 >
                 {/* Cinematic Cover Background (subtle) */}
                 <div 
-                  className="absolute inset-0 opacity-[0.12] transition-opacity duration-500 group-hover:opacity-25"
+                  className="absolute inset-0 opacity-[0.06] transition-opacity duration-500 group-hover:opacity-[0.12]"
                   style={{ background: getCoverGradient(repo.name, repo.language || '') }}
                 />
-                <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-brass/0 blur-3xl transition-colors duration-500 group-hover:bg-brass/15" />
                 
                 {/* Content */}
                 <div className="relative z-10 flex flex-col h-full">
@@ -232,16 +230,16 @@ export function RepoSection({ repos, commits = [] }: RepoSectionProps) {
                         href={repo.html_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="line-clamp-1 font-display text-xl font-bold text-ivory transition-colors group-hover:text-brass-light"
+                        className="line-clamp-1 font-sans text-xl font-semibold tracking-tight text-white transition-colors group-hover:text-zinc-300"
                       >
                         {repo.name}
                       </a>
-                      <div className="flex items-center gap-1 rounded-md bg-white/5 px-2 py-0.5 border border-white/5">
-                        <Star className="h-3 w-3 text-brass" />
-                        <span className="font-mono text-[10px] text-ivory">{repo.stargazers_count}</span>
+                      <div className="flex items-center gap-1 rounded-md bg-white/5 px-2 py-0.5 border border-white/10">
+                        <Star className="h-3 w-3 text-zinc-400" />
+                        <span className="font-mono text-[10px] text-white">{repo.stargazers_count}</span>
                       </div>
                     </div>
-                    <p className="mt-4 line-clamp-3 text-base leading-relaxed text-muted/90 italic">
+                    <p className="mt-4 line-clamp-3 text-sm leading-relaxed text-zinc-400">
                       {repo.description && repo.description.length > 10 ? repo.description : generateUniqueRepoInsight(repo.name, repo.language || '')}
                     </p>
                   </div>

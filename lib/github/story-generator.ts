@@ -6,6 +6,32 @@ import {
   DeveloperInsights,
 } from "./types";
 
+export function cleanCommitMessage(msg: string): string {
+  if (!msg) return "the codebase";
+  
+  // Take only the first line
+  let cleaned = msg.split("\n")[0];
+  
+  // Handle merge commits
+  if (cleaned.startsWith("Merge ")) {
+    return "merging branches";
+  }
+  
+  // Remove conventional commit prefixes (e.g., "feat(ui): ", "fix: ")
+  cleaned = cleaned.replace(/^(feat|fix|chore|docs|style|refactor|perf|test|build|ci|env)(\([^)]+\))?:\s*/i, "");
+  
+  // Remove trailing issue numbers like (#123)
+  cleaned = cleaned.replace(/\s*\(#\d+\)\s*$/, "");
+  
+  // Trim and truncate
+  cleaned = cleaned.trim();
+  if (cleaned.length > 45) {
+    cleaned = cleaned.substring(0, 45) + "...";
+  }
+  
+  return cleaned || "the codebase";
+}
+
 const LANGUAGE_COLORS: Record<string, string> = {
   TypeScript: "#3178c6",
   JavaScript: "#f1e05a",
@@ -253,11 +279,13 @@ export function generateChaptersAndStories(
     else if (hour >= 17 && hour < 22) hourCounts.Evening++;
     else hourCounts.LateNight++;
 
+    const titleStr = cleanCommitMessage(ev.title || "");
+
     if (idx === 0) {
       ev.relativeActivity = "steady";
       ev.streakCount = 1;
       ev.impactBadge = "Inaugural Commit";
-      ev.impactDescription = "The first spark. Your inaugural repository marked the beginning.";
+      ev.impactDescription = `The first spark. "${titleStr}" marked the beginning.`;
       ev.impactType = "milestone";
       continue;
     }
@@ -271,12 +299,12 @@ export function generateChaptersAndStories(
       if (currentStreakCounter > maxStreak) {
         maxStreak = currentStreakCounter;
         ev.impactBadge = `Longest streak reached (${currentStreakCounter} days)`;
-        ev.impactDescription = "Unbroken momentum. You built a relentless rhythm.";
+        ev.impactDescription = `A continuous chain of effort. Deep focus on "${titleStr}" yielded compounded progress.`;
         ev.impactType = "streak";
       } else if (currentStreakCounter >= 3) {
         ev.relativeActivity = "breakthrough";
         ev.impactBadge = "High Velocity Surge";
-        ev.impactDescription = "A surge of creativity. Your momentum accelerated rapidly.";
+        ev.impactDescription = `A surge of creativity. Momentum accelerated rapidly while working on "${titleStr}".`;
         ev.impactType = "volume";
       }
     } else {
@@ -284,7 +312,7 @@ export function generateChaptersAndStories(
         ev.gapDays = dayDiff;
         if (dayDiff > maxGap) maxGap = dayDiff;
         ev.impactBadge = "Strong Comeback after Inactivity";
-        ev.impactDescription = `A renewed spark. You returned after ${dayDiff} days of quiet.`;
+        ev.impactDescription = `A renewed spark. You returned after ${dayDiff} days to tackle "${titleStr}".`;
         ev.impactType = "comeback";
       }
       currentStreakCounter = 1;
@@ -300,29 +328,29 @@ export function generateChaptersAndStories(
     if (ev.language && !seenLanguages.has(ev.language)) {
       seenLanguages.add(ev.language);
       ev.impactBadge = `First ${ev.language} Project`;
-      ev.impactDescription = `Crossing boundaries. You expanded your horizons into ${ev.language}.`;
+      ev.impactDescription = `Crossing boundaries. You expanded your horizons into ${ev.language} with "${titleStr}".`;
       ev.impactType = "language";
     }
 
     if (!ev.impactBadge) {
       if (idx % 4 === 0) {
         ev.impactBadge = "Architecture Refactor";
-        ev.impactDescription = `Structural shifts. You re-evaluated the core of ${ev.repoName}.`;
+        ev.impactDescription = `Structural shifts. Refactoring "${titleStr}" strengthened the core of ${ev.repoName}.`;
       } else if (idx % 3 === 0) {
         ev.impactBadge = "Critical Debugging";
-        ev.impactDescription = `Polishing the edges. You eliminated friction in the code.`;
+        ev.impactDescription = `Polishing the edges. Working on "${titleStr}" eliminated friction in the code.`;
       } else if (hour >= 22 || hour < 4) {
         ev.impactBadge = "Midnight Session";
-        ev.impactDescription = `Building the atmosphere. The world slept, but you kept coding.`;
+        ev.impactDescription = `The world slept, but you pushed forward with "${titleStr}".`;
       } else if (ev.title.toLowerCase().includes("feat") || ev.title.toLowerCase().includes("add")) {
         ev.impactBadge = "Feature Expansion";
-        ev.impactDescription = `Vision realized. A new capability breathed life into ${ev.repoName}.`;
+        ev.impactDescription = `Vision realized. Introducing "${titleStr}" breathed new life into ${ev.repoName}.`;
       } else if (ev.title.toLowerCase().includes("fix") || ev.title.toLowerCase().includes("bug")) {
         ev.impactBadge = "Bug Squashing";
-        ev.impactDescription = `Restoring balance. You methodically tracked down the flaw.`;
+        ev.impactDescription = `Restoring balance. You methodically addressed "${titleStr}".`;
       } else {
         ev.impactBadge = "Consistent Progress";
-        ev.impactDescription = `Another step forward. Small changes compounded into something greater.`;
+        ev.impactDescription = `Another step forward. "${titleStr}" compounded into something greater.`;
       }
     }
   }
@@ -331,16 +359,7 @@ export function generateChaptersAndStories(
   const chapters: Chapter[] = [];
   const chunkSize = 4;
   
-  const cinematicChapterNames = [
-    "The Beginning",
-    "Midnight Oil",
-    "Finding Momentum",
-    "The Breakthrough",
-    "Building the System",
-    "Refinement",
-    "The Long Run",
-    "Present Day"
-  ];
+
 
   let i = 0;
   let chapterIndex = 0;
@@ -353,18 +372,42 @@ export function generateChaptersAndStories(
 
     const chunk = annotatedEvents.slice(i, i + currentChunkSize);
     
-    // Rotate through chapter names
-    let cName = cinematicChapterNames[chapterIndex % cinematicChapterNames.length];
-
     const startEv = chunk[0];
     const endEv = chunk[chunk.length - 1];
     const startMonthYear = `${startEv.monthName} ${startEv.year}`;
-    const chunkRepos = Array.from(new Set(chunk.map((s) => s.repoName).filter(Boolean))) as string[];
-    const mainRepo = chunkRepos[0] || repos[0]?.name || "your codebase";
+    
+    const repoCounts: Record<string, number> = {};
+    chunk.forEach(c => {
+      if (c.repoName) {
+        repoCounts[c.repoName] = (repoCounts[c.repoName] || 0) + 1;
+      }
+    });
+    const chunkRepos = Object.keys(repoCounts).sort((a,b) => repoCounts[b] - repoCounts[a]);
+    const mainRepo = chunkRepos[0] || repos[0]?.name || "the codebase";
 
     const reposCreated = chunk.filter(c => c.type === "repo_created").length;
     const maxStreakInChunk = Math.max(0, ...chunk.map(c => c.streakCount || 0));
+    const fixes = chunk.filter(c => c.title?.toLowerCase().includes("fix") || c.title?.toLowerCase().includes("bug")).length;
+    const feats = chunk.filter(c => c.title?.toLowerCase().includes("feat") || c.title?.toLowerCase().includes("add")).length;
     
+    let cName = "The Next Chapter";
+    
+    if (chapterIndex === 0) {
+      cName = "The Beginning";
+    } else if (reposCreated > 0) {
+      cName = `The ${mainRepo} Era`;
+    } else if (maxStreakInChunk >= 5) {
+      cName = "Relentless Momentum";
+    } else if (fixes >= 2) {
+      cName = "The Refinement Phase";
+    } else if (feats >= 2) {
+      cName = `Expanding ${mainRepo}`;
+    } else if (chunkRepos.length === 1) {
+      cName = `Architecting ${mainRepo}`;
+    } else {
+      cName = `${startMonthYear} Sprint`;
+    }
+
     let narrative = `During ${startMonthYear}, focus sharpened on ${mainRepo}. ${chunk.length} milestones were reached as ideas turned into reality.`;
     if (reposCreated > 0 && maxStreakInChunk > 5) {
       narrative = `In ${startMonthYear}, you created ${reposCreated === 1 ? "a new repository" : `${reposCreated} new repositories`} and maintained a powerful ${maxStreakInChunk}-day coding streak.`;

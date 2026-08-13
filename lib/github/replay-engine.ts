@@ -261,20 +261,20 @@ export function useReplayEngine(
   const getEventDuration = (event: ReplayEvent | null, spd: 1 | 2 | 5, isFinal: boolean) => {
     if (!event) return 2500 / spd;
 
-    let baseDuration = 2500; // Standard commit: 2.5s
+    let baseDuration = 3200; // Standard commit: 3.2s
     
     if (isFinal) {
-      baseDuration = 4000;
+      baseDuration = 5000;
     } else if (event.type === "repo_created") {
-      baseDuration = 3000;
+      baseDuration = 4000;
     } else if (event.type === "year_milestone" || event.type === "month_summary") {
-      baseDuration = 4500;
+      baseDuration = 5500;
     } else if (
       event.title?.toLowerCase().includes("major") || 
       event.title?.toLowerCase().includes("refactor") ||
       event.title?.toLowerCase().includes("initial")
     ) {
-      baseDuration = 5500;
+      baseDuration = 6500;
     }
     
     return baseDuration / spd;

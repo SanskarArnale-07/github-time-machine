@@ -97,29 +97,29 @@ export function TimelineView({
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col items-start justify-between gap-5 md:flex-row md:items-center">
-        <div>
-          <h2 className="font-display text-3xl sm:text-4xl font-bold text-ivory">Developer Journal</h2>
-          <p className="mt-2 text-sm sm:text-base text-muted max-w-xl">
+    <div className="space-y-6">
+      <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
+        <div className="mb-2 md:mb-0">
+          <h2 className="font-sans tracking-tight text-3xl font-semibold text-white">Developer Journal</h2>
+          <p className="mt-1 text-sm sm:text-base text-zinc-400 max-w-xl leading-relaxed">
             {totalCommits} entries across time. Merge commits are hidden and repetitive updates are grouped for a focused narrative.
           </p>
         </div>
 
-        <div className="flex w-full md:w-auto md:ml-auto flex-wrap items-center justify-end gap-4">
-          <div className="relative flex-grow md:flex-grow-0">
-            <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" />
+        <div className="flex w-full md:w-auto flex-nowrap items-center gap-3">
+          <div className="relative flex-1 sm:w-64">
+            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
             <input
               type="text"
               placeholder="Search entries..."
-              className="w-full rounded-full border border-ink-border bg-ink-soft/50 py-3 pl-12 pr-5 text-base text-ivory placeholder-muted focus:border-brass focus:outline-none focus:ring-1 focus:ring-brass/50 md:w-72 transition-all"
+              className="h-10 w-full rounded-full border border-white/10 bg-[#0A0A0A] py-2 pl-10 pr-4 text-sm text-white placeholder-zinc-500 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 transition-all m-0"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
 
           <select
-            className="cursor-pointer rounded-full border border-ink-border bg-ink-soft/50 px-6 py-3 text-base text-ivory focus:border-brass focus:outline-none focus:ring-1 focus:ring-brass/50 transition-all"
+            className="h-10 cursor-pointer rounded-full border border-white/10 bg-[#0A0A0A] pl-4 pr-8 py-2 text-sm text-white focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 transition-all m-0 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%24%2024%22%20fill%3D%22none%22%20stroke%3D%22%2371717a%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:1em] bg-[right_0.5rem_center] bg-no-repeat"
             value={selectedRepo}
             onChange={(e) => setSelectedRepo(e.target.value)}
             aria-label="Filter by repository"
