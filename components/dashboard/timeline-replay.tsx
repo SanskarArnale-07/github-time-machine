@@ -72,6 +72,38 @@ export function TimelineReplay({
   const [showControlsDrawer, setShowControlsDrawer] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
 
+  // HUD Auto-hide state
+  const [isHUDVisible, setIsHUDVisible] = useState(true);
+  const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleMouseMove = () => {
+    setIsHUDVisible(true);
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    
+    // Only auto-hide if playing
+    if (engine.isPlaying) {
+      hideTimerRef.current = setTimeout(() => {
+        setIsHUDVisible(false);
+      }, 1000);
+    }
+  };
+
+  useEffect(() => {
+    if (!engine.isPlaying) {
+      setIsHUDVisible(true);
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    } else {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = setTimeout(() => {
+        setIsHUDVisible(false);
+      }, 1000);
+    }
+    
+    return () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    };
+  }, [engine.isPlaying]);
+
   // Load user's saved audio preference from localStorage
   useEffect(() => {
     try {
@@ -268,33 +300,15 @@ export function TimelineReplay({
   return (
     <div
       ref={containerRef}
+      onMouseMove={handleMouseMove}
       className={`relative flex flex-col overflow-hidden font-sans transition-opacity duration-1000 ease-in-out ${
-        isFullscreen ? "fixed inset-0 z-[100] bg-[#09090B] h-screen w-screen" : "h-full w-full bg-transparent"
-      }`}
+        isFullscreen ? "fixed inset-0 z-[100] bg-[#0A0A0A] h-screen w-screen" : "h-full w-full bg-transparent"
+      } ${!isHUDVisible ? "cursor-none" : ""}`}
     >
       <div className="relative flex h-full w-full flex-col justify-between p-4 pb-28 sm:p-6 sm:pb-32 lg:p-8 lg:pb-32">
-      {/* 1. Ambient cosmic glow */}
-      <div
-        className="pointer-events-none absolute -left-20 -top-20 h-96 w-96 rounded-full blur-3xl transition-all duration-1000 ease-out"
-        style={{
-          backgroundColor: engine.eraColor.glow,
-          transform: `translate(${engine.progress * 0.3}px, ${
-            engine.progress * 0.15
-          }px)`,
-        }}
-      />
-      <div
-        className="pointer-events-none absolute -bottom-20 -right-20 h-96 w-96 rounded-full blur-3xl transition-all duration-1000 ease-out"
-        style={{
-          backgroundColor: engine.eraColor.glow,
-          transform: `translate(-${engine.progress * 0.3}px, -${
-            engine.progress * 0.15
-          }px)`,
-        }}
-      />
 
       {/* Top Header: Always Minimal & Readable */}
-      <div className={`relative z-10 flex flex-wrap items-center justify-between gap-4 border-b border-zinc-800/65 pb-6 ${isFullscreen ? 'w-[85%] mx-auto' : ''}`}>
+      <div className={`relative z-10 flex flex-wrap items-center justify-between gap-4 border-b border-zinc-800/65 pb-6 transition-all duration-300 ease-in-out ${isHUDVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full pointer-events-none"} ${isFullscreen ? 'w-[85%] mx-auto' : ''}`}>
         <div className="flex items-center gap-3">
           <div
             className={`flex items-center justify-center rounded-xl border bg-zinc-950/80 shadow-md transition-all duration-500 ${isFullscreen ? 'h-12 w-12' : 'h-10 w-10'}`}
@@ -320,17 +334,19 @@ export function TimelineReplay({
               >
                 Developer Odyssey
               </span>
-              <span
-                className={`inline-flex items-center rounded-full border px-2 py-0.5 font-mono text-[9px] font-medium transition-all ${
-                  engine.isPlaying
-                    ? "border-brass/45 bg-brass/10 text-brass-light shadow-[0_0_10px_rgba(212,168,83,0.2)]"
-                    : "border-zinc-800 bg-zinc-950 text-zinc-500"
-                }`}
-              >
-                {engine.isPlaying ? "Playing 1x" : "Paused"}
-              </span>
+              {!isFullscreen && (
+                <span
+                  className={`inline-flex items-center rounded-full border px-2 py-0.5 font-mono text-[9px] font-medium transition-all ${
+                    engine.isPlaying
+                      ? "border-brass/45 bg-brass/10 text-brass-light shadow-[0_0_10px_rgba(212,168,83,0.2)]"
+                      : "border-zinc-800 bg-zinc-950 text-zinc-500"
+                  }`}
+                >
+                  {engine.isPlaying ? "Playing 1x" : "Paused"}
+                </span>
+              )}
             </div>
-            <h2 className="font-display tracking-tight text-ivory text-4xl sm:text-5xl lg:text-6xl font-semibold mt-1">
+            <h2 className={`font-display tracking-tight text-white mt-1 ${isFullscreen ? 'text-5xl lg:text-6xl font-bold' : 'text-4xl sm:text-5xl font-semibold'}`}>
               {currentChapter?.name || "The Developer Journey"}
             </h2>
           </div>
@@ -339,32 +355,34 @@ export function TimelineReplay({
         {/* Action Toolbar */}
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Ambient Soundtrack Toggle (Muted by default) */}
-          <button
-            onClick={toggleSoundtrack}
-            className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 font-mono text-xs transition-all ${
-              soundEnabled
-                ? "border-brass bg-brass/10 text-brass-light shadow-[0_0_15px_rgba(212,168,83,0.15)]"
-                : "border-zinc-800 bg-zinc-950/50 text-zinc-500 hover:text-ivory"
-            }`}
-            title="Toggle inspiring ambient piano soundtrack (Default: Muted)"
-          >
-            {soundEnabled ? (
-              <>
-                <Volume2 className="h-3.5 w-3.5 text-brass-light animate-pulse" />
-                <span className="hidden sm:inline">Piano On</span>
-              </>
-            ) : (
-              <>
-                <VolumeX className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Muted</span>
-              </>
-            )}
-          </button>
+          {!isFullscreen && (
+            <button
+              onClick={toggleSoundtrack}
+              className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 font-mono text-xs transition-all ${
+                soundEnabled
+                  ? "border-brass bg-brass/10 text-brass-light shadow-[0_0_15px_rgba(212,168,83,0.15)]"
+                  : "border-zinc-800 bg-zinc-950/50 text-zinc-500 hover:text-ivory"
+              }`}
+              title="Toggle inspiring ambient piano soundtrack (Default: Muted)"
+            >
+              {soundEnabled ? (
+                <>
+                  <Volume2 className="h-3.5 w-3.5 text-brass-light animate-pulse" />
+                  <span className="hidden sm:inline">Piano On</span>
+                </>
+              ) : (
+                <>
+                  <VolumeX className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Muted</span>
+                </>
+              )}
+            </button>
+          )}
 
           {/* Date Odometer */}
           <div className="flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-950/80 px-3.5 py-1.5 shadow-inner">
             <Calendar className="h-3.5 w-3.5 text-brass-light" />
-            <span className="font-display text-lg font-bold tracking-tight text-ivory">
+            <span className="font-display text-lg font-bold tracking-tight text-white">
               {engine.currentYear}
             </span>
             <span className="font-mono text-xs text-zinc-500">
@@ -373,30 +391,30 @@ export function TimelineReplay({
           </div>
 
           {/* Fullscreen Toggle */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleFullscreen}
-            title="Toggle Fullscreen Replay Theater (F)"
-            className="h-8 w-8 p-0 text-zinc-500 hover:text-ivory"
-          >
-            {isFullscreen ? (
-              <Minimize2 className="h-4 w-4" />
-            ) : (
+          {!isFullscreen && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleFullscreen}
+              title="Toggle Fullscreen Replay Theater (F)"
+              className="h-8 w-8 p-0 text-zinc-500 hover:text-ivory"
+            >
               <Maximize2 className="h-4 w-4" />
-            )}
-          </Button>
+            </Button>
+          )}
 
           {/* Controls Drawer Toggle */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowControlsDrawer(!showControlsDrawer)}
-            className="h-8 border-zinc-800 px-2.5 font-mono text-xs text-zinc-500 hover:text-ivory"
-          >
-            <Sliders className="mr-1 h-3 w-3 text-brass-light" />
-            <span>{showControlsDrawer ? "Hide Controls" : "Controls"}</span>
-          </Button>
+          {!isFullscreen && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowControlsDrawer(!showControlsDrawer)}
+              className="h-8 border-zinc-800 px-2.5 font-mono text-xs text-zinc-500 hover:text-ivory"
+            >
+              <Sliders className="mr-1 h-3 w-3 text-brass-light" />
+              <span>{showControlsDrawer ? "Hide Controls" : "Controls"}</span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -585,62 +603,64 @@ export function TimelineReplay({
             </div>
           </div>
         ) : (
-          /* Minimalist, Clean Replay Card (Centered, Max 300px height) */
+          /* Minimalist, Clean Replay Card */
           <div
-            className={`glass-card cinematic-depth-card relative w-full max-w-3xl mx-auto overflow-hidden transition-opacity duration-1000 ease-in-out shadow-2xl flex flex-col border-zinc-800 bg-[#161618]/95 p-6 sm:p-8`}
-            style={{ borderColor: engine.eraColor.border, maxHeight: "300px" }}
+            className={`relative w-full ${isFullscreen ? 'max-w-4xl flex flex-col items-center text-center justify-center' : 'max-w-3xl glass-card cinematic-depth-card shadow-2xl border-zinc-800 bg-[#161618]/95 p-6 sm:p-8'} mx-auto overflow-hidden transition-all duration-500 ease-in-out flex flex-col`}
+            style={!isFullscreen ? { borderColor: engine.eraColor.border, maxHeight: "300px" } : {}}
           >
-            <div className="pointer-events-none absolute inset-0 bg-scan-line opacity-5" />
+            {!isFullscreen && <div className="pointer-events-none absolute inset-0 bg-scan-line opacity-5" />}
 
             {currentEvent?.type === "repo_created" ? (
-              <div className="relative z-10 flex flex-col gap-4 select-text">
-                <div className="flex items-center justify-between gap-2 border-b border-zinc-800/80 pb-3">
+              <div className={`relative z-10 flex flex-col gap-4 select-text ${isFullscreen ? 'items-center' : ''}`}>
+                <div className={`flex flex-wrap items-center gap-2 ${!isFullscreen ? 'justify-between border-b border-zinc-800/80 pb-3' : ''}`}>
                   <span className="inline-flex items-center gap-1.5 rounded-lg border border-brass-dim/50 bg-brass/10 px-3 py-1 font-mono text-xs font-medium text-brass-light">
                     <FolderGit2 className="h-3.5 w-3.5" />
                     New Repository Founded
                   </span>
-                  <span className="font-mono text-xs text-zinc-500">{formattedDate}</span>
+                  {!isFullscreen && <span className="font-mono text-xs text-zinc-500">{formattedDate}</span>}
                 </div>
 
-                <div className="py-2">
-                  <h3 className="font-display text-2xl font-semibold text-ivory sm:text-3xl lg:text-4xl">
+                <div className={`py-2 ${isFullscreen ? 'text-center mt-6' : ''}`}>
+                  <h3 className={`font-display font-semibold text-white ${isFullscreen ? 'text-4xl sm:text-5xl lg:text-7xl font-bold' : 'text-2xl sm:text-3xl lg:text-4xl'}`}>
                     {currentEvent.repoName}
                   </h3>
-                  <p className="mt-2 font-sans text-xs leading-relaxed text-zinc-400 sm:text-sm">
+                  <p className={`font-sans leading-relaxed text-zinc-400 ${isFullscreen ? 'mt-6 text-lg sm:text-xl max-w-2xl mx-auto' : 'mt-2 text-xs sm:text-sm'}`}>
                     {currentEvent.description || "Inaugural repository initialized."}
                   </p>
                 </div>
 
-                <div className="flex items-center justify-between border-t border-zinc-800/80 pt-3 font-mono text-xs text-zinc-500">
-                  {currentEvent.language && (
-                    <span className="inline-flex items-center gap-1.5 text-ivory">
-                      <span
-                        className="h-2 w-2 rounded-full"
-                        style={{
-                          backgroundColor:
-                            currentEvent.languageColor || "#D4A853",
-                        }}
-                      />
-                      {currentEvent.language}
-                    </span>
-                  )}
-                  {currentEvent.repoUrl && (
-                    <a
-                      href={currentEvent.repoUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center gap-1 text-brass-light hover:text-ivory"
-                    >
-                      <span>View Repository</span>
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  )}
-                </div>
+                {!isFullscreen && (
+                  <div className="flex items-center justify-between border-t border-zinc-800/80 pt-3 font-mono text-xs text-zinc-500">
+                    {currentEvent.language && (
+                      <span className="inline-flex items-center gap-1.5 text-ivory">
+                        <span
+                          className="h-2 w-2 rounded-full"
+                          style={{
+                            backgroundColor:
+                              currentEvent.languageColor || "#D4A853",
+                          }}
+                        />
+                        {currentEvent.language}
+                      </span>
+                    )}
+                    {currentEvent.repoUrl && (
+                      <a
+                        href={currentEvent.repoUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-1 text-brass-light hover:text-ivory"
+                      >
+                        <span>View Repository</span>
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               /* Summarized Chapter Commit Card: Repo Badge, Date, Title, 1-sentence summary */
-              <div className="relative z-10 flex flex-col gap-5 select-text">
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800/60 pb-4 transition-all duration-500 ease-in-out">
+              <div className={`relative z-10 flex flex-col select-text ${isFullscreen ? 'items-center gap-8' : 'gap-5'}`}>
+                <div className={`flex flex-wrap items-center gap-3 transition-all duration-500 ease-in-out ${!isFullscreen ? 'justify-between border-b border-zinc-800/60 pb-4' : 'justify-center'}`}>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="inline-flex items-center gap-1.5 rounded-md border border-zinc-700/60 bg-zinc-800/50 px-3 py-1 font-mono text-xs font-semibold text-zinc-200 shadow-sm">
                       <FolderGit2 className="h-3.5 w-3.5 text-brass-light" />
@@ -651,20 +671,22 @@ export function TimelineReplay({
                       {commit?.sha?.substring(0, 7) || "commit"}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-3.5 w-3.5 text-zinc-500" />
-                    <span className="font-mono text-xs text-zinc-300 font-medium">{formattedDate}</span>
-                  </div>
+                  {!isFullscreen && (
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-3.5 w-3.5 text-zinc-500" />
+                      <span className="font-mono text-xs text-zinc-300 font-medium">{formattedDate}</span>
+                    </div>
+                  )}
                 </div>
 
-                <div className="py-2 transition-all duration-500 ease-in-out">
-                  <h3 className={`font-display font-medium leading-snug tracking-tight text-ivory line-clamp-2 ${isFullscreen ? 'text-4xl' : 'text-2xl sm:text-3xl'}`}>
+                <div className={`transition-all duration-500 ease-in-out ${isFullscreen ? 'py-4' : 'py-2'}`}>
+                  <h3 className={`font-display font-medium leading-snug tracking-tight text-white ${isFullscreen ? 'text-4xl sm:text-5xl lg:text-6xl font-bold max-w-4xl text-center' : 'text-2xl sm:text-3xl line-clamp-2'}`}>
                     {currentEvent?.title}
                   </h3>
                 </div>
 
                 {/* GitHub Description / Summary */}
-                <div className="text-sm md:text-base font-sans text-zinc-300 leading-relaxed transition-all duration-500 ease-in-out">
+                <div className={`font-sans leading-relaxed transition-all duration-500 ease-in-out text-zinc-400 ${isFullscreen ? 'text-lg sm:text-xl max-w-2xl text-center mx-auto' : 'text-sm md:text-base line-clamp-2'}`}>
                   {currentEvent?.description || currentEvent?.impactDescription || (commit?.message ? commit.message.split('\n')[0] : "Codebase updated.")}
                 </div>
 
@@ -723,7 +745,7 @@ export function TimelineReplay({
       </div>
 
       {/* Persistent Cinematic Control Dock */}
-      <div className="fixed bottom-0 left-0 w-full bg-gradient-to-t from-black/90 via-black/60 to-transparent pt-12 pb-6 px-4 z-50">
+      <div className={`fixed bottom-0 left-0 w-full bg-gradient-to-t from-black/90 via-black/60 to-transparent pt-12 pb-6 px-4 z-50 transition-all duration-300 ease-in-out ${isHUDVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-full pointer-events-none"}`}>
         <div className="glass-card flex flex-wrap items-center justify-between gap-4 p-3.5 mx-auto max-w-5xl shadow-2xl border-white/5 bg-[#0B0A09]/90 backdrop-blur-xl">
           {/* Speed Controls */}
           <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-ink-surface p-1">

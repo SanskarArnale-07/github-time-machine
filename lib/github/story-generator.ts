@@ -390,6 +390,43 @@ export function generateChaptersAndStories(
     const fixes = chunk.filter(c => c.title?.toLowerCase().includes("fix") || c.title?.toLowerCase().includes("bug")).length;
     const feats = chunk.filter(c => c.title?.toLowerCase().includes("feat") || c.title?.toLowerCase().includes("add")).length;
     
+    const streakNames = [
+      "Relentless Momentum",
+      "Unstoppable Force",
+      "In the Zone",
+      "Deep Work Sprint",
+      "Consistency is Key",
+      "Unbroken Chain",
+      "Velocity Maintained",
+      "The Flow State"
+    ];
+
+    const fixNames = [
+      "The Refinement Phase",
+      "Squashing Bugs",
+      "Stabilizing the Core",
+      "Polishing the Edges",
+      "Attention to Detail",
+      "Ironing Out Kinks"
+    ];
+
+    const featNames = [
+      `Expanding ${mainRepo}`,
+      `New Horizons for ${mainRepo}`,
+      `Feature Rush`,
+      `Building Out ${mainRepo}`,
+      `Vision Realized`,
+      `Shipping Value`
+    ];
+    
+    const archNames = [
+      `Architecting ${mainRepo}`,
+      `Deep Dive into ${mainRepo}`,
+      `Sole Focus on ${mainRepo}`,
+      `The ${mainRepo} Monolith`,
+      `Dedicated to ${mainRepo}`
+    ];
+
     let cName = "The Next Chapter";
     
     if (chapterIndex === 0) {
@@ -397,13 +434,13 @@ export function generateChaptersAndStories(
     } else if (reposCreated > 0) {
       cName = `The ${mainRepo} Era`;
     } else if (maxStreakInChunk >= 5) {
-      cName = "Relentless Momentum";
+      cName = streakNames[chapterIndex % streakNames.length];
     } else if (fixes >= 2) {
-      cName = "The Refinement Phase";
+      cName = fixNames[chapterIndex % fixNames.length];
     } else if (feats >= 2) {
-      cName = `Expanding ${mainRepo}`;
+      cName = featNames[chapterIndex % featNames.length];
     } else if (chunkRepos.length === 1) {
-      cName = `Architecting ${mainRepo}`;
+      cName = archNames[chapterIndex % archNames.length];
     } else {
       cName = `${startMonthYear} Sprint`;
     }
