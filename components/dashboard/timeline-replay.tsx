@@ -75,8 +75,18 @@ export function TimelineReplay({
   // HUD Auto-hide state
   const [isHUDVisible, setIsHUDVisible] = useState(true);
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastMousePos = useRef({ x: 0, y: 0 });
 
-  const handleMouseMove = () => {
+  const handleMouseMove = (e: React.MouseEvent) => {
+    // Prevent phantom mousemoves from CSS animations from resetting the timer
+    const isActuallyMoving = 
+      Math.abs(e.clientX - lastMousePos.current.x) > 2 || 
+      Math.abs(e.clientY - lastMousePos.current.y) > 2;
+      
+    if (!isActuallyMoving) return;
+    
+    lastMousePos.current = { x: e.clientX, y: e.clientY };
+    
     setIsHUDVisible(true);
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
     
@@ -302,7 +312,7 @@ export function TimelineReplay({
       ref={containerRef}
       onMouseMove={handleMouseMove}
       className={`relative flex flex-col overflow-hidden font-sans transition-opacity duration-1000 ease-in-out ${
-        isFullscreen ? "fixed inset-0 z-[100] bg-[#0A0A0A] h-screen w-screen" : "h-full w-full bg-transparent"
+        isFullscreen ? "fixed inset-0 z-[100] bg-black h-screen w-screen" : "h-full w-full bg-transparent"
       } ${!isHUDVisible ? "cursor-none" : ""}`}
     >
       <div className="relative flex h-full w-full flex-col justify-between p-4 pb-28 sm:p-6 sm:pb-32 lg:p-8 lg:pb-32">
@@ -557,8 +567,8 @@ export function TimelineReplay({
       <div className="relative z-10 flex flex-col items-center justify-center w-full flex-1">
         {isAtEnd ? (
           /* Netflix-style Ending Scene */
-          <div className="glass-card-glow relative w-[80%] max-w-4xl p-8 text-center sm:p-12 border-zinc-800 bg-zinc-900/90 shadow-2xl">
-            <div className="pointer-events-none absolute inset-0 bg-scan-line opacity-5" />
+          <div className={`${isFullscreen ? 'bg-transparent border-0' : 'glass-card-glow border-zinc-800 bg-zinc-900/90 shadow-2xl'} relative w-[80%] max-w-4xl p-8 text-center sm:p-12`}>
+            {!isFullscreen && <div className="pointer-events-none absolute inset-0 bg-scan-line opacity-5" />}
             <div className="relative z-10 mx-auto flex max-w-2xl flex-col items-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-brass bg-brass/10 text-brass-light shadow-lg">
                 <Award className="h-7 w-7 animate-bounce" />

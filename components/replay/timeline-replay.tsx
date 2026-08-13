@@ -329,6 +329,47 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
 
   const [volume, setVolume] = useState(0.22);
 
+  // HUD Auto-hide state
+  const [isHUDVisible, setIsHUDVisible] = useState(true);
+  const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastMousePos = useRef({ x: 0, y: 0 });
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    // Prevent phantom mousemoves from CSS animations from resetting the timer
+    const isActuallyMoving = 
+      Math.abs(e.clientX - lastMousePos.current.x) > 2 || 
+      Math.abs(e.clientY - lastMousePos.current.y) > 2;
+      
+    if (!isActuallyMoving) return;
+    
+    lastMousePos.current = { x: e.clientX, y: e.clientY };
+    
+    setIsHUDVisible(true);
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    
+    if (engine.isPlaying) {
+      hideTimerRef.current = setTimeout(() => {
+        setIsHUDVisible(false);
+      }, 1000);
+    }
+  };
+
+  useEffect(() => {
+    if (!engine.isPlaying) {
+      setIsHUDVisible(true);
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    } else {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = setTimeout(() => {
+        setIsHUDVisible(false);
+      }, 1000);
+    }
+    
+    return () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    };
+  }, [engine.isPlaying]);
+
   const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
       theaterRef.current?.requestFullscreen().catch(() => undefined);
@@ -499,7 +540,7 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
   const mostActiveMonth = engine.events.filter(e => e.type === "month_summary").sort((a,b) => (b.monthlySummary?.totalCommits || 0) - (a.monthlySummary?.totalCommits || 0))[0]?.monthName || "October";
 
   return (
-    <div ref={theaterRef} className="replay-theater">
+    <div ref={theaterRef} className="replay-theater" onMouseMove={handleMouseMove}>
       {/* Persistent Chapter HUD */}
       <AnimatePresence>
         {engine.currentChapter && (
@@ -508,7 +549,7 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="absolute bottom-24 right-6 sm:bottom-28 sm:right-8 z-30 flex flex-col items-end text-right"
+            className={`absolute bottom-24 right-6 sm:bottom-28 sm:right-8 z-30 flex flex-col items-end text-right transition-all duration-300 ease-in-out ${isHUDVisible ? "opacity-100" : "opacity-0 pointer-events-none"}`}
           >
             <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-zinc-500">
               Chapter {chapterIndex + 1}
@@ -523,11 +564,13 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
         )}
       </AnimatePresence>
 
-      <div className="replay-fullscreen-background">
-        <ReplayBackground />
-      </div>
-      <div className="replay-safe-frame absolute inset-0 flex flex-col items-center justify-center overflow-hidden">
-        <header className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 sm:px-8 pt-4 pb-0">
+      {!isFullscreen && (
+        <div className="replay-fullscreen-background">
+          <ReplayBackground />
+        </div>
+      )}
+      <div className={`replay-safe-frame absolute inset-0 flex flex-col items-center justify-center overflow-hidden ${isFullscreen ? 'bg-black' : ''} ${!isHUDVisible && isFullscreen ? 'cursor-none' : ''}`}>
+        <header className={`absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 sm:px-8 pt-4 pb-0 transition-all duration-300 ease-in-out ${isHUDVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full pointer-events-none"} ${isFullscreen ? 'hidden' : ''}`}>
           <a
             href="/dashboard"
             className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/60 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-400 backdrop-blur-md transition-colors hover:border-white/20 hover:text-white"
@@ -626,7 +669,7 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
           </AnimatePresence>
         </main>
 
-        <section className="absolute bottom-0 left-0 right-0 z-50 w-full border-t border-white/10 bg-black/80 backdrop-blur-xl">
+        <section className={`absolute bottom-0 left-0 right-0 z-50 w-full border-t border-white/10 bg-black/80 backdrop-blur-xl transition-all duration-300 ease-in-out ${isHUDVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-full pointer-events-none"}`}>
           <div className="group relative h-1.5 w-full bg-zinc-900 cursor-pointer" onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
             const percentage = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
