@@ -9,6 +9,7 @@ import {
   ReplayStats,
 } from "./types";
 import { generateChaptersAndStories } from "./story-generator";
+import { buildRepoDocumentaryEvents } from "./documentary-engine";
 
 const ERA_COLORS: Record<number, { accent: string; glow: string; border: string }> = {
   0: { accent: "#D8B56C", glow: "rgba(216,181,108,0.15)", border: "rgba(216,181,108,0.38)" }, // Muted gold
@@ -569,6 +570,320 @@ export function useReplayEngine(
   const stats: ReplayStats = {
     currentYear,
     currentRepo: currentEvent?.repoName || (repos[0]?.name ?? "Codebase"),
+    currentStreak: currentEvent?.streakCount || 1,
+    commitsReplayed: visibleCommits.length,
+    remainingEvents: Math.max(0, total - (currentIndex + 1)),
+    elapsedSeconds,
+    formattedDuration,
+  };
+
+  return {
+    events,
+    chapters,
+    currentIndex,
+    isPlaying,
+    speed,
+    progress,
+    total,
+    currentEvent,
+    currentChapter,
+    currentYear,
+    currentMonthName,
+    startYear,
+    endYear,
+    eraColor,
+    isYearMilestone,
+    stats,
+    visibleEvents,
+    visibleCommits,
+    visibleRepos,
+    yearProgress,
+    play,
+    pause,
+    togglePlay,
+    replay,
+    seek,
+    seekFraction,
+    stepBack,
+    stepForward,
+    skipBy,
+    skipYear,
+    jumpToChapter,
+    setSpeed,
+  };
+}
+
+/**
+ * Unified Repo Documentary Engine Hook.
+ * Works exactly like useReplayEngine but builds specifically the 7 documentary milestones.
+ */
+export function useRepoDocumentaryEngine(
+  commits: GitHubCommit[],
+  repo: GitHubRepo
+): ReplayEngineControls {
+  const { events, chapters } = useMemo(
+    () => buildRepoDocumentaryEvents(commits, repo),
+    [commits, repo]
+  );
+
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [speed, setSpeed] = useState<1 | 2 | 5>(1);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  const getEventDuration = (event: ReplayEvent | null, spd: 1 | 2 | 5, isFinal: boolean) => {
+    if (!event) return 2500 / spd;
+    let baseDuration = 6500; // scenes in documentary should be longer
+    if (isFinal) {
+      baseDuration = 8000;
+    }
+    return baseDuration / spd;
+  };
+
+  const animFrameRef = useRef<number | null>(null);
+  const lastAdvanceTimeRef = useRef<number | null>(null);
+
+  const currentIndexRef = useRef(currentIndex);
+  currentIndexRef.current = currentIndex;
+
+  const isPlayingRef = useRef(isPlaying);
+  isPlayingRef.current = isPlaying;
+
+  const speedRef = useRef(speed);
+  speedRef.current = speed;
+
+  const total = events.length;
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (isPlaying) {
+      interval = setInterval(() => {
+        setElapsedSeconds((prev) => prev + 1);
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isPlaying]);
+
+  useEffect(() => {
+    if (!isPlaying || total === 0) {
+      if (animFrameRef.current !== null) {
+        cancelAnimationFrame(animFrameRef.current);
+        animFrameRef.current = null;
+      }
+      lastAdvanceTimeRef.current = null;
+      return;
+    }
+
+    const tick = (now: number) => {
+      if (!lastAdvanceTimeRef.current) {
+        lastAdvanceTimeRef.current = now;
+      }
+
+      const elapsed = now - lastAdvanceTimeRef.current;
+      const currentEvt = events[currentIndexRef.current];
+      const isFin = currentIndexRef.current >= total - 1;
+      const targetInterval = getEventDuration(currentEvt, speedRef.current, isFin);
+
+      if (elapsed >= targetInterval) {
+        const nextIndex = currentIndexRef.current + 1;
+
+        if (nextIndex >= total) {
+          setCurrentIndex(total - 1);
+          setIsPlaying(false);
+          lastAdvanceTimeRef.current = null;
+          return;
+        }
+
+        setCurrentIndex(nextIndex);
+        lastAdvanceTimeRef.current = now;
+      }
+
+      animFrameRef.current = requestAnimationFrame(tick);
+    };
+
+    animFrameRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      if (animFrameRef.current !== null) {
+        cancelAnimationFrame(animFrameRef.current);
+        animFrameRef.current = null;
+      }
+    };
+  }, [isPlaying, total]);
+
+  const play = useCallback(() => {
+    if (currentIndex >= total - 1) {
+      setCurrentIndex(0);
+    }
+    setIsPlaying(true);
+  }, [currentIndex, total]);
+
+  const pause = useCallback(() => {
+    setIsPlaying(false);
+  }, []);
+
+  const togglePlay = useCallback(() => {
+    if (isPlaying) pause();
+    else play();
+  }, [isPlaying, pause, play]);
+
+  const replay = useCallback(() => {
+    setIsPlaying(false);
+    setCurrentIndex(0);
+    setElapsedSeconds(0);
+    setTimeout(() => setIsPlaying(true), 50);
+  }, []);
+
+  const seek = useCallback(
+    (index: number) => {
+      const target = Math.max(0, Math.min(total - 1, index));
+      setCurrentIndex(target);
+    },
+    [total]
+  );
+
+  const seekFraction = useCallback(
+    (fraction: number) => {
+      if (total <= 1) return;
+      const target = Math.round(fraction * (total - 1));
+      seek(target);
+    },
+    [total, seek]
+  );
+
+  const stepBack = useCallback(() => {
+    seek(currentIndex - 1);
+  }, [currentIndex, seek]);
+
+  const stepForward = useCallback(() => {
+    seek(currentIndex + 1);
+  }, [currentIndex, seek]);
+
+  const skipBy = useCallback(
+    (count: number) => {
+      seek(currentIndex + count);
+    },
+    [currentIndex, seek]
+  );
+
+  const skipYear = useCallback(
+    (direction: 1 | -1) => {
+      if (total === 0) return;
+      const currentEv = events[currentIndex];
+      const targetYear = currentEv ? currentEv.year + direction : null;
+      if (targetYear === null) return;
+      if (direction === 1) {
+        const nextYearIndex = events.findIndex(
+          (e, idx) => idx > currentIndex && e.year >= targetYear
+        );
+        seek(nextYearIndex !== -1 ? nextYearIndex : total - 1);
+      } else {
+        const prevYearIndex = events.findLastIndex(
+          (e, idx) => idx < currentIndex && e.year <= targetYear
+        );
+        seek(prevYearIndex !== -1 ? prevYearIndex : 0);
+      }
+    },
+    [currentIndex, events, seek, total]
+  );
+
+  const jumpToChapter = useCallback(
+    (chapterId: string) => {
+      const ch = chapters.find((c) => c.id === chapterId);
+      if (ch) {
+        seek(ch.startEventIndex);
+      }
+    },
+    [chapters, seek]
+  );
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.tagName === "SELECT" ||
+        target?.isContentEditable
+      ) return;
+
+      if (e.code === "Space") {
+        e.preventDefault();
+        togglePlay();
+      } else if (e.code === "ArrowLeft") {
+        e.preventDefault();
+        stepBack();
+      } else if (e.code === "ArrowRight") {
+        e.preventDefault();
+        stepForward();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [togglePlay, stepBack, stepForward]);
+
+  const currentEvent = total > 0 ? events[currentIndex] || events[0] : null;
+  const startYear = total > 0 ? events[0]?.year || 2020 : new Date().getFullYear();
+  const endYear = total > 0 ? events[total - 1]?.year || startYear : new Date().getFullYear();
+  const currentYear = currentEvent ? currentEvent.year : startYear;
+  const currentMonthName = currentEvent ? currentEvent.monthName : "";
+  const progress = total > 1 ? (currentIndex / (total - 1)) * 100 : 100;
+
+  const currentChapter = useMemo(() => {
+    if (!currentEvent || chapters.length === 0) return null;
+    return (
+      chapters.find(
+        (c) =>
+          currentIndex >= c.startEventIndex && currentIndex <= c.endEventIndex
+      ) || chapters[0]
+    );
+  }, [chapters, currentIndex, currentEvent]);
+
+  const eraColor = useMemo(() => {
+    if (!currentEvent) return ERA_COLORS[0];
+    const yearDiff = Math.abs(currentEvent.year - startYear);
+    const paletteIndex = yearDiff % 5;
+    return ERA_COLORS[paletteIndex] || ERA_COLORS[0];
+  }, [currentEvent, startYear]);
+
+  const isYearMilestone = currentEvent?.type === "year_milestone";
+
+  const visibleEvents = useMemo(() => events.slice(0, currentIndex + 1), [events, currentIndex]);
+
+  const visibleCommits = useMemo(() => {
+    const commitsList: GitHubCommit[] = [];
+    for (let i = 0; i <= currentIndex; i++) {
+      if (events[i]?.commit) {
+        commitsList.push(events[i].commit!);
+      }
+    }
+    return commitsList;
+  }, [events, currentIndex]);
+
+  const visibleRepos = useMemo(() => {
+    return [repo];
+  }, [repo]);
+
+  const yearProgress = useMemo(() => {
+    if (!currentEvent) return 1;
+    const sameYearEvents = events.filter((e) => e.year === currentEvent.year);
+    const indexInYear = sameYearEvents.findIndex((e) => e.id === currentEvent.id);
+    return sameYearEvents.length > 1
+      ? Math.max(0, indexInYear / (sameYearEvents.length - 1))
+      : 1;
+  }, [events, currentEvent]);
+
+  const formattedMinutes = Math.floor(elapsedSeconds / 60)
+    .toString()
+    .padStart(2, "0");
+  const formattedSecs = (elapsedSeconds % 60).toString().padStart(2, "0");
+  const formattedDuration = `${formattedMinutes}:${formattedSecs}`;
+
+  const stats: ReplayStats = {
+    currentYear,
+    currentRepo: repo.name,
     currentStreak: currentEvent?.streakCount || 1,
     commitsReplayed: visibleCommits.length,
     remainingEvents: Math.max(0, total - (currentIndex + 1)),

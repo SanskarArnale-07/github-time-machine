@@ -267,7 +267,7 @@ export function RepoSection({ repos, commits = [] }: RepoSectionProps) {
                         {getRelativeTime(repo.updated_at)}
                       </div>
                     </div>
-                    <Button onClick={() => router.push(`/repo/${repo.full_name}`)} variant="outline" size="sm" className="w-full h-9 text-xs font-medium border-white/20 text-muted/90 hover:border-white/40 hover:text-white bg-transparent hover:bg-white/5 transition-all duration-300 hover:shadow-[0_0_15px_rgba(255,255,255,0.07)]">
+                    <Button onClick={() => router.push(`/repo/${repo.full_name}/documentary`)} variant="outline" size="sm" className="w-full h-9 text-xs font-medium border-white/20 text-muted/90 hover:border-white/40 hover:text-white bg-transparent hover:bg-white/5 transition-all duration-300 hover:shadow-[0_0_15px_rgba(255,255,255,0.07)]">
                       <Clock className="mr-1.5 h-3.5 w-3.5" />
                       View Timeline
                     </Button>
