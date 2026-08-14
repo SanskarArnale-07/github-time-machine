@@ -186,13 +186,27 @@ export function groupCommitsByYearAndMonth(commits: GitHubCommit[]): TimelineYea
   return result;
 }
 
+// Formats a Date using its LOCAL calendar fields (no UTC conversion),
+// so grid days line up with the same-day bucketing used below.
+function toLocalDateStr(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 export function generateContributionData(commits: GitHubCommit[]): ContributionWeek[] {
   const weeks: ContributionWeek[] = [];
   const commitCounts: Record<string, number> = {};
   
   for (const commit of commits) {
-    const d = new Date(commit.date);
-    const dateStr = d.toISOString().split('T')[0];
+    // commit.date preserves the commit's own timezone offset (e.g. "...T23:10:00-07:00").
+    // GitHub's real contribution graph buckets a commit by that offset's calendar day,
+    // NOT by converting to UTC — so we take the date component directly from the
+    // original string instead of round-tripping through Date/toISOString(), which
+    // shifts commits made near midnight onto the adjacent day and desyncs the bloom
+    // from the real GitHub chart.
+    const dateStr = commit.date.split('T')[0];
     commitCounts[dateStr] = (commitCounts[dateStr] || 0) + 1;
   }
 
@@ -207,7 +221,7 @@ export function generateContributionData(commits: GitHubCommit[]): ContributionW
   let currentWeek: ContributionDay[] = [];
 
   while (currentDay <= today) {
-    const dateStr = currentDay.toISOString().split('T')[0];
+    const dateStr = toLocalDateStr(currentDay);
     const count = commitCounts[dateStr] || 0;
     
     let level: 0|1|2|3|4 = 0;
