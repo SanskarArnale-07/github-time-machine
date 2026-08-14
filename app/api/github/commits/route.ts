@@ -6,14 +6,18 @@ import {
   groupCommitsByYearAndMonth,
   generateContributionData,
   calculateAnalytics,
+  fetchGitHubContributionsGraphQL,
 } from "@/lib/github/api";
 
 // In-memory short-duration cache for rapid responses
 const cacheMap = new Map<string, { data: any; expiresAt: number }>();
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes cache
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const url = new URL(request.url);
+    const forceRefresh = url.searchParams.get("refresh") === "true";
+
     const supabase = await createClient();
     const {
       data: { user },
@@ -35,7 +39,7 @@ export async function GET() {
     const cached = cacheMap.get(cacheKey);
     const now = Date.now();
 
-    if (cached && cached.expiresAt > now) {
+    if (!forceRefresh && cached && cached.expiresAt > now) {
       return NextResponse.json(cached.data, {
         headers: {
           "Cache-Control": "private, s-maxage=600, stale-while-revalidate=1200",
@@ -50,13 +54,14 @@ export async function GET() {
     const providerToken: string | undefined =
       (session as any)?.provider_token ?? undefined;
 
-    const [profile, history] = await Promise.all([
+    const [profile, history, graphqlContributions] = await Promise.all([
       fetchGitHubProfile(username, providerToken).catch(() => null),
       fetchAllUserCommitHistory(username, providerToken),
+      providerToken ? fetchGitHubContributionsGraphQL(username, providerToken).catch(() => null) : Promise.resolve(null),
     ]);
 
     const yearGroups = groupCommitsByYearAndMonth(history.commits);
-    const contributions = generateContributionData(history.commits);
+    const contributions = graphqlContributions || generateContributionData(history.commits);
     const analytics = calculateAnalytics(history.commits, history.repos);
 
     const payload = {
@@ -76,7 +81,7 @@ export async function GET() {
 
     return NextResponse.json(payload, {
       headers: {
-        "Cache-Control": "private, s-maxage=600, stale-while-revalidate=1200",
+        "Cache-Control": "private, no-cache, no-store, must-revalidate",
       },
     });
   } catch (error: any) {

@@ -97,12 +97,13 @@ export function DashboardContent({
     } catch {}
   }, [cacheKey, repoFilter]); // Note: We don't auto-fetch in this effect anymore to avoid dependency cycle with loadCommitHistory
 
-  const loadCommitHistory = useCallback(async () => {
+  const loadCommitHistory = useCallback(async (forceRefresh: boolean = false) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const res = await fetch("/api/github/commits");
+      const endpoint = forceRefresh ? "/api/github/commits?refresh=true" : "/api/github/commits";
+      const res = await fetch(endpoint);
       if (!res.ok) {
         throw new Error(`Failed to load data (${res.status})`);
       }
@@ -139,14 +140,14 @@ export function DashboardContent({
     }
   }, [cacheKey, repoFilter]);
 
-  // If no cache was found during mount, auto-fetch
+  // SWR: Auto-fetch in background to reconcile stale cache
   const hasAttemptedFetch = React.useRef(false);
   useEffect(() => {
-    if (!hasLoaded && !isLoading && !hasAttemptedFetch.current) {
+    if (!isLoading && !hasAttemptedFetch.current) {
       hasAttemptedFetch.current = true;
       loadCommitHistory();
     }
-  }, [hasLoaded, isLoading, loadCommitHistory]);
+  }, [isLoading, loadCommitHistory]);
 
   const tabs: { id: TabId; label: string; icon: typeof Play }[] = [
     { id: "timeline", label: "Chronicle Timeline", icon: Layers },
@@ -230,7 +231,7 @@ export function DashboardContent({
       ) : (
         /* Loaded state — progressive full documentary dashboard */
         <div className="flex flex-col gap-3 py-2 sm:gap-4 sm:py-3">
-          <div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3 px-1">
               {(profile?.avatar_url || initialAvatar) && (
                 <img
@@ -248,6 +249,29 @@ export function DashboardContent({
                 </span>
               </div>
             </div>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                sessionStorage.removeItem(cacheKey);
+                loadCommitHistory(true);
+              }}
+              disabled={isLoading}
+              className="rounded-full border-white/10 bg-white/5 font-mono text-xs text-zinc-300 hover:bg-white/10 hover:text-white"
+            >
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                  Syncing...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <RotateCcw className="h-3 w-3" />
+                  Sync with GitHub
+                </span>
+              )}
+            </Button>
           </div>
 
           {/* Cinematic Movie Title Card Hero */}
@@ -303,7 +327,10 @@ export function DashboardContent({
             <Button
               variant="ghost"
               size="sm"
-              onClick={loadCommitHistory}
+              onClick={() => {
+                sessionStorage.removeItem(cacheKey);
+                loadCommitHistory(true);
+              }}
               disabled={isLoading}
               className="font-mono text-xs text-muted hover:text-ivory"
             >

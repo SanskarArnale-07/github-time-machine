@@ -23,7 +23,7 @@ async function fetchFromGitHub(endpoint: string, token?: string) {
 
   const response = await fetch(`${GITHUB_API_URL}${endpoint}`, {
     headers,
-    next: { revalidate: 60 }
+    cache: 'no-store'
   });
 
   if (!response.ok) {
@@ -186,13 +186,27 @@ export function groupCommitsByYearAndMonth(commits: GitHubCommit[]): TimelineYea
   return result;
 }
 
+// Formats a Date using its LOCAL calendar fields (no UTC conversion),
+// so grid days line up with the same-day bucketing used below.
+function toLocalDateStr(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 export function generateContributionData(commits: GitHubCommit[]): ContributionWeek[] {
   const weeks: ContributionWeek[] = [];
   const commitCounts: Record<string, number> = {};
   
   for (const commit of commits) {
-    const d = new Date(commit.date);
-    const dateStr = d.toISOString().split('T')[0];
+    // commit.date preserves the commit's own timezone offset (e.g. "...T23:10:00-07:00").
+    // GitHub's real contribution graph buckets a commit by that offset's calendar day,
+    // NOT by converting to UTC — so we take the date component directly from the
+    // original string instead of round-tripping through Date/toISOString(), which
+    // shifts commits made near midnight onto the adjacent day and desyncs the bloom
+    // from the real GitHub chart.
+    const dateStr = commit.date.split('T')[0];
     commitCounts[dateStr] = (commitCounts[dateStr] || 0) + 1;
   }
 
@@ -207,7 +221,7 @@ export function generateContributionData(commits: GitHubCommit[]): ContributionW
   let currentWeek: ContributionDay[] = [];
 
   while (currentDay <= today) {
-    const dateStr = currentDay.toISOString().split('T')[0];
+    const dateStr = toLocalDateStr(currentDay);
     const count = commitCounts[dateStr] || 0;
     
     let level: 0|1|2|3|4 = 0;
@@ -225,12 +239,81 @@ export function generateContributionData(commits: GitHubCommit[]): ContributionW
     
     currentDay.setDate(currentDay.getDate() + 1);
   }
-
   if (currentWeek.length > 0) {
     weeks.push({ days: currentWeek });
   }
 
   return weeks;
+}
+
+export async function fetchGitHubContributionsGraphQL(username: string, token: string): Promise<ContributionWeek[] | null> {
+  const query = `
+    query($userName: String!) {
+      user(login: $userName) {
+        contributionsCollection {
+          contributionCalendar {
+            weeks {
+              contributionDays {
+                contributionCount
+                date
+                contributionLevel
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await fetch('https://api.github.com/graphql', {
+      method: 'POST',
+      headers: {
+        'Authorization': `bearer ${token}`,
+        'Content-Type': 'application/json',
+        'User-Agent': 'GitHub-Time-Machine'
+      },
+      body: JSON.stringify({
+        query,
+        variables: { userName: username }
+      }),
+      cache: 'no-store'
+    });
+
+    if (!response.ok) {
+      console.error("GraphQL request failed:", response.status, response.statusText);
+      return null;
+    }
+
+    const { data, errors } = await response.json();
+    
+    if (errors) {
+      console.error("GraphQL errors:", errors);
+      return null;
+    }
+
+    const weeksData = data?.user?.contributionsCollection?.contributionCalendar?.weeks;
+    if (!weeksData) return null;
+
+    const levelMap: Record<string, 0|1|2|3|4> = {
+      "NONE": 0,
+      "FIRST_QUARTILE": 1,
+      "SECOND_QUARTILE": 2,
+      "THIRD_QUARTILE": 3,
+      "FOURTH_QUARTILE": 4
+    };
+
+    return weeksData.map((week: any) => ({
+      days: week.contributionDays.map((day: any) => ({
+        date: day.date,
+        count: day.contributionCount,
+        level: levelMap[day.contributionLevel] ?? 0
+      }))
+    }));
+  } catch (error) {
+    console.error("Failed to fetch GraphQL contributions:", error);
+    return null;
+  }
 }
 
 export function calculateAnalytics(commits: GitHubCommit[], repos: GitHubRepo[]): AnalyticsData {
