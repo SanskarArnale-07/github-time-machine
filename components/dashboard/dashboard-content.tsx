@@ -303,7 +303,7 @@ export function DashboardContent({
                       className="rounded-full bg-white text-black hover:bg-zinc-200 font-medium px-8 py-4 text-base transition-all hover:scale-[1.02]"
                     >
                       <Play className="mr-2 h-4 w-4 fill-current" />
-                      Start Replay
+                      Start Documentary
                     </Button>
                     <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-zinc-300">
                       <Sparkles className="h-4 w-4" />

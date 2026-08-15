@@ -144,7 +144,8 @@ function ReplayMilestoneCard({
             animate: { opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.15 } },
             exit: { opacity: 0, transition: { duration: 0.5, delay: 0.2 } }
           }}
-          className="mt-4 font-sans font-semibold tracking-tight text-4xl text-white sm:text-5xl md:text-6xl drop-shadow-2xl"
+          className="mt-4 font-sans font-semibold tracking-tight text-4xl sm:text-5xl md:text-6xl drop-shadow-2xl"
+          style={{ color: "#F5F0E8" }}
         >
           This is how a developer is built.
         </motion.h2>
@@ -249,7 +250,8 @@ function ReplayMilestoneCard({
             animate: { opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.15 } },
             exit: { opacity: 0, transition: { duration: 0.5, delay: 0.2 } }
           }}
-          className="font-sans font-semibold tracking-tight text-4xl leading-tight text-white sm:text-5xl md:text-6xl lg:text-7xl drop-shadow-2xl"
+          className="font-sans font-semibold tracking-tight text-4xl leading-tight sm:text-5xl md:text-6xl lg:text-7xl drop-shadow-2xl"
+          style={{ color: "#F5F0E8" }}
         >
           {title}
         </motion.h2>

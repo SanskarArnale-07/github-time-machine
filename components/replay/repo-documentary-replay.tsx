@@ -44,7 +44,8 @@ function RepoDocumentaryCard({ event }: { event: ReplayEvent }) {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 0.4 }}
-        className="font-sans font-semibold tracking-tight text-4xl leading-tight text-white sm:text-5xl md:text-6xl drop-shadow-2xl"
+        className="font-sans font-semibold tracking-tight text-4xl leading-tight sm:text-5xl md:text-6xl drop-shadow-2xl"
+        style={{ color: "#D4A853" }}
       >
         {event.title}
       </motion.h2>
@@ -105,6 +106,47 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
   
+  // HUD Auto-hide state
+  const [isHUDVisible, setIsHUDVisible] = useState(true);
+  const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastMousePos = useRef({ x: 0, y: 0 });
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    // Prevent phantom mousemoves from CSS animations from resetting the timer
+    const isActuallyMoving = 
+      Math.abs(e.clientX - lastMousePos.current.x) > 2 || 
+      Math.abs(e.clientY - lastMousePos.current.y) > 2;
+      
+    if (!isActuallyMoving) return;
+    
+    lastMousePos.current = { x: e.clientX, y: e.clientY };
+    
+    setIsHUDVisible(true);
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    
+    if (engine.isPlaying) {
+      hideTimerRef.current = setTimeout(() => {
+        setIsHUDVisible(false);
+      }, 1000);
+    }
+  };
+
+  useEffect(() => {
+    if (!engine.isPlaying) {
+      setIsHUDVisible(true);
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    } else {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = setTimeout(() => {
+        setIsHUDVisible(false);
+      }, 1000);
+    }
+    
+    return () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    };
+  }, [engine.isPlaying]);
+
   // Audio state
   useEffect(() => {
     try {
@@ -158,8 +200,10 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
   const isFinal = engine.currentIndex >= engine.total - 1;
 
   return (
-    <div ref={theaterRef} className="relative flex h-full w-full flex-col overflow-hidden bg-black selection:bg-white/20">
-      <header className="absolute top-0 left-0 z-50 p-6 transition-opacity duration-300">
+    <div ref={theaterRef} className={`relative flex h-full w-full flex-col overflow-hidden bg-black selection:bg-white/20 ${!isHUDVisible && isFullscreen ? 'cursor-none' : ''}`} onMouseMove={handleMouseMove}>
+      
+
+      <header className={`absolute top-0 left-0 z-50 p-6 transition-all duration-300 ease-in-out ${isHUDVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full pointer-events-none"} ${isFullscreen ? 'hidden' : ''}`}>
         <a
           href="/dashboard#repos"
           className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/60 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-400 backdrop-blur-md transition-colors hover:border-white/20 hover:text-white"
@@ -192,7 +236,7 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
       </main>
 
       {/* Fixed Bottom Control Dock */}
-      <section className="absolute bottom-0 left-0 right-0 z-50 w-full border-t border-white/10 bg-black/80 backdrop-blur-xl">
+      <section className={`absolute bottom-0 left-0 right-0 z-50 w-full border-t border-white/10 bg-black/80 backdrop-blur-xl transition-all duration-300 ease-in-out ${isHUDVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-full pointer-events-none"}`}>
         <div className="group relative h-1.5 w-full bg-zinc-900 cursor-pointer" onClick={(e) => {
           const rect = e.currentTarget.getBoundingClientRect();
           const percentage = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));

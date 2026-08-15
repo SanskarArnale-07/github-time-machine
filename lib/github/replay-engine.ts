@@ -260,22 +260,22 @@ export function useReplayEngine(
 
   // Dynamic timing function based on narrative weight
   const getEventDuration = (event: ReplayEvent | null, spd: 1 | 2 | 5, isFinal: boolean) => {
-    if (!event) return 2500 / spd;
+    if (!event) return 3100 / spd;
 
-    let baseDuration = 3200; // Standard commit: 3.2s
+    let baseDuration = 3800; // Standard commit: 3.8s
     
     if (isFinal) {
-      baseDuration = 5000;
+      baseDuration = 5600;
     } else if (event.type === "repo_created") {
-      baseDuration = 4000;
+      baseDuration = 4600;
     } else if (event.type === "year_milestone" || event.type === "month_summary") {
-      baseDuration = 5500;
+      baseDuration = 6100;
     } else if (
       event.title?.toLowerCase().includes("major") || 
       event.title?.toLowerCase().includes("refactor") ||
       event.title?.toLowerCase().includes("initial")
     ) {
-      baseDuration = 6500;
+      baseDuration = 7100;
     }
     
     return baseDuration / spd;
@@ -632,10 +632,10 @@ export function useRepoDocumentaryEngine(
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   const getEventDuration = (event: ReplayEvent | null, spd: 1 | 2 | 5, isFinal: boolean) => {
-    if (!event) return 2500 / spd;
-    let baseDuration = 6500; // scenes in documentary should be longer
+    if (!event) return 2000 / spd;
+    let baseDuration = 6000; // scenes in documentary should be longer
     if (isFinal) {
-      baseDuration = 8000;
+      baseDuration = 7500;
     }
     return baseDuration / spd;
   };
