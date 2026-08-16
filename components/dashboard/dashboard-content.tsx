@@ -305,8 +305,8 @@ export function DashboardContent({
           </div>
 
           {/* Cinematic Movie Title Card Hero */}
-          <div className="relative z-10 mt-2 mb-4">
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-surface p-4 sm:p-6 lg:p-8 shadow-[0_0_40px_rgba(0,0,0,0.8)]">
+          <div className="relative z-10 mt-1 mb-2">
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-surface p-4 sm:p-5 lg:p-6 shadow-[0_0_40px_rgba(0,0,0,0.8)]">
               <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent" />
               <div className="relative z-10 flex flex-col items-start justify-center">
                 <div className="max-w-4xl pb-1">
@@ -319,7 +319,7 @@ export function DashboardContent({
                       ? `You are at the beginning of an exciting journey. With ${commits.length} initial contributions, you are laying down the foundation for future technical exploration and growth. Every great documentary starts with a single step.`
                       : `You've been forging ahead, deeply engaged in expanding your technical repertoire. With a surge of ${commits.length} contributions lately, the focus has shifted towards refining core logic and embracing new architectural patterns. The journey is accelerating.`}
                   </p>
-                  <div className="mt-8 flex flex-col sm:flex-row flex-wrap gap-4 items-stretch sm:items-center">
+                  <div className="mt-5 flex flex-col sm:flex-row flex-wrap gap-4 items-stretch sm:items-center">
                     <Button 
                       onClick={() => router.push("/replay")}
                       className="rounded-full bg-white text-black hover:bg-zinc-200 font-medium px-8 py-4 text-base transition-all hover:scale-[1.02] w-full sm:w-auto justify-center"
@@ -338,7 +338,7 @@ export function DashboardContent({
           </div>
 
           {/* Tab navigation bar */}
-          <div className="mt-1 flex flex-col sm:flex-row items-center justify-between gap-4 py-2">
+          <div className="mt-0 flex flex-col sm:flex-row items-center justify-between gap-4 py-1">
             <div
               role="tablist"
               aria-label="Dashboard sections"
@@ -376,7 +376,7 @@ export function DashboardContent({
             id={`panel-${activeTab}`}
             role="tabpanel"
             aria-labelledby={`tab-${activeTab}`}
-            className="mt-4 pb-12"
+            className="mt-0 pb-12"
           >
             <Suspense fallback={<TimelineSkeleton />}>
             {activeTab === "timeline" && (

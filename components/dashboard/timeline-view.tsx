@@ -1,7 +1,8 @@
 "use client";
 import React, { useState, useMemo } from "react";
-import { TimelineYearGroup, GitHubRepo, GitHubCommit } from "@/lib/github/types";
+import { GitHubRepo, GitHubCommit, TimelineYearGroup } from "@/lib/github/types";
 import { Search, GitCommit, BookOpen, ChevronDown } from "lucide-react";
+import Image from "next/image";
 
 interface TimelineViewProps {
   yearGroups: TimelineYearGroup[];
@@ -101,7 +102,7 @@ export function TimelineView({
       <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
         <div className="mb-2 md:mb-0">
           <h2 className="font-sans tracking-tight text-3xl font-semibold text-white">Developer Journal</h2>
-          <p className="mt-1 text-sm sm:text-base text-zinc-400 max-w-xl leading-relaxed">
+          <p className="mt-0 text-sm sm:text-base text-zinc-400 max-w-xl leading-relaxed">
             {totalCommits} entries across time. Merge commits are hidden and repetitive updates are grouped for a focused narrative.
           </p>
         </div>
@@ -111,6 +112,7 @@ export function TimelineView({
             <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
             <input
               type="text"
+              aria-label="Filter timeline commits"
               placeholder="Search entries..."
               className="h-10 w-full rounded-full border border-white/10 bg-surface py-2 pl-10 pr-4 text-sm text-white placeholder-zinc-500 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 transition-all m-0"
               value={search}
@@ -137,7 +139,7 @@ export function TimelineView({
         </div>
       </div>
 
-      <div className="relative mx-auto max-w-4xl space-y-16">
+      <div className="relative mx-auto max-w-4xl space-y-12">
         {/* Continuous journal line */}
         <div className="absolute left-8 top-0 bottom-0 w-px bg-gradient-to-b from-brass/50 via-ink-border to-transparent hidden md:block" />
 

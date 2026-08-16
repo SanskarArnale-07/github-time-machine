@@ -127,7 +127,7 @@ export interface ReplayEvent {
   chapterName?: string;
   impactBadge?: string;
   impactDescription?: string;
-  impactType?: "milestone" | "streak" | "language" | "comeback" | "volume" | "repository";
+  impactType?: "milestone" | "streak" | "language" | "comeback" | "volume" | "repository" | "architecture";
   commit?: GitHubCommit;
   repo?: GitHubRepo;
   monthlySummary?: MonthlySummary;

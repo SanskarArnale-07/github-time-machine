@@ -11,6 +11,7 @@ import {
   Star
 } from "lucide-react";
 import { AnalyticsData, GitHubCommit } from "@/lib/github/types";
+import Image from "next/image";
 
 interface AnalyticsViewProps {
   analytics: AnalyticsData;

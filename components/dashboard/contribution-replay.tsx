@@ -188,16 +188,16 @@ export function ContributionReplay({
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
-    <div className="glass-card w-full overflow-hidden p-4 sm:p-6 lg:p-8">
-      <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+    <div className="glass-card w-full overflow-hidden p-4 sm:p-5 lg:p-6">
+      <div className="mb-24 flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
         <div>
-          <span className="font-mono text-xs uppercase tracking-wider text-zinc-500">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
             Contribution Graph Replay
           </span>
-          <h2 className="mt-1 font-sans tracking-tight font-semibold text-2xl text-white sm:text-3xl">
+          <h2 className="mt-0 font-sans tracking-tight font-semibold text-2xl text-white sm:text-3xl">
             Activity bloom over time
           </h2>
-          <p className="mt-1 text-sm text-zinc-400">
+          <p className="mt-0 text-sm text-zinc-400">
             A continuous canvas of your momentum, illuminated left-to-right.
           </p>
         </div>
@@ -237,7 +237,7 @@ export function ContributionReplay({
             <div className="h-[11px]" />
           </div>
 
-          <div className="flex flex-1 gap-[3px]">
+          <div className="flex flex-1 gap-[3px] pt-5">
             {renderContributions.map((week, weekIndex) => (
               <div key={weekIndex} className="relative flex flex-col gap-[3px]">
                 {/* Month labels */}
