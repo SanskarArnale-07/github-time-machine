@@ -325,6 +325,19 @@ export function calculateAnalytics(commits: GitHubCommit[], repos: GitHubRepo[])
   let weekendCount = 0;
   let commitsByDate: Record<string, number> = {};
 
+  // Weekday and time-of-day accumulators
+  const weekdayCounts: Record<string, number> = {
+    Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0,
+  };
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  const timeOfDayCounts: Record<string, number> = {
+    Morning: 0, Afternoon: 0, Evening: 0, Night: 0,
+  };
+
+  // Commits per repo (for fastest growing repo)
+  const commitsPerRepo: Record<string, number> = {};
+
   for (const repo of repos) {
     if (repo.language) {
       languageCounts[repo.language] = (languageCounts[repo.language] || 0) + 1;
@@ -345,10 +358,27 @@ export function calculateAnalytics(commits: GitHubCommit[], repos: GitHubRepo[])
       lateNightCount++;
     }
 
+    // Time of day buckets
+    if (hour >= 5 && hour < 12) {
+      timeOfDayCounts.Morning++;
+    } else if (hour >= 12 && hour < 17) {
+      timeOfDayCounts.Afternoon++;
+    } else if (hour >= 17 && hour < 22) {
+      timeOfDayCounts.Evening++;
+    } else {
+      timeOfDayCounts.Night++;
+    }
+
     const day = d.getDay();
     if (day === 0 || day === 6) {
       weekendCount++;
     }
+
+    // Weekday distribution
+    weekdayCounts[dayNames[day]]++;
+
+    // Commits per repo
+    commitsPerRepo[commit.repoName] = (commitsPerRepo[commit.repoName] || 0) + 1;
   }
 
   let mostActiveYear = null;
@@ -381,9 +411,10 @@ export function calculateAnalytics(commits: GitHubCommit[], repos: GitHubRepo[])
   const lateNightPercentage = totalCommits > 0 ? Math.round((lateNightCount / totalCommits) * 100) : 0;
   const weekendPercentage = totalCommits > 0 ? Math.round((weekendCount / totalCommits) * 100) : 0;
 
-  // Simple streak calculation
+  // Simple streak calculation + longest inactive gap
   let longestStreak = 0;
   let currentStreak = 0;
+  let longestInactiveGapDays = 0;
   const sortedDates = Object.keys(commitsByDate).sort();
   for (let i = 0; i < sortedDates.length; i++) {
     if (i === 0) {
@@ -397,12 +428,49 @@ export function calculateAnalytics(commits: GitHubCommit[], repos: GitHubRepo[])
       } else if (diffDays > 1) {
         if (currentStreak > longestStreak) longestStreak = currentStreak;
         currentStreak = 1;
+        if (diffDays > longestInactiveGapDays) longestInactiveGapDays = diffDays;
       }
     }
   }
   if (currentStreak > longestStreak) longestStreak = currentStreak;
 
   const avgCommitsPerWeek = totalCommits > 0 ? Math.round(totalCommits / 52) : 0; // Rough estimate based on 1 year
+
+  // Most productive weekday
+  let mostProductiveWeekday = "Monday";
+  let maxWeekdayCount = 0;
+  for (const [day, count] of Object.entries(weekdayCounts)) {
+    if (count > maxWeekdayCount) {
+      maxWeekdayCount = count;
+      mostProductiveWeekday = day;
+    }
+  }
+
+  // Weekday distribution with percentages
+  const weekdayOrder = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const weekdayDistribution = weekdayOrder.map((day) => ({
+    day,
+    count: weekdayCounts[day],
+    percentage: totalCommits > 0 ? Math.round((weekdayCounts[day] / totalCommits) * 100) : 0,
+  }));
+
+  // Time of day distribution with percentages
+  const timeOfDayOrder = ["Morning", "Afternoon", "Evening", "Night"];
+  const timeOfDayDistribution = timeOfDayOrder.map((label) => ({
+    label,
+    count: timeOfDayCounts[label],
+    percentage: totalCommits > 0 ? Math.round((timeOfDayCounts[label] / totalCommits) * 100) : 0,
+  }));
+
+  // Fastest growing repo (most commits)
+  let fastestRepoGrowth = repos[0]?.name || "Core";
+  let maxRepoCommits = 0;
+  for (const [repoName, count] of Object.entries(commitsPerRepo)) {
+    if (count > maxRepoCommits) {
+      maxRepoCommits = count;
+      fastestRepoGrowth = repoName;
+    }
+  }
 
   // Calculate Intelligence Scores
   const numRepos = repos.length;
@@ -413,24 +481,24 @@ export function calculateAnalytics(commits: GitHubCommit[], repos: GitHubRepo[])
   const nightOwlScore = Math.min(99, Math.round((lateNightCount / Math.max(1, totalCommits)) * 100 * 2));
   const commitConsistencyScore = Math.min(98, Math.max(50, Math.round(65 + longestStreak * 3))); // simplified maxGap
 
-  let insightNarrative = "You are a steady contributor.";
+  let insightNarrative = `${totalCommits} commits across ${numRepos} repos — you keep a steady pace.`;
   if (explorationScore > focusScore && explorationScore > 80) {
-    insightNarrative = "You shifted from consistency to rapid experimentation, touching many technologies.";
+    insightNarrative = `You've worked across ${numRepos} repos in ${numLangs} languages — you like trying new things.`;
   } else if (focusScore > explorationScore && focusScore > 80) {
-    insightNarrative = "This repository evolved through deep focus and multiple architectural rewrites.";
+    insightNarrative = `Most of your ${totalCommits} commits go into a small set of repos — you go deep, not wide.`;
   } else if (nightOwlScore > 40) {
-    insightNarrative = "You find your best flow state in the quiet hours of the night.";
+    insightNarrative = `${lateNightPercentage}% of your commits happen after 10pm — you're a night coder.`;
   } else if (commitConsistencyScore > 85) {
-    insightNarrative = "Your consistency is remarkable, laying down code with disciplined cadence.";
+    insightNarrative = `A ${longestStreak}-day streak and ${totalCommits} total commits — you ship code regularly.`;
   }
 
   const insights = {
     bestCodingMonth: mostActiveMonth || "N/A",
-    mostProductiveWeekday: "Tuesday", // Simplified for now
+    mostProductiveWeekday,
     avgCommitsPerActiveWeek: avgCommitsPerWeek,
-    longestInactiveGapDays: 14, // Simplified
+    longestInactiveGapDays,
     strongestComebackStreak: longestStreak,
-    fastestRepoGrowth: repos[0]?.name || "Core",
+    fastestRepoGrowth,
     mostFrequentlyUsedLanguage: topLanguages[0]?.name || "Code",
     commitConsistencyScore,
     explorationScore,
@@ -438,8 +506,8 @@ export function calculateAnalytics(commits: GitHubCommit[], repos: GitHubRepo[])
     focusScore,
     nightOwlScore,
     insightNarrative,
-    weekdayDistribution: [],
-    timeOfDayDistribution: [],
+    weekdayDistribution,
+    timeOfDayDistribution,
   };
 
   return {

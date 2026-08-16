@@ -1,7 +1,16 @@
 "use client";
-import React, { useMemo } from 'react';
-import { AnalyticsData, GitHubCommit } from '@/lib/github/types';
-import { Trophy, Orbit, Rocket, Zap, Flag, Clock } from 'lucide-react';
+
+import { useState, useMemo } from "react";
+import { 
+  Activity, 
+  Code2, 
+  Calendar,
+  Clock,
+  Zap,
+  TrendingUp,
+  Star
+} from "lucide-react";
+import { AnalyticsData, GitHubCommit } from "@/lib/github/types";
 
 interface AnalyticsViewProps {
   analytics: AnalyticsData;
@@ -9,135 +18,480 @@ interface AnalyticsViewProps {
 }
 
 export function AnalyticsView({ analytics, commits }: AnalyticsViewProps) {
-  const milestones = useMemo(() => {
-    const list: { id: string; title: string; narrative: string; date: string; icon: any; accent: string }[] = [];
-    
-    if (commits.length > 0) {
-      const sorted = [...commits].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-      const firstCommit = sorted[0];
-      list.push({
-        id: "first-commit",
-        title: "The Spark",
-        narrative: `The genesis of the journey. First documented code forged in ${firstCommit.repoName}.`,
-        date: new Date(firstCommit.date).toLocaleDateString("en-US", { month: "long", year: "numeric" }),
-        icon: Rocket,
-        accent: "text-white"
-      });
-      
-      if (analytics.topLanguages && analytics.topLanguages.length > 0) {
-        const topLang = analytics.topLanguages[0].name;
-        list.push({
-          id: "first-major",
-          title: "First Breakthrough",
-          narrative: `A breakthrough moment. Adopted ${topLang} to build something substantial and defining.`,
-          date: "Key Milestone",
-          icon: Trophy,
-          accent: "text-white"
-        });
-      }
+  const [activeTab, setActiveTab] = useState(0);
 
-      if (analytics.longestStreak > 0) {
-        list.push({
-          id: "streak",
-          title: "The Grind",
-          narrative: `An era of unbreakable flow. Maintained relentless focus for a ${analytics.longestStreak}-day coding streak.`,
-          date: "Momentum Peak",
-          icon: Zap,
-          accent: "text-white"
-        });
-      }
-      
-      const latestCommit = sorted[sorted.length - 1];
-      list.push({
-        id: "latest",
-        title: "Present Chapter",
-        narrative: `The continuing saga. Pushing boundaries and exploring new frontiers in ${latestCommit.repoName}.`,
-        date: new Date(latestCommit.date).toLocaleDateString("en-US", { month: "long", year: "numeric" }),
-        icon: Flag,
-        accent: "text-white"
-      });
-    }
-    return list;
-  }, [commits, analytics]);
+  const tabs = ["Overview", "Activity", "Languages", "Milestones", "Scores"];
 
   const activeDays = useMemo(() => {
     return new Set(commits.map(c => new Date(c.date).toDateString())).size;
   }, [commits]);
 
+  const sortedCommits = useMemo(() => {
+    return [...commits].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }, [commits]);
+
+  const firstCommit = sortedCommits[0];
+  const latestCommit = sortedCommits[sortedCommits.length - 1];
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 0:
+        return <OverviewTab analytics={analytics} activeDays={activeDays} />;
+      case 1:
+        return <ActivityTab analytics={analytics} commits={commits} />;
+      case 2:
+        return <LanguagesTab analytics={analytics} />;
+      case 3:
+        return <MilestonesTab analytics={analytics} firstCommit={firstCommit} latestCommit={latestCommit} />;
+      case 4:
+        return <ScoresTab analytics={analytics} />;
+      default:
+        return null;
+    }
+  };
+
   return (
-    <div className="w-full space-y-16">
-      {/* Developer Trajectory Narrator */}
-      <div className="cinematic-depth-card relative overflow-hidden rounded-3xl border border-white/10 bg-[#0A0A0A] p-8 md:p-12 transition-all duration-300">
-        <div className="absolute top-0 right-0 p-12 opacity-[0.02]">
-          <Orbit className="h-48 w-48 text-white" />
+    <div className="flex flex-col gap-6">
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+        {tabs.map((tab, idx) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(idx)}
+            className={`px-4 py-1.5 rounded-full font-mono text-[11px] uppercase tracking-widest whitespace-nowrap transition-colors ${
+              activeTab === idx
+                ? "bg-white/10 text-white"
+                : "text-zinc-500 hover:text-zinc-300 bg-transparent"
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+      <div className="bg-[#0A0A0A] border border-white/[0.06] rounded-xl p-6 min-h-[400px]">
+        {renderTabContent()}
+      </div>
+    </div>
+  );
+}
+
+function OverviewTab({ analytics, activeDays }: { analytics: AnalyticsData; activeDays: number }) {
+  const maxYearCommits = Math.max(...Object.values(analytics.commitsByYear));
+
+  return (
+    <div className="flex flex-col gap-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard label="Total Commits" value={analytics.totalCommits} icon={<Code2 size={16} />} />
+        <StatCard label="Total Repos" value={analytics.totalRepos} icon={<Code2 size={16} />} />
+        <StatCard label="Longest Streak" value={`${analytics.longestStreak}d`} icon={<Zap size={16} />} />
+        <StatCard label="Active Days" value={activeDays} icon={<Activity size={16} />} />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="flex flex-col gap-4">
+          <h3 className="font-mono text-[11px] uppercase tracking-widest text-zinc-500">Commits by Year</h3>
+          <div className="flex flex-col gap-3">
+            {Object.entries(analytics.commitsByYear).map(([year, count]) => (
+              <div key={year} className="flex items-center gap-3">
+                <span className="text-xs text-zinc-400 w-10">{year}</span>
+                <div className="flex-1 h-2 bg-white/[0.06] rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-white/80 rounded-full transition-all duration-700 ease-out"
+                    style={{ width: `${maxYearCommits > 0 ? (count / maxYearCommits) * 100 : 0}%` }}
+                  />
+                </div>
+                <span className="text-xs text-zinc-400 w-8 text-right">{count}</span>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="relative z-10 max-w-4xl">
-          <h2 className="flex items-center gap-4 font-sans text-3xl font-semibold tracking-tight text-white md:text-4xl">
-            <Trophy className="h-8 w-8 text-white" />
-            Developer Trajectory
-          </h2>
-          <p className="mt-8 text-2xl leading-relaxed text-zinc-300 font-sans font-light border-l-2 border-white/20 pl-6">
-            “Your output accelerated sharply, with sustained repository creation and increasing architectural complexity in {analytics.topLanguages?.[0]?.name || 'your primary stacks'}.”
-          </p>
-          
-          <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
-            <div className="flex flex-col gap-2 rounded-2xl bg-black/50 p-6 border border-white/5">
-              <span className="text-xs font-mono text-zinc-500 uppercase tracking-widest">Momentum</span>
-              <span className="text-lg font-sans font-semibold tracking-tight text-white mt-1">Sustained Growth</span>
-              <span className="text-sm text-zinc-400">{analytics.totalCommits} commits across {analytics.longestStreak} day streak peak</span>
+
+        <div className="flex flex-col gap-4">
+          <h3 className="font-mono text-[11px] uppercase tracking-widest text-zinc-500">Top Languages</h3>
+          <div className="flex flex-col gap-3">
+            {analytics.topLanguages.slice(0, 5).map(lang => (
+              <div key={lang.name} className="flex flex-col gap-1.5">
+                <div className="flex justify-between text-xs">
+                  <span className="text-zinc-300">{lang.name}</span>
+                  <span className="text-zinc-500">{lang.percentage}%</span>
+                </div>
+                <div className="w-full h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-white/80 rounded-full transition-all duration-700 ease-out"
+                    style={{ width: `${lang.percentage}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 p-4 bg-white/[0.02] rounded-lg border border-white/[0.04]">
+        <p className="text-sm text-zinc-400 italic">"{analytics.insights.insightNarrative.split('.')[0]}."</p>
+      </div>
+    </div>
+  );
+}
+
+function ActivityTab({ analytics, commits }: { analytics: AnalyticsData; commits: GitHubCommit[] }) {
+  // Compute commits by year directly from commits (avoids stale API cache)
+  const yearData = useMemo(() => {
+    const byYear: Record<number, number> = {};
+    for (const c of commits) {
+      byYear[c.year] = (byYear[c.year] || 0) + 1;
+    }
+    return Object.entries(byYear)
+      .map(([y, c]) => ({ year: Number(y), count: c }))
+      .sort((a, b) => a.year - b.year);
+  }, [commits]);
+
+  const maxYearCommits = Math.max(...yearData.map(d => d.count), 1);
+  const peakYear = yearData.reduce((best, d) => d.count > best.count ? d : best, yearData[0]);
+
+  // Compute weekday & time-of-day from commits directly
+  const { weekdayData, timeOfDayData } = useMemo(() => {
+    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const dayCounts: Record<string, number> = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 };
+    const timeCounts = { Morning: 0, Afternoon: 0, Evening: 0, Night: 0 };
+
+    for (const c of commits) {
+      const d = new Date(c.date);
+      dayCounts[dayNames[d.getDay()]]++;
+      const h = d.getHours();
+      if (h >= 5 && h < 12) timeCounts.Morning++;
+      else if (h >= 12 && h < 17) timeCounts.Afternoon++;
+      else if (h >= 17 && h < 22) timeCounts.Evening++;
+      else timeCounts.Night++;
+    }
+
+    const total = commits.length || 1;
+    const weekdayOrder = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const weekdayData = weekdayOrder.map(day => ({
+      day,
+      count: dayCounts[day],
+      pct: Math.round((dayCounts[day] / total) * 100),
+    }));
+
+    const timeOrder = ["Morning", "Afternoon", "Evening", "Night"] as const;
+    const timeLabels: Record<string, string> = { Morning: "5am – 12pm", Afternoon: "12pm – 5pm", Evening: "5pm – 10pm", Night: "10pm – 5am" };
+    const timeOfDayData = timeOrder.map(label => ({
+      label,
+      sublabel: timeLabels[label],
+      count: timeCounts[label],
+      pct: Math.round((timeCounts[label] / total) * 100),
+    }));
+
+    return { weekdayData, timeOfDayData };
+  }, [commits]);
+
+  const maxWeekdayCount = Math.max(...weekdayData.map(d => d.count), 1);
+  const maxTimePct = Math.max(...timeOfDayData.map(t => t.pct), 1);
+
+  // Weekend + late night from commits
+  const weekendCommits = commits.filter(c => {
+    const day = new Date(c.date).getDay();
+    return day === 0 || day === 6;
+  }).length;
+
+  const lateNightCommits = commits.filter(c => {
+    const hour = new Date(c.date).getHours();
+    return hour >= 22 || hour <= 4;
+  }).length;
+
+  const totalCommits = commits.length;
+  const weekendPct = totalCommits > 0 ? Math.round((weekendCommits / totalCommits) * 100) : 0;
+  const lateNightPct = totalCommits > 0 ? Math.round((lateNightCommits / totalCommits) * 100) : 0;
+
+  return (
+    <div className="flex flex-col gap-10">
+      {/* Activity Timeline — Vertical Bars */}
+      <div className="flex flex-col gap-4">
+        <h3 className="font-mono text-[11px] uppercase tracking-widest text-zinc-500">Commits by Year</h3>
+        {yearData.length > 0 ? (
+          <div>
+            <div className="flex gap-1.5" style={{ height: "120px" }}>
+              {yearData.map(({ year, count }) => {
+                const heightPct = (count / maxYearCommits) * 100;
+                const isPeak = peakYear && year === peakYear.year;
+                return (
+                  <div
+                    key={year}
+                    className="flex-1 flex flex-col justify-end bg-white/[0.04] rounded-t"
+                    style={{ maxWidth: "80px" }}
+                    title={`${year}: ${count} commits`}
+                  >
+                    <div
+                      className={`w-full rounded-t transition-all duration-700 ease-out ${isPeak ? 'bg-white' : 'bg-white/30'}`}
+                      style={{ height: `${heightPct}%`, minHeight: count > 0 ? "4px" : "0px" }}
+                    />
+                  </div>
+                );
+              })}
             </div>
-            <div className="flex flex-col gap-2 rounded-2xl bg-black/50 p-6 border border-white/5">
-              <span className="text-xs font-mono text-zinc-500 uppercase tracking-widest">Archive Depth</span>
-              <span className="text-lg font-sans font-semibold tracking-tight text-white mt-1">Foundational</span>
-              <span className="text-sm text-zinc-400">Projects spanning {activeDays} active days of engineering</span>
+            <div className="flex gap-1.5 mt-2">
+              {yearData.map(({ year, count }) => (
+                <div key={year} className="flex-1 flex flex-col items-center" style={{ maxWidth: "80px" }}>
+                  <span className={`text-[10px] ${peakYear && year === peakYear.year ? 'text-white' : 'text-zinc-500'}`}>{year}</span>
+                  <span className="text-[9px] text-zinc-600">{count}</span>
+                </div>
+              ))}
             </div>
-            <div className="flex flex-col gap-2 rounded-2xl bg-black/50 p-6 border border-white/5">
-              <span className="text-xs font-mono text-zinc-500 uppercase tracking-widest">Evolution</span>
-              <span className="text-lg font-sans font-semibold tracking-tight text-white mt-1">{analytics.topLanguages?.[0]?.name || 'Polyglot'} Focused</span>
-              <span className="text-sm text-zinc-400">Refining expertise in core ecosystems over time</span>
+          </div>
+        ) : (
+          <p className="text-sm text-zinc-600">No commit data yet.</p>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Time of Day — Horizontal Bars */}
+        <div className="flex flex-col gap-4">
+          <h3 className="font-mono text-[11px] uppercase tracking-widest text-zinc-500">Time of Day</h3>
+          <div className="flex flex-col gap-3">
+            {timeOfDayData.map(time => (
+              <div key={time.label} className="flex items-center gap-3">
+                <div className="w-20 shrink-0">
+                  <span className="text-xs text-zinc-300 block">{time.label}</span>
+                  <span className="text-[9px] text-zinc-600">{time.sublabel}</span>
+                </div>
+                <div className="flex-1 h-2 bg-white/[0.06] rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-white/60 rounded-full transition-all duration-700 ease-out"
+                    style={{ width: `${maxTimePct > 0 ? (time.pct / maxTimePct) * 100 : 0}%` }}
+                  />
+                </div>
+                <span className="text-[10px] text-zinc-500 w-16 text-right shrink-0">{time.count} · {time.pct}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Day of Week — Vertical Bars */}
+        <div className="flex flex-col gap-4">
+          <h3 className="font-mono text-[11px] uppercase tracking-widest text-zinc-500">Day of Week</h3>
+          <div>
+            <div className="flex gap-2" style={{ height: "96px" }}>
+              {weekdayData.map(day => {
+                const heightPct = maxWeekdayCount > 0 ? (day.count / maxWeekdayCount) * 100 : 0;
+                return (
+                  <div key={day.day} className="flex-1 flex flex-col justify-end bg-white/[0.04] rounded-t" title={`${day.day}: ${day.count} commits`}>
+                    <div
+                      className="w-full bg-white/50 rounded-t transition-all duration-700 ease-out"
+                      style={{ height: `${heightPct}%`, minHeight: day.count > 0 ? "3px" : "0px" }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex gap-2 mt-2">
+              {weekdayData.map(day => (
+                <div key={day.day} className="flex-1 flex flex-col items-center">
+                  <span className="text-[10px] text-zinc-500">{day.day}</span>
+                  <span className="text-[9px] text-zinc-600">{day.count}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Narrative Milestone Timeline */}
-      <div>
-        <h3 className="mb-8 flex items-center gap-3 font-sans text-3xl font-semibold tracking-tight text-white">
-          <Clock className="h-7 w-7 text-white" />
-          Narrative Milestone Timeline
-        </h3>
-        
-        <div className="grid auto-rows-fr grid-cols-1 gap-6 md:grid-cols-2 lg:gap-8">
-          {milestones.map((milestone) => {
-            const { icon: Icon } = milestone;
-            return (
-              <div 
-                key={milestone.id}
-                className="cinematic-depth-card group relative h-full min-h-[280px] overflow-hidden rounded-3xl border border-white/5 bg-[#0A0A0A] p-8 transition-all duration-300"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-                
-                <div className="relative z-10 flex h-full flex-col items-start gap-6">
-                  <div className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 ${milestone.accent}`}>
-                    <Icon className="h-8 w-8" />
-                  </div>
-                  <div className="flex flex-1 flex-col">
-                    <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-zinc-500">
-                      {milestone.date}
-                    </span>
-                    <h4 className="mt-2 font-sans text-xl font-semibold tracking-tight text-white">
-                      {milestone.title}
-                    </h4>
-                    <p className="mt-3 text-sm leading-relaxed text-zinc-400">
-                      {milestone.narrative}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+      {/* Weekend + Night — Real counts */}
+      <div className="grid grid-cols-2 gap-4 border-t border-white/[0.06] pt-6">
+        <div>
+          <p className="text-[10px] font-mono uppercase tracking-widest text-zinc-500 mb-1">Weekend Commits</p>
+          <p className="text-2xl text-white">{weekendPct}%</p>
+          <p className="text-xs text-zinc-500">{weekendCommits} of {totalCommits} on Sat/Sun</p>
+        </div>
+        <div>
+          <p className="text-[10px] font-mono uppercase tracking-widest text-zinc-500 mb-1">Late Night</p>
+          <p className="text-2xl text-white">{lateNightPct}%</p>
+          <p className="text-xs text-zinc-500">{lateNightCommits} of {totalCommits} after 10pm</p>
         </div>
       </div>
+    </div>
+  );
+}
+
+function LanguagesTab({ analytics }: { analytics: AnalyticsData }) {
+  if (!analytics.topLanguages || analytics.topLanguages.length === 0) {
+    return <div className="text-sm text-zinc-500">No language data available.</div>;
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      {analytics.topLanguages.map((lang, idx) => (
+        <div key={lang.name} className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-zinc-200">{lang.name}</span>
+              {idx === 0 && (
+                <span className="px-1.5 py-0.5 bg-white/10 text-[9px] font-mono uppercase tracking-wider text-white rounded">
+                  Primary
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-4 text-xs text-zinc-500">
+              <span>{lang.count} repos</span>
+              <span className="w-12 text-right">{lang.percentage}%</span>
+            </div>
+          </div>
+          <div className="w-full h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+            <div 
+              className={`h-full rounded-full transition-all duration-700 ease-out ${idx === 0 ? 'bg-white' : 'bg-white/60'}`}
+              style={{ width: `${lang.percentage}%` }}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MilestonesTab({ analytics, firstCommit, latestCommit }: { analytics: AnalyticsData, firstCommit: GitHubCommit | undefined, latestCommit: GitHubCommit | undefined }) {
+  const formatMonth = (str: string | null) => {
+    if (!str || str === "N/A") return "-";
+    const parts = str.split("-");
+    if (parts.length !== 2) return "-";
+    const [year, month] = parts;
+    const d = new Date(Number(year), Number(month) - 1);
+    return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+  };
+
+  const activeYearCommits = analytics.mostActiveYear ? analytics.commitsByYear[analytics.mostActiveYear] : 0;
+  const totalCommits = analytics.totalCommits;
+  const bestMonthKey = analytics.insights.bestCodingMonth;
+  
+  // Try to find the commit count for the best month by scanning commits
+  // Since we don't pass commits directly to MilestonesTab yet, we can pass them or just use a generic subtext
+  // Actually, wait, commits is not passed to MilestonesTab. Let me pass it or just use simple math.
+  // It's better to pass commits or just use what we have. Let's use what we have and make subtexts realistic.
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <MilestoneCard 
+        title="First Commit" 
+        value={firstCommit ? new Date(firstCommit.date).toLocaleDateString() : "-"} 
+        subtext={firstCommit ? `In ${firstCommit.repoName}` : "-"}
+        icon={<Clock size={16} />}
+      />
+      <MilestoneCard 
+        title="Latest Commit" 
+        value={latestCommit ? new Date(latestCommit.date).toLocaleDateString() : "-"} 
+        subtext={latestCommit ? `In ${latestCommit.repoName}` : "-"}
+        icon={<TrendingUp size={16} />}
+      />
+      <MilestoneCard 
+        title="Longest Streak" 
+        value={analytics.longestStreak > 0 ? `${analytics.longestStreak} Days` : "-"} 
+        subtext={analytics.longestStreak > 0 ? `Max consecutive days coded` : "-"}
+        icon={<Zap size={16} />}
+      />
+      <MilestoneCard 
+        title="Most Active Year" 
+        value={analytics.mostActiveYear?.toString() || "-"} 
+        subtext={activeYearCommits > 0 ? `${activeYearCommits} commits in ${analytics.mostActiveYear}` : "-"}
+        icon={<Calendar size={16} />}
+      />
+      <MilestoneCard 
+        title="Best Month" 
+        value={formatMonth(bestMonthKey)} 
+        subtext={bestMonthKey && bestMonthKey !== "N/A" ? "Peak monthly activity" : "-"}
+        icon={<Star size={16} />}
+      />
+      <MilestoneCard 
+        title="Fastest Growth" 
+        value={analytics.insights.fastestRepoGrowth || "-"} 
+        subtext={analytics.insights.fastestRepoGrowth ? `Most committed repository` : "-"}
+        icon={<TrendingUp size={16} />}
+      />
+    </div>
+  );
+}
+
+function MilestoneCard({ title, value, subtext, icon }: { title: string, value: string, subtext: string, icon: React.ReactNode }) {
+  return (
+    <div className="p-5 border border-white/[0.06] rounded-xl bg-white/[0.02] flex flex-col gap-3">
+      <div className="flex items-center gap-2 text-zinc-500">
+        {icon}
+        <span className="font-mono text-[10px] uppercase tracking-widest">{title}</span>
+      </div>
+      <div>
+        <p className="text-xl text-white font-medium">{value}</p>
+        <p className="text-xs text-zinc-500 mt-1 truncate" title={subtext}>{subtext}</p>
+      </div>
+    </div>
+  );
+}
+
+function ScoresTab({ analytics }: { analytics: AnalyticsData }) {
+  const scores = [
+    { label: "Consistency", score: analytics.insights.commitConsistencyScore },
+    { label: "Exploration", score: analytics.insights.explorationScore },
+    { label: "Craftsmanship", score: analytics.insights.craftsmanshipScore },
+    { label: "Focus", score: analytics.insights.focusScore },
+    { label: "Night Owl", score: analytics.insights.nightOwlScore },
+  ];
+
+  return (
+    <div className="flex flex-col gap-10">
+      <div className="flex flex-wrap justify-center gap-8 md:gap-12">
+        {scores.map(s => (
+          <ScoreRing key={s.label} label={s.label} score={s.score} />
+        ))}
+      </div>
+      
+      <div className="mt-4 p-5 bg-white/[0.02] rounded-xl border border-white/[0.04]">
+        <p className="text-sm text-zinc-300 leading-relaxed">
+          {analytics.insights.insightNarrative}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ScoreRing({ label, score }: { label: string; score: number }) {
+  const radius = 40;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (score / 100) * circumference;
+
+  return (
+    <div className="flex flex-col items-center gap-3">
+      <div className="relative w-24 h-24 flex items-center justify-center">
+        <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 100 100">
+          <circle
+            cx="50"
+            cy="50"
+            r={radius}
+            className="stroke-zinc-800 fill-none"
+            strokeWidth="4"
+          />
+          <circle
+            cx="50"
+            cy="50"
+            r={radius}
+            className="stroke-white fill-none transition-all duration-1000 ease-out"
+            strokeWidth="4"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-xl font-semibold text-white">{Math.round(score)}</span>
+        </div>
+      </div>
+      <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">{label}</span>
+    </div>
+  );
+}
+
+function StatCard({ label, value, icon }: { label: string, value: string | number, icon: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-1.5 text-zinc-500">
+        {icon}
+        <span className="font-mono text-[10px] uppercase tracking-widest">{label}</span>
+      </div>
+      <span className="text-3xl font-semibold text-white">{value}</span>
     </div>
   );
 }
