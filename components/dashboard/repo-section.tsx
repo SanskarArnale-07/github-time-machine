@@ -137,7 +137,7 @@ export function RepoSection({ repos, commits = [] }: RepoSectionProps) {
           </p>
         </div>
 
-        <div className="flex w-full flex-wrap items-center gap-4 md:w-auto">
+        <div className="flex w-full flex-col sm:flex-row items-stretch sm:items-center gap-4 md:w-auto">
           <div className="relative flex-grow md:flex-grow-0">
             <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" />
             <input
@@ -150,7 +150,7 @@ export function RepoSection({ repos, commits = [] }: RepoSectionProps) {
           </div>
 
           <select
-            className="cursor-pointer rounded-full border border-ink-border bg-ink-soft/50 px-6 py-3 text-base text-ivory focus:border-brass focus:outline-none focus:ring-1 focus:ring-brass/50 transition-all"
+            className="w-full sm:w-auto cursor-pointer rounded-full border border-ink-border bg-ink-soft/50 px-6 py-3 text-sm sm:text-base text-ivory focus:border-brass focus:outline-none focus:ring-1 focus:ring-brass/50 transition-all"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
             aria-label="Sort repositories"
@@ -166,10 +166,10 @@ export function RepoSection({ repos, commits = [] }: RepoSectionProps) {
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setSelectedLang(null)}
-            className={`rounded-full border px-4 py-1.5 text-xs font-mono transition-all duration-300 ${
+            className={`rounded-full border min-h-[40px] px-4 py-2 text-xs font-mono transition-all duration-300 ${
               !selectedLang
                 ? "border-white bg-white font-medium text-black shadow-sm"
-                : "border-white/10 bg-[#0A0A0A] text-zinc-400 hover:border-white/20 hover:text-white"
+                : "border-white/10 bg-surface text-zinc-400 hover:border-white/20 hover:text-white"
             }`}
           >
             All Languages
@@ -178,10 +178,10 @@ export function RepoSection({ repos, commits = [] }: RepoSectionProps) {
             <button
               key={lang}
               onClick={() => setSelectedLang(lang)}
-              className={`rounded-full border px-4 py-1.5 text-xs font-mono transition-all duration-300 ${
+              className={`rounded-full border min-h-[40px] px-4 py-2 text-xs font-mono transition-all duration-300 ${
                 selectedLang === lang
                   ? "border-white bg-white font-medium text-black shadow-sm"
-                  : "border-white/10 bg-[#0A0A0A] text-zinc-400 hover:border-white/20 hover:text-white"
+                  : "border-white/10 bg-surface text-zinc-400 hover:border-white/20 hover:text-white"
               }`}
             >
               {lang}
@@ -202,8 +202,8 @@ export function RepoSection({ repos, commits = [] }: RepoSectionProps) {
           <div 
             className="mt-16 pb-24 relative"
             style={{ 
-              WebkitMaskImage: displayedRepos.length > 6 ? "linear-gradient(to bottom, black 85%, transparent 100%)" : "none",
-              maskImage: displayedRepos.length > 6 ? "linear-gradient(to bottom, black 85%, transparent 100%)" : "none"
+              WebkitMaskImage: (!showAll && displayedRepos.length > 6) ? "linear-gradient(to bottom, black 85%, transparent 100%)" : "none",
+              maskImage: (!showAll && displayedRepos.length > 6) ? "linear-gradient(to bottom, black 85%, transparent 100%)" : "none"
             }}
           >
             <div className="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3">
@@ -267,7 +267,7 @@ export function RepoSection({ repos, commits = [] }: RepoSectionProps) {
                         {getRelativeTime(repo.updated_at)}
                       </div>
                     </div>
-                    <Button onClick={() => router.push(`/repo/${repo.full_name}/documentary`)} variant="outline" size="sm" className="w-full h-9 text-xs font-medium border-white/20 text-muted/90 hover:border-white/40 hover:text-white bg-transparent hover:bg-white/5 transition-all duration-300 hover:shadow-[0_0_15px_rgba(255,255,255,0.07)]">
+                    <Button onClick={() => router.push(`/repo/${repo.full_name}/documentary`)} variant="outline" size="sm" className="w-full h-11 sm:h-9 text-xs font-medium border-white/20 text-muted/90 hover:border-white/40 hover:text-white bg-transparent hover:bg-white/5 transition-all duration-300 hover:shadow-[0_0_15px_rgba(255,255,255,0.07)]">
                       <Clock className="mr-1.5 h-3.5 w-3.5" />
                       View Timeline
                     </Button>

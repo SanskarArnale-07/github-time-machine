@@ -38,6 +38,14 @@ const config: Config = {
         },
         ivory: '#FFFFFF',      // Pure white
         muted: '#888888',      // Vercel gray
+        // ── Semantic surface tokens ──────────────────────────────────────────
+        // Use these instead of arbitrary [#0A0A0A] hex values everywhere.
+        surface: {
+          DEFAULT: '#0A0A0A',  // Primary card / panel background (= ink-soft)
+          raised: '#111111',   // Slightly elevated surface (= ink-surface)
+          border: 'rgba(255,255,255,0.10)',  // Standard border opacity
+          subtle: 'rgba(255,255,255,0.06)',  // Subtler border (analytics sections)
+        },
       },
       fontFamily: {
         display: ["var(--font-inter)", "system-ui", "sans-serif"],

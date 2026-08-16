@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useMemo } from "react";
 import { TimelineYearGroup, GitHubRepo, GitHubCommit } from "@/lib/github/types";
-import { Search, GitCommit, BookOpen } from "lucide-react";
+import { Search, GitCommit, BookOpen, ChevronDown } from "lucide-react";
 
 interface TimelineViewProps {
   yearGroups: TimelineYearGroup[];
@@ -106,31 +106,34 @@ export function TimelineView({
           </p>
         </div>
 
-        <div className="flex w-full md:w-auto flex-nowrap items-center gap-3">
-          <div className="relative flex-1 sm:w-64">
+        <div className="flex w-full md:w-auto flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="relative flex-1 sm:w-64 sm:flex-none">
             <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
             <input
               type="text"
               placeholder="Search entries..."
-              className="h-10 w-full rounded-full border border-white/10 bg-[#0A0A0A] py-2 pl-10 pr-4 text-sm text-white placeholder-zinc-500 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 transition-all m-0"
+              className="h-10 w-full rounded-full border border-white/10 bg-surface py-2 pl-10 pr-4 text-sm text-white placeholder-zinc-500 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 transition-all m-0"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
 
-          <select
-            className="h-10 cursor-pointer rounded-full border border-white/10 bg-[#0A0A0A] pl-4 pr-8 py-2 text-sm text-white focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 transition-all m-0 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%24%2024%22%20fill%3D%22none%22%20stroke%3D%22%2371717a%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:1em] bg-[right_0.5rem_center] bg-no-repeat"
-            value={selectedRepo}
-            onChange={(e) => setSelectedRepo(e.target.value)}
-            aria-label="Filter by repository"
-          >
-            <option value="all">All Chronicles</option>
-            {repos.map((repo) => (
-              <option key={repo.name} value={repo.name}>
-                {repo.name}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              className="h-10 w-full sm:w-auto cursor-pointer rounded-full border border-white/10 bg-surface pl-4 pr-10 py-2 text-sm text-white focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 transition-all m-0 appearance-none"
+              value={selectedRepo}
+              onChange={(e) => setSelectedRepo(e.target.value)}
+              aria-label="Filter by repository"
+            >
+              <option value="all">All Chronicles</option>
+              {repos.map((repo) => (
+                <option key={repo.name} value={repo.name}>
+                  {repo.name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+          </div>
         </div>
       </div>
 
@@ -165,8 +168,8 @@ export function TimelineView({
                 <div key={month.month} className="space-y-8">
                   {/* Monthly Chapter Card */}
                   <div className="relative overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br from-white/[0.03] to-transparent p-6 shadow-xl backdrop-blur-sm">
-                    <div className="absolute top-0 right-0 p-6 opacity-10">
-                      <BookOpen className="h-24 w-24 text-brass" />
+                    <div className="absolute top-0 right-0 p-4 sm:p-6 opacity-5 sm:opacity-10">
+                      <BookOpen className="h-14 w-14 sm:h-24 sm:w-24 text-brass" />
                     </div>
                     <div className="relative z-10">
                       <h4 className="font-display text-2xl font-bold text-brass-light">
@@ -203,7 +206,7 @@ export function TimelineView({
                                     href={group.htmlUrl}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="font-mono text-xs text-muted transition-colors hover:text-brass"
+                                    className="inline-flex items-center min-h-[32px] px-1 -mx-1 font-mono text-xs text-muted transition-colors hover:text-brass rounded"
                                   >
                                     {group.shortSha}
                                   </a>

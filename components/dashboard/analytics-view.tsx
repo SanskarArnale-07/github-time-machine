@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useTransition } from "react";
 import { 
   Activity, 
   Code2, 
@@ -18,63 +18,59 @@ interface AnalyticsViewProps {
 }
 
 export function AnalyticsView({ analytics, commits }: AnalyticsViewProps) {
-  const [activeTab, setActiveTab] = useState(0);
+  const [, startTransition] = useTransition();
 
-  const tabs = ["Overview", "Activity", "Languages", "Milestones", "Scores"];
+  // Defer heavy date parsing off the initial paint — computed in a
+  // low-priority transition so the first frame renders instantly.
+  const [activeDays, setActiveDays] = useState<number | null>(null);
+  const [sortedCommits, setSortedCommits] = useState<GitHubCommit[]>([]);
 
-  const activeDays = useMemo(() => {
-    return new Set(commits.map(c => new Date(c.date).toDateString())).size;
-  }, [commits]);
+  useEffect(() => {
+    startTransition(() => {
+      const days = new Set(commits.map(c => new Date(c.date).toDateString())).size;
+      setActiveDays(days);
 
-  const sortedCommits = useMemo(() => {
-    return [...commits].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      const sorted = [...commits].sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+      );
+      setSortedCommits(sorted);
+    });
   }, [commits]);
 
   const firstCommit = sortedCommits[0];
   const latestCommit = sortedCommits[sortedCommits.length - 1];
 
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 0:
-        return <OverviewTab analytics={analytics} activeDays={activeDays} />;
-      case 1:
-        return <ActivityTab analytics={analytics} commits={commits} />;
-      case 2:
-        return <LanguagesTab analytics={analytics} />;
-      case 3:
-        return <MilestonesTab analytics={analytics} firstCommit={firstCommit} latestCommit={latestCommit} />;
-      case 4:
-        return <ScoresTab analytics={analytics} />;
-      default:
-        return null;
-    }
-  };
-
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
-        {tabs.map((tab, idx) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(idx)}
-            className={`px-4 py-1.5 rounded-full font-mono text-[11px] uppercase tracking-widest whitespace-nowrap transition-colors ${
-              activeTab === idx
-                ? "bg-white/10 text-white"
-                : "text-zinc-500 hover:text-zinc-300 bg-transparent"
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
-      <div className="bg-[#0A0A0A] border border-white/[0.06] rounded-xl p-6 min-h-[400px]">
-        {renderTabContent()}
-      </div>
+    <div className="flex flex-col gap-12">
+      <section className="panel-card">
+        <h2 className="section-label mb-6 border-b border-white/[0.06] pb-3">Overview</h2>
+        <OverviewTab analytics={analytics} activeDays={activeDays} />
+      </section>
+
+      <section className="panel-card">
+        <h2 className="section-label mb-6 border-b border-white/[0.06] pb-3">Activity</h2>
+        <ActivityTab analytics={analytics} commits={commits} />
+      </section>
+
+      <section className="panel-card">
+        <h2 className="section-label mb-6 border-b border-white/[0.06] pb-3">Languages</h2>
+        <LanguagesTab analytics={analytics} />
+      </section>
+
+      <section className="panel-card">
+        <h2 className="section-label mb-6 border-b border-white/[0.06] pb-3">Milestones</h2>
+        <MilestonesTab analytics={analytics} firstCommit={firstCommit} latestCommit={latestCommit} />
+      </section>
+
+      <section className="panel-card">
+        <h2 className="section-label mb-6 border-b border-white/[0.06] pb-3">Scores</h2>
+        <ScoresTab analytics={analytics} />
+      </section>
     </div>
   );
 }
 
-function OverviewTab({ analytics, activeDays }: { analytics: AnalyticsData; activeDays: number }) {
+function OverviewTab({ analytics, activeDays }: { analytics: AnalyticsData; activeDays: number | null }) {
   const maxYearCommits = Math.max(...Object.values(analytics.commitsByYear));
 
   return (
@@ -83,7 +79,7 @@ function OverviewTab({ analytics, activeDays }: { analytics: AnalyticsData; acti
         <StatCard label="Total Commits" value={analytics.totalCommits} icon={<Code2 size={16} />} />
         <StatCard label="Total Repos" value={analytics.totalRepos} icon={<Code2 size={16} />} />
         <StatCard label="Longest Streak" value={`${analytics.longestStreak}d`} icon={<Zap size={16} />} />
-        <StatCard label="Active Days" value={activeDays} icon={<Activity size={16} />} />
+        <StatCard label="Active Days" value={activeDays ?? "—"} icon={<Activity size={16} />} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -99,7 +95,7 @@ function OverviewTab({ analytics, activeDays }: { analytics: AnalyticsData; acti
                     style={{ width: `${maxYearCommits > 0 ? (count / maxYearCommits) * 100 : 0}%` }}
                   />
                 </div>
-                <span className="text-xs text-zinc-400 w-8 text-right">{count}</span>
+                <span className="text-xs text-zinc-400 tabular-nums min-w-[2.5rem] text-right">{count}</span>
               </div>
             ))}
           </div>
@@ -208,8 +204,8 @@ function ActivityTab({ analytics, commits }: { analytics: AnalyticsData; commits
       <div className="flex flex-col gap-4">
         <h3 className="font-mono text-[11px] uppercase tracking-widest text-zinc-500">Commits by Year</h3>
         {yearData.length > 0 ? (
-          <div>
-            <div className="flex gap-1.5" style={{ height: "120px" }}>
+          <div className="overflow-x-auto pb-2">
+            <div className="flex gap-1.5 min-w-max" style={{ height: "120px" }}>
               {yearData.map(({ year, count }) => {
                 const heightPct = (count / maxYearCommits) * 100;
                 const isPeak = peakYear && year === peakYear.year;
@@ -228,7 +224,7 @@ function ActivityTab({ analytics, commits }: { analytics: AnalyticsData; commits
                 );
               })}
             </div>
-            <div className="flex gap-1.5 mt-2">
+            <div className="flex gap-1.5 min-w-max mt-2">
               {yearData.map(({ year, count }) => (
                 <div key={year} className="flex-1 flex flex-col items-center" style={{ maxWidth: "80px" }}>
                   <span className={`text-[10px] ${peakYear && year === peakYear.year ? 'text-white' : 'text-zinc-500'}`}>{year}</span>
@@ -249,7 +245,7 @@ function ActivityTab({ analytics, commits }: { analytics: AnalyticsData; commits
           <div className="flex flex-col gap-3">
             {timeOfDayData.map(time => (
               <div key={time.label} className="flex items-center gap-3">
-                <div className="w-20 shrink-0">
+                <div className="w-16 sm:w-20 shrink-0">
                   <span className="text-xs text-zinc-300 block">{time.label}</span>
                   <span className="text-[9px] text-zinc-600">{time.sublabel}</span>
                 </div>
@@ -259,7 +255,7 @@ function ActivityTab({ analytics, commits }: { analytics: AnalyticsData; commits
                     style={{ width: `${maxTimePct > 0 ? (time.pct / maxTimePct) * 100 : 0}%` }}
                   />
                 </div>
-                <span className="text-[10px] text-zinc-500 w-16 text-right shrink-0">{time.count} · {time.pct}%</span>
+                <span className="text-[10px] text-zinc-500 min-w-[3.5rem] text-right shrink-0 tabular-nums">{time.count} · {time.pct}%</span>
               </div>
             ))}
           </div>
@@ -424,18 +420,18 @@ function MilestoneCard({ title, value, subtext, icon }: { title: string, value: 
 
 function ScoresTab({ analytics }: { analytics: AnalyticsData }) {
   const scores = [
-    { label: "Consistency", score: analytics.insights.commitConsistencyScore },
-    { label: "Exploration", score: analytics.insights.explorationScore },
-    { label: "Craftsmanship", score: analytics.insights.craftsmanshipScore },
-    { label: "Focus", score: analytics.insights.focusScore },
-    { label: "Night Owl", score: analytics.insights.nightOwlScore },
+    { label: "Consistency", score: analytics.insights.commitConsistencyScore, desc: "Commit regularity across time" },
+    { label: "Exploration", score: analytics.insights.explorationScore, desc: "Variety of repos and languages" },
+    { label: "Craftsmanship", score: analytics.insights.craftsmanshipScore, desc: "Quality and depth of contributions" },
+    { label: "Focus", score: analytics.insights.focusScore, desc: "Dedication to core repositories" },
+    { label: "Night Owl", score: analytics.insights.nightOwlScore, desc: "Frequency of late-night coding" },
   ];
 
   return (
     <div className="flex flex-col gap-10">
-      <div className="flex flex-wrap justify-center gap-8 md:gap-12">
+      <div className="flex flex-wrap justify-center gap-6 md:gap-8">
         {scores.map(s => (
-          <ScoreRing key={s.label} label={s.label} score={s.score} />
+          <ScoreRing key={s.label} label={s.label} score={s.score} description={s.desc} />
         ))}
       </div>
       
@@ -448,13 +444,13 @@ function ScoresTab({ analytics }: { analytics: AnalyticsData }) {
   );
 }
 
-function ScoreRing({ label, score }: { label: string; score: number }) {
+function ScoreRing({ label, score, description }: { label: string; score: number; description: string }) {
   const radius = 40;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (score / 100) * circumference;
 
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div className="flex flex-col items-center gap-3 text-center">
       <div className="relative w-24 h-24 flex items-center justify-center">
         <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 100 100">
           <circle
@@ -479,7 +475,10 @@ function ScoreRing({ label, score }: { label: string; score: number }) {
           <span className="text-xl font-semibold text-white">{Math.round(score)}</span>
         </div>
       </div>
-      <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">{label}</span>
+      <div>
+        <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-300 block mb-1">{label}</span>
+        <span className="text-[10px] text-zinc-500 leading-tight block">{description}</span>
+      </div>
     </div>
   );
 }
