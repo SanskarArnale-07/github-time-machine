@@ -446,13 +446,31 @@ function ScoresTab({ analytics }: { analytics: AnalyticsData }) {
 }
 
 function ScoreRing({ label, score, description }: { label: string; score: number; description: string }) {
+  const [showTooltip, setShowTooltip] = useState(false);
   const radius = 40;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (score / 100) * circumference;
 
+  // Score explanations
+  const explanations: Record<string, string> = {
+    Consistency: "How regularly you commit. Higher values indicate consistent activity throughout the year. Calculated from commit frequency and active days.",
+    Exploration: "How diverse your work is across repositories and languages. Higher values mean you work across many repos and languages.",
+    Craftsmanship: "The depth and quality of your contributions. Reflects commit message length, commit frequency per repo, and project maturity.",
+    Focus: "How concentrated your work is on fewer repos. Higher values mean you dedicate significant time to core projects.",
+    "Night Owl": "What percentage of your commits happen after 10pm. Higher values mean you prefer late-night coding sessions.",
+  };
+
+  const getScoreLevel = (score: number) => {
+    if (score >= 90) return "Exceptional";
+    if (score >= 75) return "Strong";
+    if (score >= 60) return "Solid";
+    if (score >= 40) return "Developing";
+    return "Building";
+  };
+
   return (
     <div className="flex flex-col items-center gap-3 text-center">
-      <div className="relative w-24 h-24 flex items-center justify-center">
+      <div className="relative w-24 h-24 flex items-center justify-center group">
         <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 100 100">
           <circle
             cx="50"
@@ -475,7 +493,30 @@ function ScoreRing({ label, score, description }: { label: string; score: number
         <div className="absolute inset-0 flex items-center justify-center">
           <span className="text-xl font-semibold text-white">{Math.round(score)}</span>
         </div>
+        {/* Hover tooltip trigger */}
+        <button
+          onMouseEnter={() => setShowTooltip(true)}
+          onMouseLeave={() => setShowTooltip(false)}
+          className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-white/10 border border-white/20 text-[10px] font-bold text-zinc-400 hover:bg-white/20 hover:text-white transition-colors flex items-center justify-center"
+          title="Score explanation"
+        >
+          ?
+        </button>
       </div>
+      
+      {/* Score tooltip */}
+      {showTooltip && (
+        <div className="absolute z-50 mt-2 w-56 rounded-lg border border-white/10 bg-black/95 p-3 shadow-2xl text-left">
+          <p className="text-[11px] text-zinc-300 leading-relaxed mb-2">
+            {explanations[label] || description}
+          </p>
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">Level:</span>
+            <span className="font-mono text-[10px] font-semibold text-white">{getScoreLevel(score)}</span>
+          </div>
+        </div>
+      )}
+
       <div>
         <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-300 block mb-1">{label}</span>
         <span className="text-[10px] text-zinc-500 leading-tight block">{description}</span>

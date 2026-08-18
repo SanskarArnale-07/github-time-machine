@@ -200,12 +200,7 @@
 
   /* Section label: mono uppercase label inside panels (used 5× in analytics-view) */
   .section-label {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: #71717a;
+    @apply font-mono text-[11px] font-semibold tracking-widest uppercase text-zinc-500;
   }
 
   /* Cinematic form control: dark pill-shaped input/select (used 4× across timeline/repo) */

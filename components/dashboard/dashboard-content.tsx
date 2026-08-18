@@ -311,7 +311,7 @@ export function DashboardContent({
               <div className="relative z-10 flex flex-col items-start justify-center">
                 <div className="max-w-4xl pb-1">
                   <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400 mb-2">Current Chapter</p>
-                  <h2 className="font-sans text-2xl sm:text-4xl md:text-6xl font-semibold text-white tracking-tighter leading-tight drop-shadow-2xl mb-4">
+                  <h2 className="font-display text-2xl sm:text-4xl md:text-6xl font-semibold text-white tracking-tighter leading-tight drop-shadow-2xl mb-4">
                     The {analytics?.mostActiveYear || new Date().getFullYear()} Chapter
                   </h2>
                   <p className="text-base md:text-lg text-zinc-400 leading-relaxed border-l-2 border-white/20 pl-5 max-w-3xl">

@@ -21,7 +21,7 @@ export function CtaBand() {
             Begin The Documentary
           </span>
 
-          <h2 className="font-sans font-bold text-4xl sm:text-6xl text-white mb-5 tracking-tight leading-[1.1]">
+          <h2 className="font-display font-semibold text-4xl sm:text-6xl text-white mb-5 tracking-tight leading-[1.1]">
             Press play on your own history.
           </h2>
 

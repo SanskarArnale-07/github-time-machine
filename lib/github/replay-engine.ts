@@ -818,11 +818,14 @@ export function useRepoDocumentaryEngine(
       } else if (e.code === "ArrowRight") {
         e.preventDefault();
         stepForward();
+      } else if (e.code === "KeyR") {
+        e.preventDefault();
+        replay();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [togglePlay, stepBack, stepForward]);
+  }, [togglePlay, stepBack, stepForward, replay]);
 
   const currentEvent = total > 0 ? events[currentIndex] || events[0] : null;
   const startYear = total > 0 ? events[0]?.year || 2020 : new Date().getFullYear();

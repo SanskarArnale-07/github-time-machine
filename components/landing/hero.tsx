@@ -94,14 +94,14 @@ export function Hero() {
               </span>
             </motion.div>
 
-            {/* Sans Headline */}
+            {/* Display Headline */}
             <motion.h1
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
-              className="font-sans text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tighter text-white leading-[1.05]"
+              className="font-display text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tighter text-white leading-[1.05]"
             >
-              Your coding journey as a <span className="text-zinc-500">film.</span>
+              Your coding journey as a <span className="font-medium text-zinc-500 underline decoration-2 underline-offset-4 decoration-zinc-700">film.</span>
             </motion.h1>
 
             {/* Modern Sans-serif Subhead */}

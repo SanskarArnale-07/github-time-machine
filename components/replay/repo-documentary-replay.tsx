@@ -44,7 +44,7 @@ function RepoDocumentaryCard({ event }: { event: ReplayEvent }) {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 0.4 }}
-        className="font-sans font-semibold tracking-tight text-4xl leading-tight sm:text-5xl md:text-6xl drop-shadow-2xl"
+        className="font-display font-semibold tracking-tight text-4xl leading-tight sm:text-5xl md:text-6xl drop-shadow-2xl"
         style={{ color: "#D4A853" }}
       >
         {event.title}
@@ -111,6 +111,57 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastMousePos = useRef({ x: 0, y: 0 });
 
+  // Progress bar scrub/hover state
+  const [isScrubbing, setIsScrubbing] = useState(false);
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const [hoverX, setHoverX] = useState(0);
+  const scrubTrackRef = useRef<HTMLDivElement>(null);
+
+  const indexFromClientX = useCallback(
+    (clientX: number) => {
+      const track = scrubTrackRef.current;
+      if (!track) return 0;
+      const rect = track.getBoundingClientRect();
+      const percentage = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      return Math.round(percentage * (engine.total - 1));
+    },
+    [engine.total]
+  );
+
+  const handleTrackHover = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      const track = scrubTrackRef.current;
+      if (!track) return;
+      const rect = track.getBoundingClientRect();
+      setHoverX(Math.max(0, Math.min(rect.width, e.clientX - rect.left)));
+      setHoverIndex(indexFromClientX(e.clientX));
+      if (isScrubbing) {
+        engine.seek(indexFromClientX(e.clientX));
+      }
+    },
+    [engine, indexFromClientX, isScrubbing]
+  );
+
+  useEffect(() => {
+    if (!isScrubbing) return;
+    const handleMove = (e: MouseEvent) => {
+      engine.seek(indexFromClientX(e.clientX));
+      const track = scrubTrackRef.current;
+      if (track) {
+        const rect = track.getBoundingClientRect();
+        setHoverX(Math.max(0, Math.min(rect.width, e.clientX - rect.left)));
+        setHoverIndex(indexFromClientX(e.clientX));
+      }
+    };
+    const handleUp = () => setIsScrubbing(false);
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mouseup", handleUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mouseup", handleUp);
+    };
+  }, [isScrubbing, engine, indexFromClientX]);
+
   const handleMouseMove = (e: React.MouseEvent) => {
     // Prevent phantom mousemoves from CSS animations from resetting the timer
     const isActuallyMoving = 
@@ -176,6 +227,26 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
     return () => document.removeEventListener("fullscreenchange", updateFullscreenState);
   }, []);
 
+  // "F" toggles fullscreen. Lives here (not in the engine hook) because it needs theaterRef.
+  useEffect(() => {
+    const handleFullscreenKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.tagName === "SELECT" ||
+        target?.isContentEditable
+      ) return;
+
+      if (e.code === "KeyF") {
+        e.preventDefault();
+        toggleFullscreen();
+      }
+    };
+    window.addEventListener("keydown", handleFullscreenKey);
+    return () => window.removeEventListener("keydown", handleFullscreenKey);
+  }, [toggleFullscreen]);
+
   const toggleSoundtrack = useCallback(() => {
     const nextSoundEnabled = !soundEnabled;
     setSoundEnabled(nextSoundEnabled);
@@ -237,11 +308,25 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
 
       {/* Fixed Bottom Control Dock */}
       <section className={`absolute bottom-0 left-0 right-0 z-50 w-full border-t border-white/10 bg-black/80 backdrop-blur-xl transition-all duration-300 ease-in-out ${isHUDVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-full pointer-events-none"}`}>
-        <div className="group relative h-1.5 w-full bg-zinc-900 cursor-pointer" onClick={(e) => {
-          const rect = e.currentTarget.getBoundingClientRect();
-          const percentage = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-          engine.seek(Math.floor(percentage * engine.total));
-        }}>
+        <div
+          ref={scrubTrackRef}
+          className="group relative h-1.5 w-full cursor-pointer bg-zinc-900 hover:h-2.5 transition-[height] duration-150"
+          onMouseDown={(e) => {
+            setIsScrubbing(true);
+            engine.seek(indexFromClientX(e.clientX));
+          }}
+          onMouseMove={handleTrackHover}
+          onMouseLeave={() => !isScrubbing && setHoverIndex(null)}
+        >
+          {/* Hover/scrub tooltip */}
+          {hoverIndex !== null && engine.events[hoverIndex] && (
+            <div
+              className="pointer-events-none absolute bottom-4 z-40 -translate-x-1/2 whitespace-nowrap rounded-md border border-white/10 bg-black/90 px-2.5 py-1.5 font-mono text-[10px] text-zinc-200 shadow-xl"
+              style={{ left: `${hoverX}px` }}
+            >
+              {engine.events[hoverIndex].title}
+            </div>
+          )}
           {/* Markers */}
           {engine.events.map((ev, i) => {
             const leftPercent = (i / Math.max(1, engine.total - 1)) * 100;
@@ -255,6 +340,11 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
           })}
           {/* Progress fill */}
           <div className="absolute left-0 top-0 bottom-0 bg-white transition-[width] duration-300 ease-out z-20" style={{ width: `${engine.progress}%` }} />
+          {/* Scrub handle */}
+          <div
+            className="pointer-events-none absolute top-1/2 z-30 h-3 w-3 -translate-y-1/2 -translate-x-1/2 rounded-full bg-white opacity-0 shadow-md transition-opacity duration-150 group-hover:opacity-100"
+            style={{ left: `${engine.progress}%`, opacity: isScrubbing ? 1 : undefined }}
+          />
         </div>
         
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-8">
@@ -311,6 +401,7 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
           </div>
 
           <div className="flex w-1/3 items-center justify-end gap-1">
+            {/* Desktop: full speed selector */}
             <div className="mr-4 hidden items-center gap-1 rounded-md border border-white/10 bg-black/50 p-1 sm:flex">
               {([1, 2, 5] as const).map((speed) => (
                 <button
@@ -324,6 +415,19 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
                 </button>
               ))}
             </div>
+            {/* Mobile: tap-to-cycle speed button */}
+            <button
+              type="button"
+              onClick={() => {
+                const speeds = [1, 2, 5] as const;
+                const nextSpeed = speeds[(speeds.indexOf(engine.speed) + 1) % speeds.length];
+                engine.setSpeed(nextSpeed);
+              }}
+              className="mr-1 inline-flex h-10 min-w-10 items-center justify-center rounded-md border border-white/10 bg-black/50 px-2 font-mono text-[10px] font-semibold text-zinc-300 transition-colors hover:bg-white/10 hover:text-white sm:hidden"
+              title="Playback speed"
+            >
+              {engine.speed}×
+            </button>
             <button
               type="button"
               onClick={toggleSoundtrack}

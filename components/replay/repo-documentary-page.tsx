@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { GitHubCommit, GitHubRepo } from "@/lib/github/types";
 import { ReplayBackground } from "@/components/replay/replay-background";
 import { RepoDocumentaryReplay } from "@/components/replay/repo-documentary-replay";
+import { CinematicLoadingOverlay } from "@/components/cinematic/cinematic-loading-overlay";
 
 interface RepoDocumentaryPageProps {
   initialUsername: string;
@@ -97,13 +98,7 @@ export function RepoDocumentaryPage({
             </button>
           </div>
         ) : !hasLoaded ? (
-          <div className="flex h-full flex-col items-center justify-center gap-6">
-            <div className="flex flex-col items-center gap-4">
-              <div className="h-16 w-16 animate-pulse rounded-full border-2 border-brass/40" />
-              <div className="h-4 w-48 animate-pulse rounded-md bg-white/5" />
-              <div className="h-3 w-32 animate-pulse rounded-md bg-white/5" />
-            </div>
-          </div>
+          <CinematicLoadingOverlay isLoading={isLoading || !hasLoaded} />
         ) : !repo ? (
           <div className="flex h-full flex-col items-center justify-center gap-6 text-white">
             <p>Repository not found in archive.</p>
