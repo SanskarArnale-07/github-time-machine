@@ -1,22 +1,47 @@
 "use client";
 import React, { useState, useMemo } from "react";
 import { GitHubRepo, GitHubCommit, TimelineYearGroup } from "@/lib/github/types";
-import { Search, GitCommit, BookOpen, ChevronDown } from "lucide-react";
-import Image from "next/image";
+import { detectDeveloperMilestones } from "@/lib/github/milestone-engine";
+import { Search, GitCommit, BookOpen, ChevronDown, Sparkles } from "lucide-react";
 
 interface TimelineViewProps {
   yearGroups: TimelineYearGroup[];
   repos: GitHubRepo[];
   totalCommits: number;
+  commits?: GitHubCommit[];
 }
 
 export function TimelineView({
   yearGroups,
   repos,
   totalCommits,
+  commits = [],
 }: TimelineViewProps) {
   const [search, setSearch] = useState("");
   const [selectedRepo, setSelectedRepo] = useState<string>("all");
+
+  const allCommits = useMemo(() => {
+    if (commits && commits.length > 0) return commits;
+    return yearGroups.flatMap((yg) => yg.months.flatMap((m) => m.commits));
+  }, [commits, yearGroups]);
+
+  const milestones = useMemo(() => {
+    return detectDeveloperMilestones(allCommits, repos);
+  }, [allCommits, repos]);
+
+  const formatMilestoneDate = (dateString: string) => {
+    try {
+      const d = new Date(dateString);
+      if (isNaN(d.getTime())) return dateString;
+      return d.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    } catch {
+      return dateString;
+    }
+  };
 
   const filteredData = useMemo(() => {
     return yearGroups
@@ -60,9 +85,9 @@ export function TimelineView({
   };
 
   // Group commits by day for a journal feel, and group repetitive commits
-  const groupCommitsByDay = (commits: GitHubCommit[]) => {
+  const groupCommitsByDay = (commitsToGroup: GitHubCommit[]) => {
     const groups: Record<string, { repoName: string; sha: string; htmlUrl: string; messages: string[]; shortSha: string; count: number }[]> = {};
-    commits.forEach(commit => {
+    commitsToGroup.forEach(commit => {
       const date = new Date(commit.date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
       if (!groups[date]) groups[date] = [];
 
@@ -138,6 +163,69 @@ export function TimelineView({
           </div>
         </div>
       </div>
+
+      {/* Compact Developer Milestones Section */}
+      {milestones.length > 0 && (
+        <section aria-labelledby="developer-milestones-heading" className="rounded-2xl border border-white/5 bg-gradient-to-br from-white/[0.03] to-transparent p-5 sm:p-6 shadow-xl backdrop-blur-sm">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-brass/10 border border-brass/20 text-brass-light">
+                <Sparkles className="h-3.5 w-3.5" />
+              </div>
+              <div>
+                <h3 id="developer-milestones-heading" className="font-display text-lg font-bold text-white tracking-tight">
+                  Developer Milestones
+                </h3>
+              </div>
+            </div>
+            <span className="font-mono text-xs text-zinc-400 bg-white/5 border border-white/10 px-2.5 py-1 rounded-full">
+              {milestones.length} Recorded
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {milestones.map((milestone) => (
+              <div
+                key={milestone.id}
+                className="group flex flex-col justify-between rounded-xl border border-white/5 bg-white/[0.02] p-3.5 transition-all hover:border-white/10 hover:bg-white/[0.04]"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2 mb-1.5">
+                    <span className="text-xs font-semibold text-ivory/95 font-sans leading-snug">
+                      {milestone.title}
+                    </span>
+                    <span className="font-mono text-[10px] text-zinc-400 shrink-0">
+                      {formatMilestoneDate(milestone.date)}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-zinc-400 leading-relaxed">
+                    {milestone.description}
+                  </p>
+                </div>
+
+                {milestone.repository && (
+                  <div className="mt-2.5 flex items-center justify-between gap-2 pt-2 border-t border-white/5">
+                    <span className="rounded-full bg-commit-300/10 px-2 py-0.5 font-mono text-[10px] font-medium text-commit-300 border border-commit-300/20 truncate max-w-[180px]">
+                      {milestone.repository}
+                    </span>
+                    {milestone.commit?.htmlUrl && (
+                      <a
+                        href={milestone.commit.htmlUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-mono text-[10px] text-muted hover:text-brass transition-colors"
+                      >
+                        {milestone.commit.shortSha || milestone.commit.sha.slice(0, 7)}
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="relative mx-auto max-w-4xl space-y-12">
         {/* Continuous journal line */}

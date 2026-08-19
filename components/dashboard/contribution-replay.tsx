@@ -40,13 +40,6 @@ export function ContributionReplay({
   // We paint directly into these elements; React never re-renders them.
   const cellRefs = useRef<(HTMLDivElement | null)[][]>([]);
 
-  // Pre-allocate ref arrays when contributions change
-  useEffect(() => {
-    cellRefs.current = renderContributions.map((week) =>
-      Array((week.days || []).length).fill(null)
-    );
-  }, [renderContributions]);
-
   // ─── Core paint function — called by rAF, touches DOM directly ───────────
   const paintFrame = useCallback(
     (wave: number) => {
@@ -189,7 +182,7 @@ export function ContributionReplay({
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <div className="glass-card w-full overflow-hidden p-4 sm:p-5 lg:p-6">
-      <div className="mb-24 flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
+      <div className="mb-8 flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
         <div>
           <span className="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
             Contribution Graph Replay

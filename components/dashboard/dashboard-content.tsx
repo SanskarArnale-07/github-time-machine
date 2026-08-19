@@ -384,6 +384,7 @@ export function DashboardContent({
                 yearGroups={yearGroups}
                 repos={repos}
                 totalCommits={commits.length}
+                commits={commits}
               />
             )}
             {activeTab === "repos" && <RepoSection repos={repos} commits={commits} />}
