@@ -316,8 +316,8 @@ export function DashboardContent({
                   </h2>
                   <p className="text-base md:text-lg text-zinc-400 leading-relaxed border-l-2 border-white/20 pl-5 max-w-3xl">
                     {commits.length < 50
-                      ? `You are at the beginning of an exciting journey. With ${commits.length} initial contributions, you are laying down the foundation for future technical exploration and growth. Every great documentary starts with a single step.`
-                      : `You've been forging ahead, deeply engaged in expanding your technical repertoire. With a surge of ${commits.length} contributions lately, the focus has shifted towards refining core logic and embracing new architectural patterns. The journey is accelerating.`}
+                      ? `${commits.length} commits in${analytics?.insights?.mostFrequentlyUsedLanguage ? ` ${analytics.insights.mostFrequentlyUsedLanguage}` : ""}${analytics?.insights?.fastestRepoGrowth ? `, starting with ${analytics.insights.fastestRepoGrowth}` : ""}. Every documentary starts with a single commit — this is yours.`
+                      : `${analytics?.insights?.fastestRepoGrowth ? `${analytics.insights.fastestRepoGrowth} took the most of your attention this year — ` : ""}${commits.length} commits across ${repos.length} repositories${analytics?.insights?.mostFrequentlyUsedLanguage ? `, mostly in ${analytics.insights.mostFrequentlyUsedLanguage}` : ""}${analytics && analytics.longestStreak > 0 ? `, with a ${analytics.longestStreak}-day streak at your peak` : ""}. Keep the momentum going.`}
                   </p>
                   <div className="mt-5 flex flex-col sm:flex-row flex-wrap gap-4 items-stretch sm:items-center">
                     <Button 
@@ -329,7 +329,9 @@ export function DashboardContent({
                     </Button>
                     <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-zinc-300">
                       <Sparkles className="h-4 w-4" />
-                      Latest Milestone: Over {repos.length} repositories
+                      {analytics?.mostActiveYear && analytics.commitsByYear[analytics.mostActiveYear]
+                        ? `Latest Milestone: ${analytics.commitsByYear[analytics.mostActiveYear]} Commits in ${analytics.mostActiveYear}`
+                        : `Latest Milestone: Over ${repos.length} repositories`}
                     </div>
                   </div>
                 </div>

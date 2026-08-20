@@ -642,7 +642,7 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
         </header>
 
         <main className="relative z-10 flex w-full flex-1 items-center justify-center overflow-hidden">
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="popLayout">
             <motion.div
               key={engine.currentEvent?.id || engine.currentIndex}
               className="absolute inset-0 flex items-center justify-center"

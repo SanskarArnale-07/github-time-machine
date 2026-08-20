@@ -286,7 +286,7 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
 
       {/* Main Content Area */}
       <main className="relative z-10 flex flex-1 items-center justify-center w-full h-full">
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="popLayout">
           {engine.currentEvent && (
             <motion.div
               key={engine.currentEvent.id}

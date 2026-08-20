@@ -65,7 +65,6 @@ export function TimelineReplay({
   const [isFullscreen, setIsFullscreen] = useState(false);
   // Audio is MUTED by default per user requirement
   const [soundEnabled, setSoundEnabled] = useState(false);
-  const [showAudioPrompt, setShowAudioPrompt] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [exportingType, setExportingType] = useState<string | null>(null);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
@@ -95,7 +94,7 @@ export function TimelineReplay({
     if (engine.isPlaying) {
       hideTimerRef.current = setTimeout(() => {
         setIsHUDVisible(false);
-      }, 3000);
+      }, 1000);
     }
   };
 
@@ -107,7 +106,7 @@ export function TimelineReplay({
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
       hideTimerRef.current = setTimeout(() => {
         setIsHUDVisible(false);
-      }, 3000);
+      }, 1000);
     }
     
     return () => {
@@ -122,8 +121,6 @@ export function TimelineReplay({
       if (saved === "true") {
         setSoundEnabled(true);
         ambientSoundtrack.start();
-      } else if (saved === null) {
-        setShowAudioPrompt(true);
       }
     } catch {}
 
@@ -134,7 +131,6 @@ export function TimelineReplay({
 
   // Audio toggle with localStorage memory
   const toggleSoundtrack = () => {
-    setShowAudioPrompt(false);
     if (soundEnabled) {
       ambientSoundtrack.stop();
       setSoundEnabled(false);
@@ -370,41 +366,27 @@ export function TimelineReplay({
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Ambient Soundtrack Toggle (Muted by default) */}
           {!isFullscreen && (
-            <div className="relative">
-              <button
-                onClick={toggleSoundtrack}
-                className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 font-mono text-xs transition-all ${
-                  soundEnabled
-                    ? "border-brass bg-brass/10 text-brass-light shadow-[0_0_15px_rgba(212,168,83,0.15)]"
-                    : "border-zinc-800 bg-zinc-950/50 text-zinc-500 hover:text-ivory"
-                }`}
-                title="Toggle inspiring ambient piano soundtrack (Default: Muted)"
-              >
-                {soundEnabled ? (
-                  <>
-                    <Volume2 className="h-3.5 w-3.5 text-brass-light animate-pulse" />
-                    <span className="hidden sm:inline">Piano On</span>
-                  </>
-                ) : (
-                  <>
-                    <VolumeX className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">Muted</span>
-                  </>
-                )}
-              </button>
-              {showAudioPrompt && !soundEnabled && (
-                <div className="absolute top-full left-0 mt-2 w-64 p-3 bg-zinc-900 border border-brass/30 rounded-xl shadow-2xl flex flex-col gap-2 z-50 animate-in fade-in slide-in-from-top-2">
-                  <p className="text-xs text-zinc-300 leading-relaxed font-mono">
-                    <strong className="text-brass-light uppercase text-[10px] tracking-wider block mb-1">Recommended</strong>
-                    Enable sound for the full cinematic experience.
-                  </p>
-                  <div className="flex gap-2">
-                    <button onClick={toggleSoundtrack} className="text-xs bg-brass text-ink px-2 py-1.5 rounded-lg font-bold hover:bg-brass-light transition-colors flex-1">Enable Audio</button>
-                    <button onClick={() => setShowAudioPrompt(false)} className="text-xs border border-zinc-700 text-zinc-400 px-2 py-1.5 rounded-lg hover:bg-zinc-800 transition-colors">Dismiss</button>
-                  </div>
-                </div>
+            <button
+              onClick={toggleSoundtrack}
+              className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 font-mono text-xs transition-all ${
+                soundEnabled
+                  ? "border-brass bg-brass/10 text-brass-light shadow-[0_0_15px_rgba(212,168,83,0.15)]"
+                  : "border-zinc-800 bg-zinc-950/50 text-zinc-500 hover:text-ivory"
+              }`}
+              title="Toggle inspiring ambient piano soundtrack (Default: Muted)"
+            >
+              {soundEnabled ? (
+                <>
+                  <Volume2 className="h-3.5 w-3.5 text-brass-light animate-pulse" />
+                  <span className="hidden sm:inline">Piano On</span>
+                </>
+              ) : (
+                <>
+                  <VolumeX className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Muted</span>
+                </>
               )}
-            </div>
+            </button>
           )}
 
           {/* Date Odometer */}
@@ -589,7 +571,7 @@ export function TimelineReplay({
             {!isFullscreen && <div className="pointer-events-none absolute inset-0 bg-scan-line opacity-5" />}
             <div className="relative z-10 mx-auto flex max-w-2xl flex-col items-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-brass bg-brass/10 text-brass-light shadow-lg">
-                <Award className="h-7 w-7 animate-pulse" />
+                <Award className="h-7 w-7 animate-bounce" />
               </div>
 
               <span className="mt-5 font-mono text-[10px] uppercase tracking-[0.25em] text-brass-light font-bold">

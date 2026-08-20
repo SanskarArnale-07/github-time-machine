@@ -2,20 +2,7 @@
 
 import React, { useMemo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Github,
-  Play,
-  GitCommit,
-  Sparkles,
-  FolderGit2,
-  Calendar,
-  ArrowRight,
-  ShieldCheck,
-  Film,
-  Code2,
-  Zap,
-  Clock,
-} from "lucide-react";
+import { Github, Play, GitCommit, Sparkles, FolderGit2, Calendar, ArrowRight, ShieldCheck, Film, Code2, Zap, Clock } from "lucide-react";
 import { signInWithGithub } from "@/lib/supabase/auth-actions";
 import { Button } from "@/components/ui/button";
 import { GitBackground } from "@/components/landing/git-background";
@@ -27,13 +14,10 @@ export function Hero() {
   const sampleSquares = useMemo(() => {
     // Brighter silvers with a dark silver (#a1a1aa) highlight for peak activity
     const colors = ["#18181b", "#3f3f46", "#71717a", "#e4e4e7", "#a1a1aa"];
-    const intensity = 1 + activeCommitIdx * 0.8;
+    const intensity = 1 + activeCommitIdx * 0.8; 
     return Array.from({ length: 48 }).map((_, i) => {
-      const randomBase = (i * 7 + 3) % 10;
-      const activeValue = Math.min(
-        Math.floor((randomBase * intensity) / 4),
-        colors.length - 1,
-      );
+      const randomBase = (i * 7 + 3) % 10; 
+      const activeValue = Math.min(Math.floor((randomBase * intensity) / 4), colors.length - 1);
       return {
         id: i,
         color: colors[activeValue],
@@ -54,8 +38,7 @@ export function Hero() {
       repo: "weather-dashboard",
       hash: "#4a9f1b2",
       msg: "feat: implement real-time radar stream pipeline",
-      narration:
-        "October 2025: You stopped experimenting and started building consistently.",
+      narration: "October 2025: You stopped experimenting and started building consistently.",
       progress: "68%",
       streak: "18d",
       date: "Oct 24, 2025",
@@ -64,8 +47,7 @@ export function Hero() {
       repo: "rust-cli-tool",
       hash: "#7b2c9e1",
       msg: "refactor: optimize memory allocation for large files",
-      narration:
-        "A breakthrough moment. You began caring about deep performance.",
+      narration: "A breakthrough moment. You began caring about deep performance.",
       progress: "75%",
       streak: "42d",
       date: "Feb 12, 2026",
@@ -78,7 +60,7 @@ export function Hero() {
       progress: "82%",
       streak: "64d",
       date: "Aug 05, 2026",
-    },
+    }
   ];
 
   useEffect(() => {
@@ -96,6 +78,7 @@ export function Hero() {
       {/* 2. Hero Content Container — Premium editorial layout */}
       <div className="relative z-10 mx-auto w-full max-w-7xl pt-4 pb-8 lg:pt-6 lg:pb-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+          
           {/* Left Column: Core Headline, Value Proposition, & CTAs */}
           <div className="lg:col-span-7 flex flex-col items-center lg:items-start text-center lg:text-left">
             {/* Top pill badge */}
@@ -118,10 +101,7 @@ export function Hero() {
               transition={{ duration: 0.6, delay: 0.1 }}
               className="font-display text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tighter text-white leading-[1.05]"
             >
-              Your coding journey as a{" "}
-              <span className="font-medium text-zinc-500 underline decoration-2 underline-offset-4 decoration-zinc-700">
-                film.
-              </span>
+              Your coding journey as a <span className="font-medium text-zinc-500 underline decoration-2 underline-offset-4 decoration-zinc-700">film.</span>
             </motion.h1>
 
             {/* Modern Sans-serif Subhead */}
@@ -131,9 +111,7 @@ export function Hero() {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="mt-4 max-w-xl font-sans text-base sm:text-lg leading-relaxed text-zinc-400"
             >
-              Replay years of commits, repository milestones, and late-night
-              refactors as an unhurried, beautifully composed developer
-              documentary.
+              Replay years of commits, repository milestones, and late-night refactors as an unhurried, beautifully composed developer documentary.
             </motion.p>
 
             {/* CTA Action Buttons */}
@@ -174,10 +152,7 @@ export function Hero() {
             >
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-left">
                 {timelineMilestones.map((m, idx) => (
-                  <div
-                    key={idx}
-                    className="flex flex-col border-l-2 border-white/10 pl-4"
-                  >
+                  <div key={idx} className="flex flex-col border-l-2 border-white/10 pl-4">
                     <span className="font-mono text-sm font-bold text-white">
                       {m.year}
                     </span>
@@ -208,15 +183,10 @@ export function Hero() {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#a1a1aa] opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-[#a1a1aa]"></span>
                   </span>
-                  <span className="font-semibold text-brass-light tracking-widest uppercase">
-                    Simulated Preview
-                  </span>
-                  <span className="ml-2 rounded bg-brass/20 px-1.5 py-0.5 text-[9px] font-bold text-brass-light tracking-widest uppercase border border-brass/30">
-                    Demo Data
-                  </span>
+                  <span className="font-semibold text-[#a1a1aa] tracking-widest uppercase">Live Preview</span>
                 </div>
                 <span className="text-zinc-600 flex items-center gap-2 uppercase tracking-wider">
-                  <span className="hidden sm:inline">Documentary Mode</span>
+                  <span>Documentary Mode</span>
                   <span>&bull;</span>
                   <AnimatePresence mode="wait">
                     <motion.span
@@ -237,9 +207,9 @@ export function Hero() {
               <div className="mt-6 relative flex flex-col min-h-[140px]">
                 {/* Timeline vertical line */}
                 <div className="absolute left-[11px] top-6 bottom-0 w-[2px] bg-gradient-to-b from-white/10 to-transparent" />
-
+                
                 <AnimatePresence mode="wait">
-                  <motion.div
+                  <motion.div 
                     key={activeCommitIdx}
                     initial={{ opacity: 0, y: 15, filter: "blur(4px)" }}
                     animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
@@ -257,9 +227,7 @@ export function Hero() {
                         {simulatedCommits[activeCommitIdx].repo}
                       </span>
                       <span className="text-zinc-700 font-bold">&middot;</span>
-                      <span className="font-mono text-[11px] text-zinc-600">
-                        {simulatedCommits[activeCommitIdx].hash}
-                      </span>
+                      <span className="font-mono text-[11px] text-zinc-600">{simulatedCommits[activeCommitIdx].hash}</span>
                     </div>
 
                     <h3 className="font-sans text-2xl lg:text-3xl font-bold tracking-tight leading-[1.15] text-white">
@@ -295,13 +263,7 @@ export function Hero() {
                     <div
                       key={sq.id}
                       className="h-2.5 w-full rounded-[2px] transition-all duration-1000"
-                      style={{
-                        backgroundColor: sq.color,
-                        boxShadow:
-                          sq.color === "#a1a1aa"
-                            ? "0 0 10px rgba(161,161,170,0.3)"
-                            : "none",
-                      }}
+                      style={{ backgroundColor: sq.color, boxShadow: sq.color === "#a1a1aa" ? "0 0 10px rgba(161,161,170,0.3)" : "none" }}
                     />
                   ))}
                 </div>
@@ -328,9 +290,7 @@ export function Hero() {
                   <motion.div
                     className="h-full bg-zinc-400"
                     initial={{ width: "68%" }}
-                    animate={{
-                      width: simulatedCommits[activeCommitIdx].progress,
-                    }}
+                    animate={{ width: simulatedCommits[activeCommitIdx].progress }}
                     transition={{ duration: 0.8, ease: "easeInOut" }}
                   />
                 </div>

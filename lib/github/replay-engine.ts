@@ -401,18 +401,18 @@ export function useReplayEngine(
   );
 
   const stepBack = useCallback(() => {
-    seek(currentIndex - 1);
-  }, [currentIndex, seek]);
+    seek(currentIndexRef.current - 1);
+  }, [seek]);
 
   const stepForward = useCallback(() => {
-    seek(currentIndex + 1);
-  }, [currentIndex, seek]);
+    seek(currentIndexRef.current + 1);
+  }, [seek]);
 
   const skipBy = useCallback(
     (count: number) => {
-      seek(currentIndex + count);
+      seek(currentIndexRef.current + count);
     },
-    [currentIndex, seek]
+    [seek]
   );
 
   const skipYear = useCallback(
@@ -754,18 +754,18 @@ export function useRepoDocumentaryEngine(
   );
 
   const stepBack = useCallback(() => {
-    seek(currentIndex - 1);
-  }, [currentIndex, seek]);
+    seek(currentIndexRef.current - 1);
+  }, [seek]);
 
   const stepForward = useCallback(() => {
-    seek(currentIndex + 1);
-  }, [currentIndex, seek]);
+    seek(currentIndexRef.current + 1);
+  }, [seek]);
 
   const skipBy = useCallback(
     (count: number) => {
-      seek(currentIndex + count);
+      seek(currentIndexRef.current + count);
     },
-    [currentIndex, seek]
+    [seek]
   );
 
   const skipYear = useCallback(
