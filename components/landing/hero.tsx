@@ -208,12 +208,15 @@ export function Hero() {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#a1a1aa] opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-[#a1a1aa]"></span>
                   </span>
-                  <span className="font-semibold text-[#a1a1aa] tracking-widest uppercase">
-                    Live Preview
+                  <span className="font-semibold text-brass-light tracking-widest uppercase">
+                    Simulated Preview
+                  </span>
+                  <span className="ml-2 rounded bg-brass/20 px-1.5 py-0.5 text-[9px] font-bold text-brass-light tracking-widest uppercase border border-brass/30">
+                    Demo Data
                   </span>
                 </div>
                 <span className="text-zinc-600 flex items-center gap-2 uppercase tracking-wider">
-                  <span>Documentary Mode</span>
+                  <span className="hidden sm:inline">Documentary Mode</span>
                   <span>&bull;</span>
                   <AnimatePresence mode="wait">
                     <motion.span
