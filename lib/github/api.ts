@@ -131,53 +131,14 @@ export async function fetchAllUserCommitHistory(username: string, token?: string
     // Sort descending by date
     commits.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    // Fallback data if empty
-    if (commits.length === 0) {
-      commits = generateFallbackCommits(username);
-    }
-
     return { repos, commits };
   } catch (error) {
     console.error("Failed to fetch history:", error);
-    return { repos: [], commits: generateFallbackCommits(username) };
+    return { repos: [], commits: [] };
   }
 }
 
-function generateFallbackCommits(username: string): GitHubCommit[] {
-  const commits: GitHubCommit[] = [];
-  const now = new Date();
-  
-  const repos = ['react-awesome-dashboard', 'typescript-utilities', 'awesome-project', 'portfolio-v2', 'node-cli-tool'];
-  const messages = [
-    'Initial commit', 'Fix typo', 'Update README.md', 'Add new feature', 'Refactor code', 
-    'Fix bug in authentication', 'Update dependencies', 'Improve performance', 'Add tests', 'Setup CI/CD'
-  ];
 
-  for (let i = 0; i < 100; i++) {
-    const d = new Date(now.getTime() - Math.random() * 365 * 24 * 60 * 60 * 1000);
-    const repo = repos[Math.floor(Math.random() * repos.length)];
-    const sha = Math.random().toString(16).substring(2, 42).padEnd(40, '0');
-    
-    commits.push({
-      sha,
-      shortSha: sha.substring(0, 7),
-      message: messages[Math.floor(Math.random() * messages.length)],
-      authorName: username,
-      authorLogin: username,
-      authorAvatar: null,
-      date: d.toISOString(),
-      repoName: repo,
-      repoFullName: `${username}/${repo}`,
-      repoUrl: `https://github.com/${username}/${repo}`,
-      htmlUrl: `https://github.com/${username}/${repo}/commit/${sha}`,
-      year: d.getFullYear(),
-      month: d.getMonth(),
-      monthName: d.toLocaleString('default', { month: 'short' })
-    });
-  }
-
-  return commits.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-}
 
 export function groupCommitsByYearAndMonth(commits: GitHubCommit[]): TimelineYearGroup[] {
   const groups: Record<number, Record<number, GitHubCommit[]>> = {};
