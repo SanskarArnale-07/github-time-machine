@@ -1,28 +1,55 @@
+import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
 
-/**
- * GET /auth/callback?code=...
- *
- * Supabase redirects here after the user approves GitHub OAuth. We swap
- * the one-time `code` for a session (stored in cookies by the server
- * client), then send the user on to /dashboard.
- */
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const next = searchParams.get("next") ?? "/dashboard";
 
-  if (code) {
-    const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-
-    if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
-    }
+  if (!code) {
+    return NextResponse.redirect(`${origin}/?error=auth_failed`);
   }
 
-  // Something went wrong (denied access, expired code, etc.) — send the
-  // user back to the landing page with a flag the UI can surface later.
-  return NextResponse.redirect(`${origin}/?error=auth_failed`);
+  const cookieStore = await cookies();
+
+  const response = NextResponse.redirect(`${origin}${next}`);
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options);
+            response.cookies.set(name, value, options);
+          });
+        },
+      },
+    },
+  );
+
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+
+  if (error) {
+    return NextResponse.redirect(`${origin}/?error=auth_failed`);
+  }
+
+  const providerToken = data.session?.provider_token;
+
+  if (providerToken) {
+    response.cookies.set("gh_provider_token", providerToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
+  }
+
+  return response;
 }

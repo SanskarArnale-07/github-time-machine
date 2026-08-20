@@ -363,7 +363,7 @@ function MilestonesTab({ analytics, firstCommit, latestCommit }: { analytics: An
   // It's better to pass commits or just use what we have. Let's use what we have and make subtexts realistic.
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       <MilestoneCard 
         title="First Commit" 
         value={firstCommit ? new Date(firstCommit.date).toLocaleDateString() : "-"} 
@@ -375,12 +375,6 @@ function MilestonesTab({ analytics, firstCommit, latestCommit }: { analytics: An
         value={latestCommit ? new Date(latestCommit.date).toLocaleDateString() : "-"} 
         subtext={latestCommit ? `In ${latestCommit.repoName}` : "-"}
         icon={<TrendingUp size={16} />}
-      />
-      <MilestoneCard 
-        title="Longest Streak" 
-        value={analytics.longestStreak > 0 ? `${analytics.longestStreak} Days` : "-"} 
-        subtext={analytics.longestStreak > 0 ? `Max consecutive days coded` : "-"}
-        icon={<Zap size={16} />}
       />
       <MilestoneCard 
         title="Most Active Year" 

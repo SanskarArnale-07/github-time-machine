@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { fetchUserRepositories } from "@/lib/github/api";
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
     const sortParam = url.searchParams.get("sort") || "updated";
@@ -26,7 +26,9 @@ export async function GET(request: Request) {
       data: { session },
     } = await supabase.auth.getSession();
     const providerToken: string | undefined =
-      (session as any)?.provider_token ?? undefined;
+      (session as any)?.provider_token ??
+      request.cookies.get("gh_provider_token")?.value ??
+      undefined;
 
     let repos = await fetchUserRepositories(username, providerToken);
 

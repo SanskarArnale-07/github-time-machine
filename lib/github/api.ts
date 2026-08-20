@@ -27,6 +27,17 @@ async function fetchFromGitHub(endpoint: string, token?: string) {
   });
 
   if (!response.ok) {
+    // Unauthenticated requests are capped at 60/hour by GitHub — with more
+    // repos/pages being fetched now, that ceiling is easy to hit and silently
+    // starves results if `token` isn't actually being passed through. Surface
+    // this distinctly so it shows up in server logs instead of just looking
+    // like "some commits are missing" with no clue why.
+    if (response.status === 403 && response.headers.get('x-ratelimit-remaining') === '0') {
+      console.error(
+        `GitHub rate limit hit on ${endpoint} — request was ${token ? 'authenticated' : 'UNAUTHENTICATED'}. ` +
+        `If this is unexpected, the provider token isn't reaching this call.`
+      );
+    }
     throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
   }
 
@@ -44,8 +55,25 @@ export async function fetchUserRepositories(username: string, token?: string): P
 
 export async function fetchRepoCommits(owner: string, repo: string, token?: string): Promise<GitHubCommit[]> {
   try {
-    const rawCommits = await fetchFromGitHub(`/repos/${owner}/${repo}/commits?per_page=30`, token);
-    return rawCommits.map((c: any) => {
+    // Paginate through commit history instead of only reading the first page.
+    // A single `?per_page=30` request silently dropped every commit beyond
+    // the 30 most recent per repo — the actual cause of undercounted totals
+    // vs. the real GitHub contribution count. Cap at 10 pages (1,000 commits
+    // per repo) to keep this bounded for very large repos.
+    const MAX_PAGES = 10;
+    const allRawCommits: any[] = [];
+
+    for (let page = 1; page <= MAX_PAGES; page++) {
+      const rawCommits = await fetchFromGitHub(
+        `/repos/${owner}/${repo}/commits?per_page=100&page=${page}`,
+        token
+      );
+      if (!Array.isArray(rawCommits) || rawCommits.length === 0) break;
+      allRawCommits.push(...rawCommits);
+      if (rawCommits.length < 100) break; // last page reached
+    }
+
+    return allRawCommits.map((c: any) => {
       const dateStr = c.commit.author.date;
       const date = new Date(dateStr);
       return {
@@ -75,10 +103,14 @@ export async function fetchAllUserCommitHistory(username: string, token?: string
   try {
     const repos = await fetchUserRepositories(username, token);
     
-    // Sort repos by pushed_at or updated_at to get most active ones
+    // Sort repos by pushed_at or updated_at to get most active ones.
+    // Capped at 60 (not the full repo list) purely to bound the number of
+    // parallel commit-fetch requests — raised from 15, which was dropping
+    // commits from any repo outside the 15 most recently *updated*, causing
+    // the total to undercount vs. the real GitHub contribution count.
     const activeRepos = [...repos].sort((a, b) => {
       return new Date(b.pushed_at || b.updated_at).getTime() - new Date(a.pushed_at || a.updated_at).getTime();
-    }).slice(0, 15);
+    }).slice(0, 60);
 
     const commitsPromises = activeRepos.map(repo => fetchRepoCommits(repo.full_name.split('/')[0], repo.name, token));
     const allCommitsArrays = await Promise.all(commitsPromises);

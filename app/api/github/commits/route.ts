@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import {
   fetchGitHubProfile,
@@ -13,7 +13,7 @@ import {
 const cacheMap = new Map<string, { data: any; expiresAt: number }>();
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes cache
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
     const forceRefresh = url.searchParams.get("refresh") === "true";
@@ -47,12 +47,16 @@ export async function GET(request: Request) {
       });
     }
 
-    // Try to get provider token
+    // Try to get provider token. `session.provider_token` is only ever
+    // present on the initial OAuth exchange — every request after that
+    // relies on the cookie captured in /auth/callback (see comment there).
     const {
       data: { session },
     } = await supabase.auth.getSession();
     const providerToken: string | undefined =
-      (session as any)?.provider_token ?? undefined;
+      (session as any)?.provider_token ??
+      request.cookies.get("gh_provider_token")?.value ??
+      undefined;
 
     const [profile, history, graphqlContributions] = await Promise.all([
       fetchGitHubProfile(username, providerToken).catch(() => null),

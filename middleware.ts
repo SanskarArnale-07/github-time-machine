@@ -7,11 +7,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Run on every route except static assets, so the session cookie
-     * stays fresh across the whole app. /dashboard protection lives
-     * inside updateSession().
-     */
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

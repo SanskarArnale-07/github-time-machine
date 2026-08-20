@@ -25,6 +25,7 @@ export async function signInWithGithub() {
     provider: "github",
     options: {
       redirectTo: `${getURL()}/auth/callback`,
+      scopes: "read:user",
       queryParams: {
         prompt: "consent",
       },
