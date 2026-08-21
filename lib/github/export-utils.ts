@@ -460,250 +460,340 @@ export async function exportReplayVideoFormat(
 
     let currentFrame = 0;
 
-    const renderMovie = () => {
-      // 1. Base Cinematic Background: Deep Navy to Charcoal Gradient
-      ctx.fillStyle = "#0B1020";
+    // Shared design tokens — matches the app's established "warm charcoal/brass
+    // with ivory text" language instead of the old navy/green/blue mix.
+    const COLOR_BG = "#0A0A0A";
+    const COLOR_BRASS = "#D4A853";
+    const COLOR_IVORY = "#F2F0EB";
+    const COLOR_MUTED = "#8B8680";
+    const COLOR_BORDER = "rgba(255, 255, 255, 0.08)";
+
+    /**
+     * Draws one full documentary frame — the same template used for the intro,
+     * every commit card, chapter title cards, and the outro, so the exported
+     * video reads as one consistent piece rather than several different styles.
+     */
+    const drawDocumentaryFrame = (opts: {
+      chapterLabel: string;
+      badgeText?: string;
+      titleMain: string;
+      titleAccent?: string;
+      dateLabel: string;
+      milestoneLabel?: string;
+      milestoneQuote?: string;
+      elapsedFrame: number;
+      totalFrameCount: number;
+      alpha: number;
+    }) => {
+      const { chapterLabel, badgeText, titleMain, titleAccent, dateLabel, milestoneLabel, milestoneQuote, elapsedFrame, totalFrameCount, alpha } = opts;
+
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = COLOR_BG;
       ctx.fillRect(0, 0, width, height);
 
-      // 2. Warm ambient spotlight behind the card (center)
-      const cx = width / 2;
-      const cy = height / 2;
-      const spotGrad = ctx.createRadialGradient(cx, cy, 100, cx, cy, width * 0.7);
-      spotGrad.addColorStop(0, "rgba(212, 168, 83, 0.22)"); // Warm Amber
-      spotGrad.addColorStop(0.4, "rgba(29, 78, 216, 0.16)"); // Cosmic Blue
-      spotGrad.addColorStop(1, "rgba(7, 10, 20, 0.95)"); // Deep Charcoal
-      ctx.fillStyle = spotGrad;
-      ctx.fillRect(0, 0, width, height);
+      const margin = isVertical ? 36 : 48;
+      // Outer frame border, matching the bordered "screenshot" look in the reference.
+      ctx.strokeStyle = COLOR_BORDER;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(margin, margin, width - margin * 2, height - margin * 2, 20);
+      ctx.stroke();
 
-      // 3. Faint Contribution Grid Texture
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.035)";
-      ctx.lineWidth = 1;
-      const gridStep = 40;
-      for (let x = 0; x < width; x += gridStep) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-        ctx.stroke();
-      }
-      for (let y = 0; y < height; y += gridStep) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-        ctx.stroke();
-      }
+      // Top bar
+      ctx.fillStyle = COLOR_MUTED;
+      ctx.font = "13px monospace";
+      ctx.fillText("time-machine.git", margin + 32, margin + 46);
 
-      // 4. Subtle floating star particles
-      for (let p = 0; p < 18; p++) {
-        const px = ((p * 107 + currentFrame * 0.4) % width);
-        const py = ((p * 73 + currentFrame * 0.2) % height);
-        ctx.fillStyle = p % 2 === 0 ? "rgba(212, 168, 83, 0.4)" : "rgba(96, 165, 250, 0.4)";
+      ctx.fillStyle = COLOR_BRASS;
+      ctx.textAlign = "right";
+      ctx.fillText(isVertical ? "1080P" : "DEVELOPER ODYSSEY · 1080P", width - margin - 32, margin + 46);
+      ctx.textAlign = "left";
+
+      ctx.globalAlpha = alpha;
+
+      // Right-side abstract "commit constellation" panel — landscape only,
+      // there's no room for a split layout in vertical/9:16.
+      const contentW = isVertical ? width - margin * 2 - 80 : Math.round(width * 0.56);
+      const contentX = margin + 40;
+
+      if (!isVertical) {
+        const panelX = margin + contentW + 40;
+        const panelW = width - margin - panelX - 20;
+        const panelY = margin + 20;
+        const panelH = height - margin * 2 - 40;
+
+        ctx.fillStyle = "#111111";
         ctx.beginPath();
-        ctx.arc(px, py, (p % 3) + 1.5, 0, Math.PI * 2);
+        ctx.roundRect(panelX, panelY, panelW, panelH, 16);
         ctx.fill();
+
+        // Deterministic "constellation" of commit nodes connected by faint lines —
+        // an original motif standing in for a photograph we don't have rights to use.
+        const nodeCount = 22;
+        const nodes: { x: number; y: number }[] = [];
+        for (let n = 0; n < nodeCount; n++) {
+          const seed = n * 137.5 + elapsedFrame * 0.15;
+          const nx = panelX + ((Math.sin(seed) + 1) / 2) * panelW;
+          const ny = panelY + ((Math.cos(seed * 1.3) + 1) / 2) * panelH;
+          nodes.push({ x: nx, y: ny });
+        }
+        ctx.strokeStyle = "rgba(212, 168, 83, 0.18)";
+        ctx.lineWidth = 1;
+        for (let n = 0; n < nodes.length; n++) {
+          const next = nodes[(n + 1) % nodes.length];
+          ctx.beginPath();
+          ctx.moveTo(nodes[n].x, nodes[n].y);
+          ctx.lineTo(next.x, next.y);
+          ctx.stroke();
+        }
+        for (const node of nodes) {
+          ctx.fillStyle = "rgba(242, 240, 235, 0.5)";
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.strokeStyle = "rgba(212, 168, 83, 0.4)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(panelX, panelY, panelW, panelH, 16);
+        ctx.stroke();
       }
 
-      // 5. Watermark & Logo (Minimal, top-corners)
-      ctx.fillStyle = "#8B949E";
-      ctx.font = "bold 16px monospace";
-      ctx.fillText("time-machine.git", 80, 60);
+      let y = margin + 150;
 
-      ctx.fillStyle = "#D4A853";
-      ctx.font = "14px monospace";
-      ctx.fillText("DEVELOPER ODYSSEY · 1080P", width - 300, 60);
+      // Chapter label
+      ctx.fillStyle = COLOR_BRASS;
+      ctx.font = "bold 20px monospace";
+      ctx.fillText(chapterLabel.toUpperCase(), contentX, y);
+      y += 60;
 
-      // Card Dimensions: Occupies 80% of the 1080p frame (1560x840 on landscape)
-      const cardW = isVertical ? 920 : 1560;
-      const cardH = isVertical ? 1500 : 840;
-      const cardX = (width - cardW) / 2;
-      const cardY = (height - cardH) / 2 + 10;
+      // Repo badge pill
+      if (badgeText) {
+        ctx.font = "bold 20px monospace";
+        const pillText = `⚡  ${badgeText}`;
+        const pillW = Math.min(contentW, ctx.measureText(pillText).width + 56);
+        ctx.strokeStyle = COLOR_BRASS;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(contentX, y - 34, pillW, 52, 12);
+        ctx.stroke();
+        ctx.fillStyle = COLOR_BRASS;
+        ctx.fillText(pillText, contentX + 24, y);
+        y += 90;
+      } else {
+        y += 30;
+      }
 
-      // Phase 1: Cinematic Intro Screen (2.5s)
+      // Large serif title — main text in ivory, trailing accent phrase in
+      // italic brass, echoing the two-tone title-card treatment.
+      ctx.font = "bold 58px Georgia, serif";
+      ctx.fillStyle = COLOR_IVORY;
+      const mainLines = wrapText(ctx, titleMain, contentW);
+      for (const line of mainLines) {
+        ctx.fillText(line, contentX, y);
+        y += 66;
+      }
+      if (titleAccent) {
+        ctx.font = "italic bold 58px Georgia, serif";
+        ctx.fillStyle = COLOR_BRASS;
+        const accentLines = wrapText(ctx, titleAccent, contentW);
+        for (const line of accentLines) {
+          ctx.fillText(line, contentX, y);
+          y += 66;
+        }
+      }
+      y += 20;
+
+      // Date row with bullet
+      ctx.fillStyle = COLOR_MUTED;
+      ctx.font = "20px monospace";
+      ctx.beginPath();
+      ctx.arc(contentX + 5, y - 7, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillText(dateLabel, contentX + 22, y);
+      y += 56;
+
+      // Milestone box
+      if (milestoneLabel && milestoneQuote) {
+        const boxH = 130;
+        ctx.strokeStyle = "rgba(212, 168, 83, 0.35)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(contentX, y, contentW, boxH, 14);
+        ctx.stroke();
+
+        ctx.fillStyle = COLOR_BRASS;
+        ctx.font = "bold 17px monospace";
+        ctx.fillText(`★  MILESTONE: ${milestoneLabel.toUpperCase()}`, contentX + 28, y + 40);
+
+        ctx.fillStyle = COLOR_IVORY;
+        ctx.font = "italic 20px Georgia, serif";
+        const quoteLines = wrapText(ctx, `"${milestoneQuote}"`, contentW - 56);
+        let qy = y + 76;
+        for (const line of quoteLines.slice(0, 2)) {
+          ctx.fillText(line, contentX + 28, qy);
+          qy += 28;
+        }
+      }
+
+      // Bottom transport bar: elapsed / progress / total + playback icons
+      const barY = height - margin - 120;
+      const barW = contentW;
+      const elapsedSec = elapsedFrame / 30;
+      const totalSec = totalFrameCount / 30;
+      const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+
+      ctx.fillStyle = COLOR_MUTED;
+      ctx.font = "16px monospace";
+      ctx.fillText(fmt(elapsedSec), contentX, barY);
+      ctx.textAlign = "right";
+      ctx.fillText(fmt(totalSec), contentX + barW, barY);
+      ctx.textAlign = "left";
+
+      const trackY = barY + 18;
+      const trackX = contentX + 60;
+      const trackW = barW - 120;
+      const fillFraction = Math.min(1, elapsedFrame / Math.max(1, totalFrameCount));
+
+      ctx.fillStyle = "rgba(255, 255, 255, 0.12)";
+      ctx.beginPath();
+      ctx.roundRect(trackX, trackY, trackW, 4, 2);
+      ctx.fill();
+
+      ctx.fillStyle = COLOR_BRASS;
+      ctx.beginPath();
+      ctx.roundRect(trackX, trackY, Math.max(6, trackW * fillFraction), 4, 2);
+      ctx.fill();
+
+      ctx.fillStyle = COLOR_BRASS;
+      ctx.beginPath();
+      ctx.arc(trackX + trackW * fillFraction, trackY + 2, 6, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Playback controls: prev | play | next, centered under the bar
+      const controlsY = barY + 60;
+      const controlsCx = contentX + barW / 2;
+
+      ctx.fillStyle = COLOR_MUTED;
+      // Prev (skip-back) glyph
+      ctx.beginPath();
+      ctx.moveTo(controlsCx - 70, controlsY - 12);
+      ctx.lineTo(controlsCx - 84, controlsY);
+      ctx.lineTo(controlsCx - 70, controlsY + 12);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillRect(controlsCx - 86, controlsY - 12, 3, 24);
+
+      // Play button (brass ring + triangle)
+      ctx.strokeStyle = COLOR_BRASS;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(controlsCx, controlsY, 26, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = COLOR_BRASS;
+      ctx.beginPath();
+      ctx.moveTo(controlsCx - 8, controlsY - 13);
+      ctx.lineTo(controlsCx - 8, controlsY + 13);
+      ctx.lineTo(controlsCx + 14, controlsY);
+      ctx.closePath();
+      ctx.fill();
+
+      // Next (skip-forward) glyph
+      ctx.fillStyle = COLOR_MUTED;
+      ctx.beginPath();
+      ctx.moveTo(controlsCx + 70, controlsY - 12);
+      ctx.lineTo(controlsCx + 84, controlsY);
+      ctx.lineTo(controlsCx + 70, controlsY + 12);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillRect(controlsCx + 83, controlsY - 12, 3, 24);
+
+      ctx.globalAlpha = 1;
+    };
+
+    function wrapText(context: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+      const words = text.split(" ");
+      const lines: string[] = [];
+      let line = "";
+      for (const word of words) {
+        const test = line ? `${line} ${word}` : word;
+        if (context.measureText(test).width > maxWidth && line) {
+          lines.push(line);
+          line = word;
+        } else {
+          line = test;
+        }
+      }
+      if (line) lines.push(line);
+      return lines.slice(0, 2);
+    }
+
+    const renderMovie = () => {
+      // Phase 1: Cinematic Intro (2.5s)
       if (currentFrame < introFrames) {
         const introProgress = currentFrame / introFrames;
-        const introAlpha = Math.min(1, Math.sin(introProgress * Math.PI));
-
-        ctx.globalAlpha = introAlpha;
-
-        // Card Glass Surface
-        ctx.fillStyle = "rgba(19, 28, 49, 0.85)";
-        ctx.strokeStyle = "rgba(212, 168, 83, 0.45)";
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.roundRect(cardX, cardY, cardW, cardH, 36);
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.fillStyle = "#D4A853";
-        ctx.font = "bold 24px monospace";
-        ctx.fillText("A DEVELOPER'S STORY", cardX + 90, cardY + 200);
-
-        ctx.fillStyle = "#F2F0EB";
-        ctx.font = "bold 68px Georgia, serif";
-        ctx.fillText(title || "A Developer's Story", cardX + 90, cardY + 310);
-
-        ctx.fillStyle = "#8B949E";
-        ctx.font = "28px system-ui, -apple-system, sans-serif";
-        ctx.fillText("From your first repository to your latest project.", cardX + 90, cardY + 390);
-
-        ctx.fillStyle = "#39D353";
-        ctx.font = "bold 20px monospace";
-        ctx.fillText(`★ ${events.length} Commits Reconstructed Across the Years`, cardX + 90, cardY + 480);
-
-        ctx.globalAlpha = 1.0;
+        drawDocumentaryFrame({
+          chapterLabel: "A Developer's Story",
+          titleMain: title || "A Developer's Story",
+          dateLabel: "From your first repository to your latest project",
+          milestoneLabel: "Journey Begins",
+          milestoneQuote: `${events.length} commits reconstructed across the years.`,
+          elapsedFrame: currentFrame,
+          totalFrameCount: totalFrames,
+          alpha: Math.min(1, Math.sin(introProgress * Math.PI)),
+        });
       }
-      // Phase 2: Main Replay Sequence (Unhurried 1x 2.5s per commit with 2-4% subtle zoom)
+      // Phase 2: Main Replay Sequence
       else if (currentFrame < introFrames + eventFrames) {
         const eventIndex = Math.min(
           sampledEvents.length - 1,
           Math.floor((currentFrame - introFrames) / framesPerEvent)
         );
         const ev = sampledEvents[eventIndex];
-        const overallProgress = (eventIndex + 1) / sampledEvents.length;
         const frameInEvent = (currentFrame - introFrames) % framesPerEvent;
-
-        // Smooth crossfade and 2% subtle zoom interpolation
         const eventProgress = frameInEvent / framesPerEvent;
         const eventAlpha = Math.min(1, Math.sin(eventProgress * Math.PI) * 1.3);
-        const zoomScale = 1.0 + eventProgress * 0.025;
-
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.scale(zoomScale, zoomScale);
-        ctx.translate(-cx, -cy);
-
-        ctx.globalAlpha = Math.max(0.2, eventAlpha);
 
         if (ev.type === "year_milestone") {
-          // --- Dramatic Chapter Title Card ---
-          ctx.fillStyle = "rgba(11, 16, 32, 0.95)";
-          ctx.fillRect(0, 0, width, height);
-          
-          ctx.fillStyle = "#D4A853";
-          ctx.font = "bold 24px monospace";
-          ctx.fillText(ev.title.toUpperCase(), cx - 120, cy - 80);
-
-          ctx.fillStyle = "#F2F0EB";
-          ctx.font = "italic 68px Playfair Display, Georgia, serif";
-          ctx.fillText(`Chapter: ${ev.chapterName || "Progression"}`, cx - 350, cy);
-
-          if (ev.subtitle) {
-            ctx.fillStyle = "#8B949E";
-            ctx.font = "24px system-ui, sans-serif";
-            ctx.fillText(ev.subtitle, cx - 250, cy + 80);
-          }
+          drawDocumentaryFrame({
+            chapterLabel: `Chapter · ${ev.year}`,
+            titleMain: "Chapter:",
+            titleAccent: ev.chapterName || "Progression",
+            dateLabel: ev.subtitle || "A new chapter begins",
+            elapsedFrame: currentFrame,
+            totalFrameCount: totalFrames,
+            alpha: Math.max(0.2, eventAlpha),
+          });
         } else {
-          // --- Minimal Commit Card ---
-          // Glassmorphic Card (Occupies 80% of Frame)
-          ctx.fillStyle = "rgba(19, 28, 49, 0.88)";
-          ctx.strokeStyle = ev.type === "repo_created" ? "#D4A853" : "rgba(255, 255, 255, 0.12)";
-          ctx.lineWidth = 2.5;
-          ctx.beginPath();
-          ctx.roundRect(cardX, cardY, cardW, cardH, 36);
-          ctx.fill();
-          ctx.stroke();
-
-          // Top Chapter Indicator
-          ctx.fillStyle = "#D4A853";
-          ctx.font = "bold 20px monospace";
-          const chapterName = ev.chapterName || "THE DEVELOPER JOURNEY";
-          ctx.fillText(`CHAPTER: ${chapterName.toUpperCase()} · ${ev.year}`, cardX + 90, cardY + 110);
-
-          // Large Repository Badge
-          ctx.fillStyle = "#0E4429";
-          ctx.strokeStyle = "#39D353";
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.roundRect(cardX + 90, cardY + 160, 360, 56, 14);
-          ctx.fill();
-          ctx.stroke();
-
-          ctx.fillStyle = "#39D353";
-          ctx.font = "bold 22px monospace";
-          const rName = ev.repoName ? `⚡ ${ev.repoName}` : "⚡ Repository";
-          ctx.fillText(rName.length > 22 ? `${rName.slice(0, 20)}...` : rName, cardX + 115, cardY + 197);
-
-          // Prominent Serif Commit Headline
-          ctx.fillStyle = "#F2F0EB";
-          ctx.font = "bold 56px Playfair Display, Georgia, serif";
-          const titleText = ev.title.length > 55 ? `${ev.title.slice(0, 52)}...` : ev.title;
-          ctx.fillText(titleText, cardX + 90, cardY + 310);
-
-          // Date Timestamp
-          ctx.fillStyle = "#8B949E";
-          ctx.font = "22px monospace";
-          ctx.fillText(`Pushed on ${ev.date.slice(0, 10)}`, cardX + 90, cardY + 390);
-
-          // Chapter Narrative Sentence
-          if (ev.impactDescription) {
-            ctx.fillStyle = "rgba(11, 16, 32, 0.9)";
-            ctx.strokeStyle = "rgba(212, 168, 83, 0.35)";
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.roundRect(cardX + 90, cardY + 450, cardW - 180, 110, 18);
-            ctx.fill();
-            ctx.stroke();
-
-            ctx.fillStyle = "#D4A853";
-            ctx.font = "bold 18px monospace";
-            ctx.fillText(`✦ MILESTONE: ${ev.impactBadge?.toUpperCase() || "PROGRESSION"}`, cardX + 120, cardY + 494);
-
-            ctx.fillStyle = "#F2F0EB";
-            ctx.font = "italic 22px Playfair Display, Georgia, serif";
-            ctx.fillText(`“${ev.impactDescription}”`, cardX + 120, cardY + 532);
-          }
-
-          // Minimal Progress Indicator
-          const barY = cardY + cardH - 120;
-          const barW = cardW - 180;
-          ctx.fillStyle = "#0B1020";
-          ctx.beginPath();
-          ctx.roundRect(cardX + 90, barY, barW, 8, 4);
-          ctx.fill();
-
-          ctx.fillStyle = "#D4A853";
-          ctx.beginPath();
-          ctx.roundRect(cardX + 90, barY, Math.max(20, barW * overallProgress), 8, 4);
-          ctx.fill();
+          const chapterName = ev.chapterName || "The Developer Journey";
+          drawDocumentaryFrame({
+            chapterLabel: `Chapter: ${chapterName} · ${ev.year}`,
+            badgeText: ev.repoName || "Repository",
+            titleMain: ev.title,
+            dateLabel: `Pushed on ${ev.date.slice(0, 10)}`,
+            milestoneLabel: ev.impactBadge || "Progression",
+            milestoneQuote: ev.impactDescription,
+            elapsedFrame: currentFrame,
+            totalFrameCount: totalFrames,
+            alpha: Math.max(0.2, eventAlpha),
+          });
         }
-
-        ctx.restore();
       }
-      // Phase 3: Outro Documentary Summary Screen (3.0s)
+      // Phase 3: Outro
       else {
         const outroProgress = (currentFrame - (introFrames + eventFrames)) / outroFrames;
-        const outroAlpha = Math.min(1, Math.sin(outroProgress * Math.PI));
-
-        ctx.globalAlpha = Math.max(0.3, outroAlpha);
-
-        ctx.fillStyle = "rgba(19, 28, 49, 0.9)";
-        ctx.strokeStyle = "#D4A853";
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.roundRect(cardX, cardY, cardW, cardH, 36);
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.fillStyle = "#D4A853";
-        ctx.font = "bold 24px monospace";
-        ctx.fillText("DOCUMENTARY FINALE", cardX + 90, cardY + 180);
-
-        ctx.fillStyle = "#F2F0EB";
-        ctx.font = "bold 60px Georgia, serif";
-        ctx.fillText("From your first repository to your latest project.", cardX + 90, cardY + 280);
-
-        ctx.fillStyle = "#8B949E";
-        ctx.font = "28px system-ui, -apple-system, sans-serif";
-        ctx.fillText(`${events.length} commits. Built one push at a time.`, cardX + 90, cardY + 360);
-
-        ctx.fillStyle = "#D4A853";
-        ctx.font = "italic 36px Georgia, serif";
-        ctx.fillText("“Your GitHub history is not a graph. It is a story.”", cardX + 90, cardY + 480);
-
-        ctx.fillStyle = "#39D353";
-        ctx.font = "bold 22px monospace";
-        ctx.fillText("time-machine.git", cardX + 90, cardY + 570);
-
-        ctx.globalAlpha = 1.0;
+        drawDocumentaryFrame({
+          chapterLabel: "Documentary Finale",
+          titleMain: "From your first repository",
+          titleAccent: "to your latest project.",
+          dateLabel: `${events.length} commits. Built one push at a time.`,
+          milestoneLabel: "The Story Continues",
+          milestoneQuote: "Your GitHub history is not a graph. It is a story.",
+          elapsedFrame: currentFrame,
+          totalFrameCount: totalFrames,
+          alpha: Math.min(1, Math.sin(outroProgress * Math.PI)),
+        });
       }
 
       currentFrame++;
