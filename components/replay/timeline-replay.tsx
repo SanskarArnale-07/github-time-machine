@@ -10,7 +10,6 @@ import {
   ExternalLink,
   FileText,
   FolderGit2,
-  Image,
   Instagram,
   Maximize2,
   Minimize2,
@@ -25,6 +24,7 @@ import {
   Film,
 } from "lucide-react";
 import type {
+  Chapter,
   ContributionWeek,
   GitHubCommit,
   GitHubRepo,
@@ -36,6 +36,7 @@ import { ambientSoundtrack } from "@/lib/audio/ambient-soundtrack";
 import {
   copyShareableReplayLink,
   downloadReplaySummaryPDF,
+  exportReplayVideoFormat,
 } from "@/lib/github/export-utils";
 import { Button } from "@/components/ui/button";
 import { ReplayBackground } from "@/components/replay/replay-background";
@@ -61,15 +62,66 @@ interface ReplayMilestoneCardProps {
   mostActiveMonth?: string;
 }
 
-function ExportDialog({ isOpen, onClose, onCopyLink }: { isOpen: boolean, onClose: () => void, onCopyLink: () => void }) {
+function ExportDialog({
+  isOpen,
+  onClose,
+  events,
+  chapters,
+  title,
+  shareUrl,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  events: ReplayEvent[];
+  chapters: Chapter[];
+  title: string;
+  shareUrl: () => Promise<{ success: boolean; url: string }>;
+}) {
   const [processing, setProcessing] = useState<string | null>(null);
+  const [linkResult, setLinkResult] = useState<{ success: boolean; url: string } | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   if (!isOpen) return null;
+
+  const runVideoExport = async (mode: "landscape" | "vertical") => {
+    setProcessing("Initializing...");
+    const ok = await exportReplayVideoFormat(
+      title,
+      mode,
+      events,
+      chapters,
+      (msg) => setProcessing(msg),
+      false,
+      "30s"
+    );
+    if (!ok) {
+      setProcessing("Export failed — your browser may not support video recording. Try Chrome or Edge.");
+      window.setTimeout(() => setProcessing(null), 3000);
+      return;
+    }
+    setProcessing(null);
+  };
+
+  const handleShowLink = async () => {
+    const result = await shareUrl();
+    setLinkResult(result);
+    setLinkCopied(false);
+  };
+
+  const handleManualCopy = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setLinkCopied(true);
+      window.setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      // Clipboard API unavailable — the visible text field below is the fallback.
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4">
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0A0A0A] p-6 shadow-2xl relative">
-        <button onClick={onClose} className="absolute right-4 top-4 text-zinc-500 hover:text-white">
+        <button onClick={() => { onClose(); setLinkResult(null); }} className="absolute right-4 top-4 text-zinc-500 hover:text-white">
            ✕
         </button>
         <h3 className="font-sans font-semibold tracking-tight text-2xl text-white mb-2">Export Documentary</h3>
@@ -79,28 +131,41 @@ function ExportDialog({ isOpen, onClose, onCopyLink }: { isOpen: boolean, onClos
           <div className="py-12 flex flex-col items-center justify-center text-center">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-white border-t-transparent mb-4" />
             <p className="text-white font-mono text-sm uppercase tracking-widest">{processing}</p>
-            <p className="text-zinc-500 text-xs mt-2">Connecting to rendering server...</p>
-            <p className="text-zinc-600 text-[10px] mt-4 max-w-[200px] leading-relaxed">
-              (Note: Client-side video encoding is mocked for this sprint. A backend queue like Remotion is required for real video exports.)
+            <p className="text-zinc-500 text-xs mt-2 max-w-[260px]">
+              Video export records in real time as it renders — a 30s clip takes about 30 seconds. Keep this tab in the foreground; browsers pause background tabs and will stall the export.
             </p>
             <Button onClick={() => setProcessing(null)} variant="outline" className="mt-6 text-xs border-white/10 text-zinc-400 hover:text-white hover:bg-white/5">Cancel</Button>
           </div>
+        ) : linkResult ? (
+          <div className="py-4">
+            <p className="text-xs font-mono uppercase tracking-widest text-zinc-500 mb-2">
+              {linkResult.success ? "Link copied — or copy manually below" : "Copy failed — grab the link manually below"}
+            </p>
+            <div className="flex gap-2">
+              <input
+                readOnly
+                value={linkResult.url}
+                onFocus={(e) => e.currentTarget.select()}
+                className="flex-1 rounded-md border border-white/10 bg-black px-3 py-2 text-xs text-zinc-300 font-mono truncate"
+              />
+              <Button onClick={() => handleManualCopy(linkResult.url)} size="sm" className="bg-white text-black hover:bg-zinc-200 shrink-0">
+                {linkCopied ? <Check className="h-3.5 w-3.5" /> : "Copy"}
+              </Button>
+            </div>
+            <Button onClick={() => setLinkResult(null)} variant="outline" className="mt-4 w-full text-xs border-white/10 text-zinc-400 hover:text-white hover:bg-white/5">Back</Button>
+          </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
-             <Button onClick={() => setProcessing("Rendering MP4 (1080p)...")} className="flex flex-col h-auto py-4 items-center justify-center gap-2 bg-black border border-white/10 hover:border-white/20 hover:bg-white/5 text-white transition-all">
+             <Button onClick={() => runVideoExport("landscape")} className="flex flex-col h-auto py-4 items-center justify-center gap-2 bg-black border border-white/10 hover:border-white/20 hover:bg-white/5 text-white transition-all">
                <Film className="h-6 w-6 text-white" />
-               <span className="text-xs">MP4 Video</span>
+               <span className="text-xs">MP4 Video (16:9)</span>
              </Button>
-             <Button onClick={() => setProcessing("Rendering GIF...")} className="flex flex-col h-auto py-4 items-center justify-center gap-2 bg-black border border-white/10 hover:border-white/20 hover:bg-white/5 text-white transition-all">
-               <Image className="h-6 w-6 text-white" />
-               <span className="text-xs">GIF Preview</span>
-             </Button>
-             <Button onClick={() => setProcessing("Rendering Vertical (9:16)...")} className="flex flex-col h-auto py-4 items-center justify-center gap-2 bg-black border border-white/10 hover:border-white/20 hover:bg-white/5 text-white transition-all">
+             <Button onClick={() => runVideoExport("vertical")} className="flex flex-col h-auto py-4 items-center justify-center gap-2 bg-black border border-white/10 hover:border-white/20 hover:bg-white/5 text-white transition-all">
                <Instagram className="h-6 w-6 text-white" />
-               <span className="text-xs">Vertical Social</span>
+               <span className="text-xs">Vertical (9:16)</span>
              </Button>
-             <Button onClick={onCopyLink} className="flex flex-col h-auto py-4 items-center justify-center gap-2 bg-black border border-white/10 hover:border-white/20 hover:bg-white/5 text-white transition-all">
-               <Share2 className="h-6 w-6 text-white" />
+             <Button onClick={handleShowLink} className="col-span-2 flex flex-row h-auto py-4 items-center justify-center gap-2 bg-black border border-white/10 hover:border-white/20 hover:bg-white/5 text-white transition-all">
+               <Share2 className="h-5 w-5 text-white" />
                <span className="text-xs">Shareable Link</span>
              </Button>
           </div>
@@ -393,14 +458,34 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
   useEffect(() => {
     try {
       if (localStorage.getItem("github_time_machine_sound_enabled") === "true") {
+        // Reflect the remembered preference in the UI immediately, but don't
+        // call ambientSoundtrack.start() here — browsers block AudioContext
+        // from actually producing sound unless resume() happens inside a
+        // genuine user gesture (click/keydown/tap). Starting it from a mount
+        // effect leaves the toggle showing "on" while nothing plays. Instead,
+        // wait for the first real interaction anywhere on the page and start
+        // it then, which does count as a valid gesture.
         setSoundEnabled(true);
-        ambientSoundtrack.start();
         const savedVol = localStorage.getItem("github_time_machine_volume");
         if (savedVol) {
           const v = parseFloat(savedVol);
           setVolume(v);
           ambientSoundtrack.setVolume(v);
         }
+
+        const startOnFirstInteraction = () => {
+          ambientSoundtrack.start();
+          window.removeEventListener("pointerdown", startOnFirstInteraction);
+          window.removeEventListener("keydown", startOnFirstInteraction);
+        };
+        window.addEventListener("pointerdown", startOnFirstInteraction, { once: true });
+        window.addEventListener("keydown", startOnFirstInteraction, { once: true });
+
+        return () => {
+          window.removeEventListener("pointerdown", startOnFirstInteraction);
+          window.removeEventListener("keydown", startOnFirstInteraction);
+          ambientSoundtrack.stop();
+        };
       }
     } catch {
       // Local preferences are optional and should never block the replay.
@@ -495,16 +580,16 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
 
   const copyReplayLink = useCallback(async () => {
     const result = await copyShareableReplayLink(username, engine.currentIndex);
-    if (!result.success) return;
-
-    setCopiedLink(true);
-    window.setTimeout(() => setCopiedLink(false), 2200);
+    if (result.success) {
+      setCopiedLink(true);
+      window.setTimeout(() => setCopiedLink(false), 2200);
+      return;
+    }
+    // Clipboard write failed silently (insecure context, denied permission,
+    // some in-app browsers) — fall back to a visible prompt so the link is
+    // never just lost with no way to grab it.
+    window.prompt("Copy this link:", result.url);
   }, [engine.currentIndex, username]);
-
-  const handleCopyFromExport = useCallback(() => {
-    copyReplayLink();
-    setShowExport(false);
-  }, [copyReplayLink]);
 
   useEffect(() => {
     if (!engine.currentChapter) return;
@@ -799,7 +884,14 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
           </div>
         </section>
 
-        <ExportDialog isOpen={showExport} onClose={() => setShowExport(false)} onCopyLink={handleCopyFromExport} />
+        <ExportDialog
+          isOpen={showExport}
+          onClose={() => setShowExport(false)}
+          events={engine.events}
+          chapters={engine.chapters}
+          title={profile?.name || profile?.login || username || "A Developer's Story"}
+          shareUrl={() => copyShareableReplayLink(username, engine.currentIndex)}
+        />
       </div>
     </div>
   );

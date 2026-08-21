@@ -12,8 +12,6 @@ export default async function Home({
 }) {
   const params = await searchParams;
 
-  // If Supabase falls back to the Site URL (root) instead of the explicit
-  // redirectTo URL, intercept the code and forward it to the callback route.
   if (params.code) {
     redirect(`/auth/callback?code=${params.code}`);
   }

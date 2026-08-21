@@ -4,26 +4,29 @@ import { Chapter, GitHubCommit, GitHubRepo, GitHubUserProfile, ReplayEvent } fro
 import { ambientSoundtrack } from "../audio/ambient-soundtrack";
 
 /**
- * Copies a shareable replay URL to the user's clipboard.
+ * Builds a shareable replay URL and attempts to copy it to the clipboard.
+ * Always returns the URL itself (even if the clipboard write fails) so the
+ * caller can display it directly — `navigator.clipboard` can silently be
+ * unavailable (insecure context, denied permission, some in-app browsers),
+ * and the UI should never claim "copied" without a real link to fall back on.
  */
 export async function copyShareableReplayLink(
   username: string,
   currentEventIndex: number = 0
 ): Promise<{ success: boolean; url: string }> {
-  try {
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const url = `${origin}/dashboard?user=${encodeURIComponent(
-      username
-    )}&event=${currentEventIndex}&mode=replay`;
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const url = `${origin}/dashboard?user=${encodeURIComponent(
+    username
+  )}&event=${currentEventIndex}&mode=replay`;
 
-    if (navigator.clipboard) {
-      await navigator.clipboard.writeText(url);
+  try {
+    if (!navigator.clipboard) {
+      return { success: false, url };
     }
+    await navigator.clipboard.writeText(url);
     return { success: true, url };
   } catch {
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const url = `${origin}/dashboard?user=${encodeURIComponent(username)}`;
-    return { success: true, url };
+    return { success: false, url };
   }
 }
 
@@ -710,14 +713,18 @@ export async function exportReplayVideoFormat(
         )}%)...`
       );
 
-      if (currentFrame < totalFrames) {
-        requestAnimationFrame(renderMovie);
-      } else {
+      if (currentFrame >= totalFrames) {
+        clearInterval(renderIntervalId);
         recorder.stop();
       }
     };
 
-    renderMovie();
+    // setInterval instead of requestAnimationFrame: rAF is fully suspended by
+    // browsers the moment a tab loses focus, which is very likely to happen
+    // during a real-time recording that can run 30-90+ seconds — the export
+    // would appear to hang forever if the user switches tabs while waiting.
+    // setInterval keeps firing (throttled, but not paused) in the background.
+    const renderIntervalId = window.setInterval(renderMovie, 1000 / 30);
     return true;
   } catch (err) {
     console.error("Cinematic 1080p video export error:", err);

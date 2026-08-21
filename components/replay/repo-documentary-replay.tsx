@@ -202,8 +202,25 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
   useEffect(() => {
     try {
       if (localStorage.getItem("github_time_machine_sound_enabled") === "true") {
+        // See timeline-replay.tsx for why this doesn't call start() directly:
+        // browsers block AudioContext.resume() outside a genuine user gesture,
+        // so starting it here would leave the toggle showing "on" with no
+        // actual sound until the user manually re-clicked it.
         setSoundEnabled(true);
-        ambientSoundtrack.start();
+
+        const startOnFirstInteraction = () => {
+          ambientSoundtrack.start();
+          window.removeEventListener("pointerdown", startOnFirstInteraction);
+          window.removeEventListener("keydown", startOnFirstInteraction);
+        };
+        window.addEventListener("pointerdown", startOnFirstInteraction, { once: true });
+        window.addEventListener("keydown", startOnFirstInteraction, { once: true });
+
+        return () => {
+          window.removeEventListener("pointerdown", startOnFirstInteraction);
+          window.removeEventListener("keydown", startOnFirstInteraction);
+          ambientSoundtrack.stop();
+        };
       }
     } catch {
       // Ignore
