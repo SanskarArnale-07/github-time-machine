@@ -228,7 +228,7 @@ export function generateChaptersAndStories(
         longestInactiveGapDays: 0,
         strongestComebackStreak: 0,
         fastestRepoGrowth: "N/A",
-        mostFrequentlyUsedLanguage: "TypeScript",
+        mostFrequentlyUsedLanguage: "N/A",
         commitConsistencyScore: 80,
         weekdayDistribution: [],
         timeOfDayDistribution: [],

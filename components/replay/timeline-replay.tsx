@@ -118,7 +118,7 @@ function ReplayMilestoneCard({
           </div>
           <div className="flex flex-col gap-1">
             <span className="text-[10px] uppercase tracking-widest text-zinc-500">Primary Language</span>
-            <span className="font-mono text-xl text-white pt-1 truncate">{topLanguage || "TypeScript"}</span>
+            <span className="font-mono text-xl text-white pt-1 truncate">{topLanguage || "N/A"}</span>
           </div>
           <div className="flex flex-col gap-1 col-span-2 md:col-span-1">
             <span className="text-[10px] uppercase tracking-widest text-zinc-500">Most Active</span>
@@ -502,7 +502,7 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
   const topLanguage = repos.length ? Object.entries(repos.reduce((acc, r) => {
     if (r.language) acc[r.language] = (acc[r.language] || 0) + 1;
     return acc;
-  }, {} as Record<string, number>)).sort((a,b) => b[1] - a[1])[0]?.[0] || "TypeScript" : "TypeScript";
+  }, {} as Record<string, number>)).sort((a,b) => b[1] - a[1])[0]?.[0] || "N/A" : "N/A";
 
   const mostActiveMonth = engine.events.filter(e => e.type === "month_summary").sort((a,b) => (b.monthlySummary?.totalCommits || 0) - (a.monthlySummary?.totalCommits || 0))[0]?.monthName || 
     (commits.length > 0 ? new Date(commits[0].date).toLocaleString("default", { month: "short" }) : "N/A");

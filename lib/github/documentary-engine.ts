@@ -56,7 +56,7 @@ export function buildRepoDocumentaryEvents(
       startDate: date,
       endDate: date,
       totalCommits: 1,
-      primaryLanguage: repo.language || "TypeScript",
+      primaryLanguage: repo.language || "N/A",
       highlightRepos: [repo.name],
     };
   };
