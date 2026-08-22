@@ -228,6 +228,17 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
     return () => ambientSoundtrack.stop();
   }, []);
 
+  // Progress the soundtrack through its three themes as the replay advances,
+  // instead of staying on whichever one start() happened to pick at random —
+  // otherwise a full session plays through on a single theme the whole time.
+  useEffect(() => {
+    if (!soundEnabled || engine.total === 0) return;
+    const progress = engine.currentIndex / Math.max(1, engine.total - 1);
+    ambientSoundtrack.setTheme(
+      progress < 0.33 ? "odyssey" : progress > 0.75 ? "horizon" : "constellations"
+    );
+  }, [engine.currentIndex, engine.total, soundEnabled]);
+
   const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
       theaterRef.current?.requestFullscreen().catch(() => undefined);

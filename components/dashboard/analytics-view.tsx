@@ -449,7 +449,7 @@ function ScoreRing({ label, score, description }: { label: string; score: number
   const explanations: Record<string, string> = {
     Consistency: "How regularly you commit. Higher values indicate consistent activity throughout the year. Calculated from commit frequency and active days.",
     Exploration: "How diverse your work is across repositories and languages. Higher values mean you work across many repos and languages.",
-    Craftsmanship: "The depth and quality of your contributions. Reflects commit message length, commit frequency per repo, and project maturity.",
+    Craftsmanship: "The depth and care behind your contributions. Reflects average commit message thoroughness and stars earned across your repositories.",
     Focus: "How concentrated your work is on fewer repos. Higher values mean you dedicate significant time to core projects.",
     "Night Owl": "What percentage of your commits happen after 10pm. Higher values mean you prefer late-night coding sessions.",
   };

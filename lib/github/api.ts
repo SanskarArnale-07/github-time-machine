@@ -504,14 +504,56 @@ export function calculateAnalytics(commits: GitHubCommit[], repos: GitHubRepo[])
     }
   }
 
-  // Calculate Intelligence Scores
+  // Calculate Intelligence Scores — all derived from real, already-verified
+  // data below. None of these were previously grounded: they used arbitrary
+  // hardcoded offsets/coefficients (e.g. "start everyone at 60, add a made-up
+  // multiplier") with no real basis, and one (craftsmanship) claimed to
+  // measure code quality using data this app doesn't have access to at all
+  // (no test coverage, no diff stats, no review data). Replaced with proxies
+  // built only from fields that actually exist on GitHubCommit/GitHubRepo.
   const numRepos = repos.length;
   const numLangs = Object.keys(languageCounts).length;
-  const explorationScore = Math.min(99, Math.max(40, 50 + (numRepos * 2) + (numLangs * 5)));
-  const craftsmanshipScore = Math.min(99, Math.max(50, 60 + Math.round((totalCommits / Math.max(1, numRepos)) * 0.5)));
-  const focusScore = Math.min(99, Math.max(30, 90 - (numRepos * 1.5)));
-  const nightOwlScore = Math.min(99, Math.round((lateNightCount / Math.max(1, totalCommits)) * 100 * 2));
-  const commitConsistencyScore = Math.min(98, Math.max(50, Math.round(65 + longestStreak * 3))); // simplified maxGap
+
+  // Consistency: % of days between your first and last commit that actually
+  // had a commit. A real regularity measure — not just "longestStreak * 3".
+  const activeDayCount = sortedDates.length;
+  let commitConsistencyScore = 0;
+  if (activeDayCount > 0) {
+    const firstDay = new Date(sortedDates[0]);
+    const lastDay = new Date(sortedDates[sortedDates.length - 1]);
+    const totalSpanDays = Math.max(1, Math.round((lastDay.getTime() - firstDay.getTime()) / (1000 * 3600 * 24)) + 1);
+    commitConsistencyScore = Math.min(100, Math.round((activeDayCount / totalSpanDays) * 100));
+  }
+
+  // Exploration: real repo count and real language count, each normalized
+  // against a reasonable ceiling and averaged — no artificial "everyone
+  // starts at 50" floor regardless of actual diversity.
+  const repoDiversityRatio = Math.min(1, numRepos / 15);
+  const langDiversityRatio = Math.min(1, numLangs / 6);
+  const explorationScore = Math.round(((repoDiversityRatio + langDiversityRatio) / 2) * 100);
+
+  // Craftsmanship: this app has no code-quality signal (no diff stats, no
+  // review data), so "quality" can't be honestly measured — but commit
+  // message thoroughness and community validation (stars) are both real,
+  // available proxies for care/depth, unlike the old "commits per repo"
+  // formula which measured volume, not craftsmanship.
+  const avgMessageLength = totalCommits > 0
+    ? commits.reduce((sum, c) => sum + (c.message?.length || 0), 0) / totalCommits
+    : 0;
+  const messageDepthRatio = Math.min(1, avgMessageLength / 60); // ~60 chars = a thorough subject line
+  const totalStars = repos.reduce((sum, r) => sum + (r.stargazers_count || 0), 0);
+  const starRatio = Math.min(1, totalStars / 50);
+  const craftsmanshipScore = Math.round((messageDepthRatio * 0.6 + starRatio * 0.4) * 100);
+
+  // Focus: real share of all commits going to your single most-committed
+  // repo — directly "dedication to core repositories", not a fabricated
+  // formula.
+  const focusScore = totalCommits > 0 ? Math.round((maxRepoCommits / totalCommits) * 100) : 0;
+
+  // Night Owl: the real late-night percentage, unmodified. The old version
+  // doubled this ratio for no stated reason, inflating the displayed number
+  // above what the data actually shows.
+  const nightOwlScore = lateNightPercentage;
 
   let insightNarrative = `${totalCommits} commits across ${numRepos} repos — you keep a steady pace.`;
   if (explorationScore > focusScore && explorationScore > 80) {

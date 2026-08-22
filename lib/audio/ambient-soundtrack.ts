@@ -141,6 +141,17 @@ class AmbientSoundEngine {
     }
   }
 
+  // Several distinct arpeggio shapes instead of always the same ascending
+  // run. Which one plays rotates with a longer period than the chord loop
+  // itself, so the piece keeps developing instead of feeling like a fixed
+  // loop the moment a listener recognizes the pattern.
+  private arpeggioPatterns: ((chord: number[]) => number[])[] = [
+    (chord) => chord, // up
+    (chord) => [...chord].reverse(), // down
+    (chord) => [chord[0], chord[2], chord[1], chord[3]], // up-down weave
+    (chord) => [chord[0], chord[2]], // sparse — just root + fifth, more space
+  ];
+
   private scheduleNote(time: number) {
     const currentSelectedTheme = this.themes[this.currentTheme];
     const chords = currentSelectedTheme.chords;
@@ -151,9 +162,18 @@ class AmbientSoundEngine {
       this.playPianoNote(freq * 0.5, 4.2, 0.03, true, time);
     });
 
-    // Play light arpeggiated piano melody notes
-    currentChord.forEach((freq, idx) => {
-      this.playPianoNote(freq, 3.2, 0.06, false, time + idx * 0.48);
+    // Rotate through arpeggio patterns over an 8-step cycle (longer than the
+    // 4-chord loop) so the melodic contour keeps shifting rather than
+    // repeating the exact same up-run every single bar.
+    const pattern = this.arpeggioPatterns[Math.floor(this.chordStep / 4) % this.arpeggioPatterns.length];
+    const melodyNotes = pattern(currentChord);
+    const noteSpacing = melodyNotes.length <= 2 ? 0.85 : 0.48;
+
+    melodyNotes.forEach((freq, idx) => {
+      // Small per-note velocity variation instead of a perfectly flat dynamic,
+      // for a slightly more human, less mechanical feel.
+      const velocity = 0.05 + Math.random() * 0.02;
+      this.playPianoNote(freq, 3.2, velocity, false, time + idx * noteSpacing);
     });
   }
 
@@ -162,7 +182,11 @@ class AmbientSoundEngine {
     // Schedule notes if we are close to the next note time
     while (this.nextNoteTime < this.ctx.currentTime + this.scheduleAheadTime) {
       this.scheduleNote(this.nextNoteTime);
-      this.nextNoteTime += 2.9; // 2900ms interval
+      // Slight timing jitter (±150ms) instead of a perfectly fixed 2.9s
+      // metronome interval — a fixed grid is exactly what makes a loop
+      // sound like a loop; a small human-scale wobble reads as intentional
+      // phrasing instead of a robotic repeat.
+      this.nextNoteTime += 2.9 + (Math.random() - 0.5) * 0.3;
       this.chordStep++;
     }
     this.intervalTimer = window.setTimeout(this.scheduler, 100);
