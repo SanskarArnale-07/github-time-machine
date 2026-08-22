@@ -460,18 +460,23 @@ export async function exportReplayVideoFormat(
 
     let currentFrame = 0;
 
-    // Shared design tokens — matches the app's established "warm charcoal/brass
-    // with ivory text" language instead of the old navy/green/blue mix.
-    const COLOR_BG = "#0A0A0A";
-    const COLOR_BRASS = "#D4A853";
-    const COLOR_IVORY = "#F2F0EB";
-    const COLOR_MUTED = "#8B8680";
-    const COLOR_BORDER = "rgba(255, 255, 255, 0.08)";
+    // Design tokens pulled directly from tailwind.config.ts — this app's real
+    // palette is high-contrast black/white (Vercel-style), not gold/amber.
+    // `brass.DEFAULT` is literally set to '#ffffff' in the config, so white is
+    // the one accent color, not a separate hue.
+    const COLOR_BG = "#000000";
+    const COLOR_SURFACE = "#111111";
+    const COLOR_ACCENT = "#FFFFFF";
+    const COLOR_TEXT = "#F5F5F5";
+    const COLOR_MUTED = "#888888";
+    const COLOR_BORDER = "rgba(255, 255, 255, 0.10)";
+    const COLOR_BORDER_SOFT = "rgba(255, 255, 255, 0.06)";
 
     /**
      * Draws one full documentary frame — the same template used for the intro,
-     * every commit card, chapter title cards, and the outro, so the exported
-     * video reads as one consistent piece rather than several different styles.
+     * every commit card, chapter title cards, and the outro. No playback
+     * controls are drawn: this is a static export, not a real player, and
+     * fake prev/play/next buttons that don't do anything just look broken.
      */
     const drawDocumentaryFrame = (opts: {
       chapterLabel: string;
@@ -482,17 +487,15 @@ export async function exportReplayVideoFormat(
       milestoneLabel?: string;
       milestoneQuote?: string;
       elapsedFrame: number;
-      totalFrameCount: number;
       alpha: number;
     }) => {
-      const { chapterLabel, badgeText, titleMain, titleAccent, dateLabel, milestoneLabel, milestoneQuote, elapsedFrame, totalFrameCount, alpha } = opts;
+      const { chapterLabel, badgeText, titleMain, titleAccent, dateLabel, milestoneLabel, milestoneQuote, elapsedFrame, alpha } = opts;
 
       ctx.globalAlpha = 1;
       ctx.fillStyle = COLOR_BG;
       ctx.fillRect(0, 0, width, height);
 
       const margin = isVertical ? 36 : 48;
-      // Outer frame border, matching the bordered "screenshot" look in the reference.
       ctx.strokeStyle = COLOR_BORDER;
       ctx.lineWidth = 1.5;
       ctx.beginPath();
@@ -504,106 +507,169 @@ export async function exportReplayVideoFormat(
       ctx.font = "13px monospace";
       ctx.fillText("time-machine.git", margin + 32, margin + 46);
 
-      ctx.fillStyle = COLOR_BRASS;
+      ctx.fillStyle = COLOR_MUTED;
       ctx.textAlign = "right";
       ctx.fillText(isVertical ? "1080P" : "DEVELOPER ODYSSEY · 1080P", width - margin - 32, margin + 46);
       ctx.textAlign = "left";
 
       ctx.globalAlpha = alpha;
 
-      // Right-side abstract "commit constellation" panel — landscape only,
-      // there's no room for a split layout in vertical/9:16.
-      const contentW = isVertical ? width - margin * 2 - 80 : Math.round(width * 0.56);
+      const contentW = isVertical ? width - margin * 2 - 80 : Math.round(width * 0.54);
       const contentX = margin + 40;
 
+      // Right-side abstract "commit constellation" panel — landscape only.
       if (!isVertical) {
         const panelX = margin + contentW + 40;
         const panelW = width - margin - panelX - 20;
         const panelY = margin + 20;
         const panelH = height - margin * 2 - 40;
 
-        ctx.fillStyle = "#111111";
+        ctx.fillStyle = COLOR_SURFACE;
         ctx.beginPath();
         ctx.roundRect(panelX, panelY, panelW, panelH, 16);
         ctx.fill();
 
-        // Deterministic "constellation" of commit nodes connected by faint lines —
-        // an original motif standing in for a photograph we don't have rights to use.
-        const nodeCount = 22;
-        const nodes: { x: number; y: number }[] = [];
-        for (let n = 0; n < nodeCount; n++) {
-          const seed = n * 137.5 + elapsedFrame * 0.15;
-          const nx = panelX + ((Math.sin(seed) + 1) / 2) * panelW;
-          const ny = panelY + ((Math.cos(seed * 1.3) + 1) / 2) * panelH;
-          nodes.push({ x: nx, y: ny });
+        // Abstracted git commit graph: vertical branch lanes with commit
+        // dots, connected by straight same-lane lines and curved merge/branch
+        // strokes between adjacent lanes — reads as an intentional motif tied
+        // to what this app actually is, instead of generic scattered dots.
+        const laneCount = 4;
+        const laneMargin = panelW * 0.18;
+        const laneSpacing = (panelW - laneMargin * 2) / (laneCount - 1);
+        const laneX = Array.from({ length: laneCount }, (_, i) => panelX + laneMargin + i * laneSpacing);
+
+        const topY = panelY + panelH * 0.08;
+        const bottomY = panelY + panelH * 0.92;
+        const rowCount = 13;
+        const rowSpacing = (bottomY - topY) / (rowCount - 1);
+
+        // Deterministic per-row lane + "is this row a commit" pattern, with a
+        // slow drift over time so exported frames aren't perfectly static.
+        type Commit = { lane: number; x: number; y: number; r: number };
+        const commits: Commit[] = [];
+        const drift = elapsedFrame * 0.015;
+        for (let row = 0; row < rowCount; row++) {
+          const y = topY + row * rowSpacing;
+          const laneSeed = Math.floor(((Math.sin(row * 12.9898 + drift) * 43758.5453) % laneCount) + laneCount) % laneCount;
+          commits.push({ lane: laneSeed, x: laneX[laneSeed], y, r: row % 4 === 0 ? 4.5 : 3 });
+          // Occasionally add a second, adjacent-lane commit on the same row to
+          // set up a branch/merge curve.
+          if (row % 3 === 1 && laneCount > 1) {
+            const otherLane = (laneSeed + 1) % laneCount;
+            commits.push({ lane: otherLane, x: laneX[otherLane], y, r: 3 });
+          }
         }
-        ctx.strokeStyle = "rgba(212, 168, 83, 0.18)";
-        ctx.lineWidth = 1;
-        for (let n = 0; n < nodes.length; n++) {
-          const next = nodes[(n + 1) % nodes.length];
-          ctx.beginPath();
-          ctx.moveTo(nodes[n].x, nodes[n].y);
-          ctx.lineTo(next.x, next.y);
-          ctx.stroke();
+
+        // Same-lane vertical connectors
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.14)";
+        ctx.lineWidth = 1.5;
+        for (let lane = 0; lane < laneCount; lane++) {
+          const laneCommits = commits.filter((c) => c.lane === lane).sort((a, b) => a.y - b.y);
+          for (let i = 0; i < laneCommits.length - 1; i++) {
+            ctx.beginPath();
+            ctx.moveTo(laneCommits[i].x, laneCommits[i].y);
+            ctx.lineTo(laneCommits[i + 1].x, laneCommits[i + 1].y);
+            ctx.stroke();
+          }
         }
-        for (const node of nodes) {
-          ctx.fillStyle = "rgba(242, 240, 235, 0.5)";
+
+        // Curved branch/merge connectors between adjacent-lane commits that
+        // share a row.
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.10)";
+        ctx.lineWidth = 1.25;
+        for (let row = 0; row < rowCount; row++) {
+          const y = topY + row * rowSpacing;
+          const rowCommits = commits.filter((c) => Math.abs(c.y - y) < 0.5);
+          if (rowCommits.length > 1) {
+            for (let i = 0; i < rowCommits.length - 1; i++) {
+              const a = rowCommits[i];
+              const b = rowCommits[i + 1];
+              const prevY = y - rowSpacing;
+              ctx.beginPath();
+              ctx.moveTo(a.x, prevY >= topY ? prevY : y - rowSpacing * 0.5);
+              ctx.bezierCurveTo(a.x, y - rowSpacing * 0.2, b.x, y - rowSpacing * 0.2, b.x, y);
+              ctx.stroke();
+            }
+          }
+        }
+
+        // Commit dots on top
+        for (const c of commits) {
+          ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
           ctx.beginPath();
-          ctx.arc(node.x, node.y, 3, 0, Math.PI * 2);
+          ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
           ctx.fill();
         }
 
-        ctx.strokeStyle = "rgba(212, 168, 83, 0.4)";
+        // Soft vignette so the panel fades toward its edges instead of
+        // ending in a hard, flat rectangle.
+        const vignette = ctx.createRadialGradient(
+          panelX + panelW / 2, panelY + panelH / 2, panelH * 0.2,
+          panelX + panelW / 2, panelY + panelH / 2, panelH * 0.75
+        );
+        vignette.addColorStop(0, "rgba(0, 0, 0, 0)");
+        vignette.addColorStop(1, "rgba(0, 0, 0, 0.55)");
+        ctx.fillStyle = vignette;
+        ctx.beginPath();
+        ctx.roundRect(panelX, panelY, panelW, panelH, 16);
+        ctx.fill();
+
+        ctx.strokeStyle = COLOR_BORDER;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.roundRect(panelX, panelY, panelW, panelH, 16);
         ctx.stroke();
       }
 
-      let y = margin + 150;
+      // Vertically center the content block within the frame (previously it
+      // was pinned to the top with a large dead gap below once the fake
+      // transport bar was removed).
+      const blockH = 470;
+      let y = (height - blockH) / 2 + 60;
 
       // Chapter label
-      ctx.fillStyle = COLOR_BRASS;
-      ctx.font = "bold 20px monospace";
+      ctx.fillStyle = COLOR_MUTED;
+      ctx.font = "bold 19px monospace";
       ctx.fillText(chapterLabel.toUpperCase(), contentX, y);
-      y += 60;
+      y += 58;
 
       // Repo badge pill
       if (badgeText) {
-        ctx.font = "bold 20px monospace";
+        ctx.font = "bold 19px monospace";
         const pillText = `⚡  ${badgeText}`;
         const pillW = Math.min(contentW, ctx.measureText(pillText).width + 56);
-        ctx.strokeStyle = COLOR_BRASS;
+        ctx.strokeStyle = COLOR_BORDER;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.roundRect(contentX, y - 34, pillW, 52, 12);
+        ctx.roundRect(contentX, y - 33, pillW, 50, 12);
         ctx.stroke();
-        ctx.fillStyle = COLOR_BRASS;
+        ctx.fillStyle = COLOR_TEXT;
         ctx.fillText(pillText, contentX + 24, y);
-        y += 90;
+        y += 88;
       } else {
-        y += 30;
+        y += 28;
       }
 
-      // Large serif title — main text in ivory, trailing accent phrase in
-      // italic brass, echoing the two-tone title-card treatment.
-      ctx.font = "bold 58px Georgia, serif";
-      ctx.fillStyle = COLOR_IVORY;
+      // Large serif title — main text bright white, accent phrase a soft
+      // 70%-opacity white instead of a second hue, keeping the monochrome
+      // system intact while still separating the two lines visually.
+      ctx.font = "bold 56px Georgia, serif";
+      ctx.fillStyle = COLOR_TEXT;
       const mainLines = wrapText(ctx, titleMain, contentW);
       for (const line of mainLines) {
         ctx.fillText(line, contentX, y);
-        y += 66;
+        y += 64;
       }
       if (titleAccent) {
-        ctx.font = "italic bold 58px Georgia, serif";
-        ctx.fillStyle = COLOR_BRASS;
+        ctx.font = "italic bold 56px Georgia, serif";
+        ctx.fillStyle = "rgba(255, 255, 255, 0.72)";
         const accentLines = wrapText(ctx, titleAccent, contentW);
         for (const line of accentLines) {
           ctx.fillText(line, contentX, y);
-          y += 66;
+          y += 64;
         }
       }
-      y += 20;
+      y += 26;
 
       // Date row with bullet
       ctx.fillStyle = COLOR_MUTED;
@@ -612,102 +678,34 @@ export async function exportReplayVideoFormat(
       ctx.arc(contentX + 5, y - 7, 4, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillText(dateLabel, contentX + 22, y);
-      y += 56;
+      y += 60;
 
       // Milestone box
       if (milestoneLabel && milestoneQuote) {
-        const boxH = 130;
-        ctx.strokeStyle = "rgba(212, 168, 83, 0.35)";
+        const boxH = 132;
+        ctx.strokeStyle = COLOR_BORDER;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.roundRect(contentX, y, contentW, boxH, 14);
         ctx.stroke();
+        ctx.fillStyle = COLOR_BORDER_SOFT;
+        ctx.beginPath();
+        ctx.roundRect(contentX, y, contentW, boxH, 14);
+        ctx.fill();
 
-        ctx.fillStyle = COLOR_BRASS;
+        ctx.fillStyle = COLOR_TEXT;
         ctx.font = "bold 17px monospace";
-        ctx.fillText(`★  MILESTONE: ${milestoneLabel.toUpperCase()}`, contentX + 28, y + 40);
+        ctx.fillText(`★  MILESTONE: ${milestoneLabel.toUpperCase()}`, contentX + 28, y + 42);
 
-        ctx.fillStyle = COLOR_IVORY;
+        ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
         ctx.font = "italic 20px Georgia, serif";
         const quoteLines = wrapText(ctx, `"${milestoneQuote}"`, contentW - 56);
-        let qy = y + 76;
+        let qy = y + 78;
         for (const line of quoteLines.slice(0, 2)) {
           ctx.fillText(line, contentX + 28, qy);
           qy += 28;
         }
       }
-
-      // Bottom transport bar: elapsed / progress / total + playback icons
-      const barY = height - margin - 120;
-      const barW = contentW;
-      const elapsedSec = elapsedFrame / 30;
-      const totalSec = totalFrameCount / 30;
-      const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
-
-      ctx.fillStyle = COLOR_MUTED;
-      ctx.font = "16px monospace";
-      ctx.fillText(fmt(elapsedSec), contentX, barY);
-      ctx.textAlign = "right";
-      ctx.fillText(fmt(totalSec), contentX + barW, barY);
-      ctx.textAlign = "left";
-
-      const trackY = barY + 18;
-      const trackX = contentX + 60;
-      const trackW = barW - 120;
-      const fillFraction = Math.min(1, elapsedFrame / Math.max(1, totalFrameCount));
-
-      ctx.fillStyle = "rgba(255, 255, 255, 0.12)";
-      ctx.beginPath();
-      ctx.roundRect(trackX, trackY, trackW, 4, 2);
-      ctx.fill();
-
-      ctx.fillStyle = COLOR_BRASS;
-      ctx.beginPath();
-      ctx.roundRect(trackX, trackY, Math.max(6, trackW * fillFraction), 4, 2);
-      ctx.fill();
-
-      ctx.fillStyle = COLOR_BRASS;
-      ctx.beginPath();
-      ctx.arc(trackX + trackW * fillFraction, trackY + 2, 6, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Playback controls: prev | play | next, centered under the bar
-      const controlsY = barY + 60;
-      const controlsCx = contentX + barW / 2;
-
-      ctx.fillStyle = COLOR_MUTED;
-      // Prev (skip-back) glyph
-      ctx.beginPath();
-      ctx.moveTo(controlsCx - 70, controlsY - 12);
-      ctx.lineTo(controlsCx - 84, controlsY);
-      ctx.lineTo(controlsCx - 70, controlsY + 12);
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillRect(controlsCx - 86, controlsY - 12, 3, 24);
-
-      // Play button (brass ring + triangle)
-      ctx.strokeStyle = COLOR_BRASS;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(controlsCx, controlsY, 26, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.fillStyle = COLOR_BRASS;
-      ctx.beginPath();
-      ctx.moveTo(controlsCx - 8, controlsY - 13);
-      ctx.lineTo(controlsCx - 8, controlsY + 13);
-      ctx.lineTo(controlsCx + 14, controlsY);
-      ctx.closePath();
-      ctx.fill();
-
-      // Next (skip-forward) glyph
-      ctx.fillStyle = COLOR_MUTED;
-      ctx.beginPath();
-      ctx.moveTo(controlsCx + 70, controlsY - 12);
-      ctx.lineTo(controlsCx + 84, controlsY);
-      ctx.lineTo(controlsCx + 70, controlsY + 12);
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillRect(controlsCx + 83, controlsY - 12, 3, 24);
 
       ctx.globalAlpha = 1;
     };
@@ -740,7 +738,6 @@ export async function exportReplayVideoFormat(
           milestoneLabel: "Journey Begins",
           milestoneQuote: `${events.length} commits reconstructed across the years.`,
           elapsedFrame: currentFrame,
-          totalFrameCount: totalFrames,
           alpha: Math.min(1, Math.sin(introProgress * Math.PI)),
         });
       }
@@ -762,7 +759,6 @@ export async function exportReplayVideoFormat(
             titleAccent: ev.chapterName || "Progression",
             dateLabel: ev.subtitle || "A new chapter begins",
             elapsedFrame: currentFrame,
-            totalFrameCount: totalFrames,
             alpha: Math.max(0.2, eventAlpha),
           });
         } else {
@@ -775,7 +771,6 @@ export async function exportReplayVideoFormat(
             milestoneLabel: ev.impactBadge || "Progression",
             milestoneQuote: ev.impactDescription,
             elapsedFrame: currentFrame,
-            totalFrameCount: totalFrames,
             alpha: Math.max(0.2, eventAlpha),
           });
         }
@@ -791,7 +786,6 @@ export async function exportReplayVideoFormat(
           milestoneLabel: "The Story Continues",
           milestoneQuote: "Your GitHub history is not a graph. It is a story.",
           elapsedFrame: currentFrame,
-          totalFrameCount: totalFrames,
           alpha: Math.min(1, Math.sin(outroProgress * Math.PI)),
         });
       }
