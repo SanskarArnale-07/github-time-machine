@@ -349,7 +349,7 @@ function MilestonesTab({ analytics, firstCommit, latestCommit }: { analytics: An
     const parts = str.split("-");
     if (parts.length !== 2) return "-";
     const [year, month] = parts;
-    const d = new Date(Number(year), Number(month) - 1);
+    const d = new Date(Number(year), Number(month));
     return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
   };
 

@@ -122,7 +122,7 @@ function ReplayMilestoneCard({
           </div>
           <div className="flex flex-col gap-1 col-span-2 md:col-span-1">
             <span className="text-[10px] uppercase tracking-widest text-zinc-500">Most Active</span>
-            <span className="font-mono text-xl text-white pt-1">{mostActiveMonth || "October"}</span>
+            <span className="font-mono text-xl text-white pt-1">{mostActiveMonth || "Unknown"}</span>
           </div>
         </motion.div>
         
@@ -504,7 +504,8 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
     return acc;
   }, {} as Record<string, number>)).sort((a,b) => b[1] - a[1])[0]?.[0] || "TypeScript" : "TypeScript";
 
-  const mostActiveMonth = engine.events.filter(e => e.type === "month_summary").sort((a,b) => (b.monthlySummary?.totalCommits || 0) - (a.monthlySummary?.totalCommits || 0))[0]?.monthName || "October";
+  const mostActiveMonth = engine.events.filter(e => e.type === "month_summary").sort((a,b) => (b.monthlySummary?.totalCommits || 0) - (a.monthlySummary?.totalCommits || 0))[0]?.monthName || 
+    (commits.length > 0 ? new Date(commits[0].date).toLocaleString("default", { month: "short" }) : "N/A");
 
   return (
     <div ref={theaterRef} className="replay-theater" onMouseMove={handleMouseMove}>
