@@ -314,7 +314,7 @@ export function DashboardContent({
                   <h2 className="font-display text-2xl sm:text-4xl md:text-6xl font-semibold text-white tracking-tighter leading-tight drop-shadow-2xl mb-4">
                     The {analytics?.mostActiveYear || new Date().getFullYear()} Chapter
                   </h2>
-                  <p className="text-base md:text-lg text-zinc-400 leading-relaxed border-l-2 border-white/20 pl-5 max-w-3xl">
+                  <p className="font-display text-base md:text-lg text-zinc-400 leading-relaxed border-l-2 border-white/20 pl-5 max-w-3xl">
                     {commits.length < 50
                       ? `${commits.length} commits in${analytics?.insights?.mostFrequentlyUsedLanguage ? ` ${analytics.insights.mostFrequentlyUsedLanguage}` : ""}${analytics?.insights?.fastestRepoGrowth ? `, starting with ${analytics.insights.fastestRepoGrowth}` : ""}. Every documentary starts with a single commit — this is yours.`
                       : `${analytics?.insights?.fastestRepoGrowth ? `${analytics.insights.fastestRepoGrowth} took the most of your attention this year — ` : ""}${commits.length} commits across ${repos.length} repositories${analytics?.insights?.mostFrequentlyUsedLanguage ? `, mostly in ${analytics.insights.mostFrequentlyUsedLanguage}` : ""}${analytics && analytics.longestStreak > 0 ? `, with a ${analytics.longestStreak}-day streak at your peak` : ""}. Keep the momentum going.`}
@@ -356,7 +356,7 @@ export function DashboardContent({
                   tabIndex={activeTab === tab.id ? 0 : -1}
                   onClick={() => setActiveTab(tab.id)}
                   onKeyDown={(e) => handleTabKeyDown(e, tab.id)}
-                  className={`flex min-h-[44px] items-center gap-2 rounded-full px-3.5 sm:px-5 py-2 text-xs sm:text-sm font-medium whitespace-nowrap transition-all ${
+                  className={`flex min-h-[44px] select-none items-center gap-2 rounded-full px-3.5 sm:px-5 py-2 text-xs sm:text-sm font-medium whitespace-nowrap transition-all ${
                     activeTab === tab.id
                       ? "bg-white text-black shadow-sm"
                       : "text-zinc-400 hover:text-white hover:bg-white/5"

@@ -66,7 +66,8 @@ export default async function DashboardPage() {
 
       {/* Footer */}
       <footer className="border-t border-white/10 py-6 text-center font-mono text-xs text-muted/60">
-        GitHub Time Machine · Built for developers who forgot how far they&apos;ve come
+        GitHub Time Machine · Built for developers who forgot how far
+        they&apos;ve come
       </footer>
     </main>
   );
