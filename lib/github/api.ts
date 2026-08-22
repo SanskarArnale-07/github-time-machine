@@ -131,15 +131,12 @@ export async function fetchAllUserCommitHistory(username: string, token?: string
     // Sort descending by date
     commits.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    // Fallback data if empty
-    if (commits.length === 0) {
-      commits = generateFallbackCommits(username);
-    }
+    // We removed generateFallbackCommits so it doesn't inject fake data
 
     return { repos, commits };
   } catch (error) {
     console.error("Failed to fetch history:", error);
-    return { repos: [], commits: generateFallbackCommits(username) };
+    return { repos: [], commits: [] };
   }
 }
 
