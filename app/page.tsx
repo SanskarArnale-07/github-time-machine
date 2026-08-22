@@ -13,7 +13,13 @@ export default async function Home({
   const params = await searchParams;
 
   if (params.code) {
-    redirect(`/auth/callback?code=${params.code}`);
+    const qs = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== undefined) {
+        qs.set(key, Array.isArray(value) ? value[0] : value);
+      }
+    }
+    redirect(`/auth/callback?${qs.toString()}`);
   }
 
   return (

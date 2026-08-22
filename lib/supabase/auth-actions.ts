@@ -1,17 +1,8 @@
-"use client";
+"use server";
 
-import { createClient } from "@/lib/supabase/client";
-
-const getURL = () => {
-  let url =
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    process.env.NEXT_PUBLIC_VERCEL_URL ??
-    (typeof window !== "undefined" ? window.location.origin : "http://localhost:3000");
-
-  url = url.startsWith("http") ? url : `https://${url}`;
-  url = url.replace(/\/$/, "");
-  return url;
-};
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 
 /**
  * Starts the GitHub OAuth flow. Supabase redirects the browser to GitHub,
@@ -20,15 +11,28 @@ const getURL = () => {
  */
 export async function signInWithGithub() {
   const supabase = await createClient();
+  const headersList = await headers();
+  const host = headersList.get("x-forwarded-host") || headersList.get("host") || "localhost:3000";
+  const protocol = host.includes("localhost") ? "http" : "https";
+  const origin = `${protocol}://${host}`;
 
-  await supabase.auth.signInWithOAuth({
+  const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "github",
     options: {
-      redirectTo: `${getURL()}/auth/callback`,
+      redirectTo: `${origin}/auth/callback`,
       scopes: "read:user",
       queryParams: {
         prompt: "consent",
       },
     },
   });
+
+  if (error) {
+    console.error("Error initiating OAuth:", error.message);
+    redirect("/?error=oauth_init_failed");
+  }
+
+  if (data?.url) {
+    redirect(data.url);
+  }
 }
