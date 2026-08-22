@@ -518,7 +518,9 @@ export function calculateAnalytics(commits: GitHubCommit[], repos: GitHubRepo[])
   if (activeDayCount > 0) {
     const firstDay = new Date(sortedDates[0]);
     const lastDay = new Date(sortedDates[sortedDates.length - 1]);
-    const totalSpanDays = Math.max(1, Math.round((lastDay.getTime() - firstDay.getTime()) / (1000 * 3600 * 24)) + 1);
+    // Require a minimum span of 30 days to measure consistency, otherwise 
+    // a single commit yields 100%.
+    const totalSpanDays = Math.max(30, Math.round((lastDay.getTime() - firstDay.getTime()) / (1000 * 3600 * 24)) + 1);
     commitConsistencyScore = Math.min(100, Math.round((activeDayCount / totalSpanDays) * 100));
   }
 
@@ -544,8 +546,14 @@ export function calculateAnalytics(commits: GitHubCommit[], repos: GitHubRepo[])
 
   // Focus: real share of all commits going to your single most-committed
   // repo — directly "dedication to core repositories", not a fabricated
-  // formula.
-  const focusScore = totalCommits > 0 ? Math.round((maxRepoCommits / totalCommits) * 100) : 0;
+  // formula. We apply a volume penalty so that having just 1 commit doesn't
+  // yield 100% focus.
+  let focusScore = 0;
+  if (totalCommits > 0) {
+    const rawFocus = maxRepoCommits / totalCommits;
+    const volumeMultiplier = Math.min(1, totalCommits / 10);
+    focusScore = Math.round(rawFocus * volumeMultiplier * 100);
+  }
 
   // Night Owl: the real late-night percentage, unmodified. The old version
   // doubled this ratio for no stated reason, inflating the displayed number
