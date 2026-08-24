@@ -689,20 +689,10 @@ export function exportReplayVideoFormat(
       ctx.letterSpacing = "0px";
       const rightLabelEnd = ` · ${new Date().getFullYear()}`;
 
-      // Chapter Odometer logic
-      if (eventProgress > 0 && eventProgress < 0.2) {
-         const slideP = easeOut(eventProgress / 0.2);
-         const prevNum = Math.max(1, currentChapNum - 1);
-         
-         ctx.globalAlpha = 1 - slideP;
-         ctx.fillText(`CHAPTER ${prevNum.toString().padStart(2, '0')}${rightLabelEnd}`, width - margin, margin - (slideP * 10));
-         
-         ctx.globalAlpha = slideP;
-         ctx.fillText(`CHAPTER ${currentChapNum.toString().padStart(2, '0')}${rightLabelEnd}`, width - margin, margin + 10 - (slideP * 10));
-      } else {
-         ctx.globalAlpha = 1;
-         ctx.fillText(`CHAPTER ${currentChapNum.toString().padStart(2, '0')}${rightLabelEnd}`, width - margin, margin);
-      }
+      // Chapter Odometer logic (Static HUD update, no sliding/fading)
+      ctx.globalAlpha = 1;
+      ctx.fillText(`CHAPTER ${currentChapNum.toString().padStart(2, '0')}${rightLabelEnd}`, width - margin, margin);
+      
       ctx.restore();
       ctx.textAlign = "left";
       ctx.letterSpacing = "0px";
@@ -711,7 +701,19 @@ export function exportReplayVideoFormat(
       const contentX = margin;
       
       // 1. Left Column (Text)
-      let y = height * 0.30;
+      // A subtle HUD "tick" animation to visually signal that the text has updated,
+      // without making it disappear or pop out of the screen.
+      // Rapid decay over the first ~5-7 frames of the event.
+      const tick = Math.max(0, 1 - (eventProgress * 12)); 
+      const easeTick = tick * tick;
+      const globalYOffset = easeTick * 4;
+      const globalBlur = easeTick * 1.5;
+      
+      let y = height * 0.30 + globalYOffset;
+      
+      if (globalBlur > 0.1) {
+        ctx.filter = `blur(${globalBlur}px)`;
+      }
 
       // Chapter / Metadata
       ctx.globalAlpha = alpha;
@@ -811,7 +813,12 @@ export function exportReplayVideoFormat(
           quoteY += 40;
         }
       }
+      
+      // Reset the filter so the graph doesn't blur
+      ctx.filter = "none";
 
+      ctx.globalAlpha = 1;
+      
       // 2. Right Column (Git Visualization as a 2D Camera Viewport)
       if (!isVertical) {
         const rightX = width * 0.58;
@@ -1017,9 +1024,10 @@ export function exportReplayVideoFormat(
           : 1 - Math.pow(-2 * eventProgress + 2, 3) / 2;
           
         const continuousIndex = eventIndex + easeProgress;
-        // Keep alpha at 1.0 so the text doesn't fade away to black between events. 
-        // It will just update and apply the entrance animation for the next event.
-        const eventAlpha = 1.0;
+        
+        // Restore the cinematic fade in/out for the text block (dip to black)
+        // This ensures the text cleanly transitions between events without popping.
+        const eventAlpha = Math.min(1, Math.sin(eventProgress * Math.PI) * 1.3);
 
         if (ev.type === "year_milestone") {
           drawDocumentaryFrame({
