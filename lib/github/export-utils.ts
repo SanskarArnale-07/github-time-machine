@@ -1,6 +1,6 @@
 "use client";
 
-import { Chapter, GitHubCommit, GitHubRepo, GitHubUserProfile, ReplayEvent } from "./types";
+import { Chapter, GitHubCommit, GitHubRepo, GitHubUserProfile, ReplayEvent, ContributionWeek } from "./types";
 import { ambientSoundtrack } from "../audio/ambient-soundtrack";
 
 /**
@@ -147,7 +147,8 @@ export function downloadReplaySummaryPDF(
   profile: GitHubUserProfile | null,
   chapters: Chapter[],
   commits: GitHubCommit[],
-  repos: GitHubRepo[]
+  repos: GitHubRepo[],
+  contributions?: ContributionWeek[]
 ) {
   if (typeof window === "undefined") return;
 
@@ -159,7 +160,14 @@ export function downloadReplaySummaryPDF(
 
   const username = profile?.name || profile?.login || "Developer";
   const repoCount = repos.length;
-  const commitCount = commits.length;
+  
+  let commitCount = commits.length;
+  if (contributions && contributions.length > 0) {
+    commitCount = contributions.reduce(
+      (sum, week) => sum + week.days.reduce((daySum, day) => daySum + day.count, 0),
+      0
+    );
+  }
   const startYear =
     commits.length > 0
       ? new Date(commits[commits.length - 1].date).getFullYear()
@@ -372,7 +380,7 @@ export function downloadReplaySummaryPDF(
  * - Minimal cinematic UI: Logo, Chapter badge, Repo pill, prominent Playfair Display title, date, thick glowing progress bar.
  * - Optional audio soundtrack integration (mixing warm piano directly into video stream).
  */
-export async function exportReplayVideoFormat(
+export function exportReplayVideoFormat(
   title: string,
   mode: "landscape" | "vertical" | "gif",
   events: ReplayEvent[],
@@ -381,62 +389,135 @@ export async function exportReplayVideoFormat(
   withAudio: boolean = false,
   durationPreset: "full" | "30s" | "60s" = "full"
 ): Promise<boolean> {
-  if (typeof window === "undefined" || events.length === 0) return false;
-
-  try {
-    const isVertical = mode === "vertical";
-    const width = isVertical ? 1080 : 1920;
-    const height = isVertical ? 1920 : 1080;
-
-    onProgress?.(`Initializing 1080p 30fps Cinematic Video Engine...`);
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return false;
-
-    // Start video stream
-    const videoStream = canvas.captureStream(30);
-
-    // If audio soundtrack requested, mix the warm piano stream
-    if (withAudio) {
-      const audioTrack = ambientSoundtrack.getStreamDestination();
-      if (audioTrack) {
-        videoStream.addTrack(audioTrack);
-        ambientSoundtrack.start();
-      }
+  return new Promise((resolve) => {
+    if (typeof window === "undefined" || events.length === 0) {
+      resolve(false);
+      return;
     }
 
-    const mimeType = MediaRecorder.isTypeSupported("video/mp4")
-      ? "video/mp4"
-      : "video/webm;codecs=vp9,opus";
-    const recorder = new MediaRecorder(videoStream, {
-      mimeType,
-      videoBitsPerSecond: 8000000,
-    });
-    const chunks: Blob[] = [];
+    try {
+      const isVertical = mode === "vertical";
+      const width = isVertical ? 1080 : 1920;
+      const height = isVertical ? 1920 : 1080;
 
-    recorder.ondataavailable = (e) => {
-      if (e.data.size > 0) chunks.push(e.data);
-    };
-
-    recorder.onstop = () => {
-      if (withAudio) {
-        ambientSoundtrack.stop();
+      onProgress?.(`Initializing 1080p 30fps Cinematic Video Engine...`);
+      
+      // Create global floating progress toast so user can leave the screen
+      const toast = document.createElement("div");
+      toast.style.position = "fixed";
+      toast.style.bottom = "24px";
+      toast.style.right = "24px";
+      toast.style.backgroundColor = "rgba(0, 0, 0, 0.85)";
+      toast.style.backdropFilter = "blur(12px)";
+      toast.style.border = "1px solid rgba(255,255,255,0.1)";
+      toast.style.borderRadius = "8px";
+      toast.style.padding = "16px 20px";
+      toast.style.color = "#fff";
+      toast.style.fontFamily = "monospace";
+      toast.style.fontSize = "12px";
+      toast.style.zIndex = "999999";
+      toast.style.display = "flex";
+      toast.style.alignItems = "center";
+      toast.style.gap = "12px";
+      toast.style.boxShadow = "0 10px 40px rgba(0,0,0,0.5)";
+      
+      const spinner = document.createElement("div");
+      spinner.style.width = "14px";
+      spinner.style.height = "14px";
+      spinner.style.border = "2px solid rgba(255,255,255,0.3)";
+      spinner.style.borderTopColor = "#fff";
+      spinner.style.borderRadius = "50%";
+      spinner.style.animation = "spin 1s linear infinite";
+      
+      // Inject keyframes if not exists
+      if (!document.getElementById("export-spinner-styles")) {
+        const style = document.createElement("style");
+        style.id = "export-spinner-styles";
+        style.innerHTML = `@keyframes spin { to { transform: rotate(360deg); } }`;
+        document.head.appendChild(style);
       }
-      const blob = new Blob(chunks, { type: mimeType });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `github-time-machine-${mode}-documentary.${
-        mimeType.includes("mp4") ? "mp4" : "webm"
-      }`;
-      a.click();
-      URL.revokeObjectURL(url);
-      onProgress?.("Cinematic documentary export completed!");
-    };
+      
+      const text = document.createElement("span");
+      text.innerText = "Initializing export...";
+      
+      toast.appendChild(spinner);
+      toast.appendChild(text);
+      document.body.appendChild(toast);
 
-    recorder.start();
+      const updateGlobalProgress = (msg: string) => {
+        text.innerText = msg;
+        // Throttle React state updates to every 15 frames (0.5s) to prevent locking up the main thread
+        // which was causing MediaRecorder to drop frames and stutter heavily.
+        if (currentFrame % 15 === 0) {
+          onProgress?.(msg);
+        }
+      };
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        document.body.removeChild(toast);
+        resolve(false);
+        return;
+      }
+
+      // Start video stream
+      const videoStream = canvas.captureStream(30);
+
+      // If audio soundtrack requested, mix the warm piano stream
+      if (withAudio) {
+        const audioTrack = ambientSoundtrack.getStreamDestination();
+        if (audioTrack) {
+          videoStream.addTrack(audioTrack);
+          ambientSoundtrack.start();
+        }
+      }
+
+      const mimeType = MediaRecorder.isTypeSupported("video/mp4")
+        ? "video/mp4"
+        : "video/webm;codecs=vp9,opus";
+      const recorder = new MediaRecorder(videoStream, {
+        mimeType,
+        videoBitsPerSecond: 8000000,
+      });
+      const chunks: Blob[] = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        if (withAudio) {
+          ambientSoundtrack.stop();
+        }
+        
+        spinner.style.display = "none";
+        text.innerText = "Export Complete! Downloading...";
+        text.style.color = "#4ade80"; // Success green
+        
+        const blob = new Blob(chunks, { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `github-time-machine-${mode}-documentary.${
+          mimeType.includes("mp4") ? "mp4" : "webm"
+        }`;
+        a.click();
+        URL.revokeObjectURL(url);
+        
+        setTimeout(() => {
+          if (document.body.contains(toast)) {
+            document.body.removeChild(toast);
+          }
+        }, 3000);
+        
+        onProgress?.("Cinematic documentary export completed!");
+        resolve(true);
+      };
+
+      recorder.start();
 
     // 1. Intro sequence: 75 frames (2.5s)
     const introFrames = 75;
@@ -458,26 +539,92 @@ export async function exportReplayVideoFormat(
     const outroFrames = 90;
     const totalFrames = introFrames + eventFrames + outroFrames;
 
+    // --- SPATIAL GRAPH GENERATION ---
+    const maxGraphNodes = 250;
+    const step = Math.max(1, Math.ceil(events.length / maxGraphNodes));
+    const graphEventsSet = new Set<ReplayEvent>();
+    for (let i = 0; i < events.length; i += step) graphEventsSet.add(events[i]);
+    for (const sev of sampledEvents) graphEventsSet.add(sev);
+    const finalGraphEvents = Array.from(graphEventsSet).sort((a,b) => a.timestamp - b.timestamp);
+
+    interface GraphNode { id: string; x: number; y: number; timestamp: number; isMilestone: boolean; lane: number; eventRef: ReplayEvent }
+    interface GraphEdge { sourceId: string; targetId: string }
+
+    const laneSpacing = 120;
+    const nodeSpacingY = 80;
+    const nodes: GraphNode[] = [];
+    const edges: GraphEdge[] = [];
+    
+    let activeBranches = new Set([0]);
+    let lastNodeInBranch = new Map<number, GraphNode>();
+
+    // Seeded random for deterministic graph
+    let seed = 1337;
+    const random = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+
+    finalGraphEvents.forEach((ev, i) => {
+      let lane = 0;
+      let sourceBranch = 0;
+      let isMerge = false;
+      let mergedBranch = 0;
+
+      if (i > 0) {
+        const rand = random();
+        if (rand < 0.15 && activeBranches.size < 5) {
+          const availableLanes = [1, -1, 2, -2, 3, -3].filter(l => !activeBranches.has(l));
+          if (availableLanes.length > 0) {
+            lane = availableLanes[0];
+            activeBranches.add(lane);
+            sourceBranch = 0;
+          }
+        } else if (rand > 0.85 && activeBranches.size > 1) {
+          const branches = Array.from(activeBranches).filter(b => b !== 0);
+          mergedBranch = branches[Math.floor(random() * branches.length)];
+          activeBranches.delete(mergedBranch);
+          lane = 0;
+          sourceBranch = 0;
+          isMerge = true;
+        } else {
+          if (random() < 0.8 || !activeBranches.has(0)) lane = 0;
+          else {
+            const branches = Array.from(activeBranches).filter(b => b !== 0);
+            lane = branches.length > 0 ? branches[Math.floor(random() * branches.length)] : 0;
+          }
+          sourceBranch = lane;
+        }
+      }
+
+      const y = i * nodeSpacingY;
+      const x = lane * laneSpacing;
+      const node: GraphNode = { id: ev.id, x, y, timestamp: ev.timestamp, isMilestone: sampledEvents.includes(ev), lane, eventRef: ev };
+      nodes.push(node);
+
+      if (i > 0) {
+        const parent = lastNodeInBranch.get(sourceBranch) || lastNodeInBranch.get(0);
+        if (parent) edges.push({ sourceId: parent.id, targetId: node.id });
+        if (isMerge) {
+          const mergeParent = lastNodeInBranch.get(mergedBranch);
+          if (mergeParent) edges.push({ sourceId: mergeParent.id, targetId: node.id });
+        }
+      }
+      lastNodeInBranch.set(lane, node);
+    });
+
+    const noiseSvg = `<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>`;
+    const noiseImg = new Image();
+    noiseImg.src = `data:image/svg+xml;base64,${btoa(noiseSvg)}`;
+
     let currentFrame = 0;
 
-    // Design tokens pulled directly from tailwind.config.ts — this app's real
-    // palette is high-contrast black/white (Vercel-style), not gold/amber.
-    // `brass.DEFAULT` is literally set to '#ffffff' in the config, so white is
-    // the one accent color, not a separate hue.
-    const COLOR_BG = "#000000";
-    const COLOR_SURFACE = "#111111";
-    const COLOR_ACCENT = "#FFFFFF";
-    const COLOR_TEXT = "#F5F5F5";
-    const COLOR_MUTED = "#888888";
-    const COLOR_BORDER = "rgba(255, 255, 255, 0.10)";
-    const COLOR_BORDER_SOFT = "rgba(255, 255, 255, 0.06)";
+    const COLOR_BG = "#050505";
+    const COLOR_SURFACE = "#0A0A0A";
+    const COLOR_ACCENT = "rgba(255, 235, 200, 1)";
+    const COLOR_TEXT = "#FFFFFF";
+    const COLOR_MUTED = "#A0A0A0";
+    const COLOR_BORDER = "rgba(255, 255, 255, 0.15)";
+    const COLOR_BORDER_SOFT = "rgba(255, 255, 255, 0.08)";
+    const GLOW_COLOR = "rgba(255, 230, 200, 0.8)";
 
-    /**
-     * Draws one full documentary frame — the same template used for the intro,
-     * every commit card, chapter title cards, and the outro. No playback
-     * controls are drawn: this is a static export, not a real player, and
-     * fake prev/play/next buttons that don't do anything just look broken.
-     */
     const drawDocumentaryFrame = (opts: {
       chapterLabel: string;
       badgeText?: string;
@@ -486,225 +633,339 @@ export async function exportReplayVideoFormat(
       dateLabel: string;
       milestoneLabel?: string;
       milestoneQuote?: string;
-      elapsedFrame: number;
+      continuousIndex: number;
+      totalEvents: number;
       alpha: number;
+      eventProgress?: number;
     }) => {
-      const { chapterLabel, badgeText, titleMain, titleAccent, dateLabel, milestoneLabel, milestoneQuote, elapsedFrame, alpha } = opts;
+      const { chapterLabel, badgeText, titleMain, titleAccent, dateLabel, milestoneLabel, milestoneQuote, continuousIndex, totalEvents, alpha, eventProgress = 1.0 } = opts;
+
+      // Compute staggered animation states
+      const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
+      
+      const pKicker = Math.min(1, Math.max(0, eventProgress / 0.1));
+      const pTitle = Math.min(1, Math.max(0, (eventProgress - 0.03) / 0.12));
+      const pMeta = Math.min(1, Math.max(0, (eventProgress - 0.06) / 0.12));
+      const pMilestone = Math.min(1, Math.max(0, (eventProgress - 0.08) / 0.12));
 
       ctx.globalAlpha = 1;
       ctx.fillStyle = COLOR_BG;
       ctx.fillRect(0, 0, width, height);
 
-      const margin = isVertical ? 36 : 48;
-      ctx.strokeStyle = COLOR_BORDER;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.roundRect(margin, margin, width - margin * 2, height - margin * 2, 20);
-      ctx.stroke();
+      // Noise pass simulation using soft gradients to add atmosphere
+      const bgGlow = ctx.createRadialGradient(width / 2, height / 2, 0, width / 2, height / 2, width);
+      bgGlow.addColorStop(0, "rgba(255, 240, 220, 0.03)");
+      bgGlow.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.fillStyle = bgGlow;
+      ctx.fillRect(0, 0, width, height);
 
-      // Top bar
-      ctx.fillStyle = COLOR_MUTED;
-      ctx.font = "13px monospace";
-      ctx.fillText("time-machine.git", margin + 32, margin + 46);
+      // Ambient Frame Texture (Noise & Vignette)
+      if (noiseImg.complete) {
+        ctx.globalAlpha = 0.04;
+        ctx.globalCompositeOperation = "overlay";
+        ctx.drawImage(noiseImg, 0, 0, width, height);
+        ctx.globalCompositeOperation = "source-over";
+      }
 
+      ctx.globalAlpha = 1;
+      const vignette = ctx.createRadialGradient(width/2, height/2, height*0.4, width/2, height/2, width*0.7);
+      vignette.addColorStop(0, "rgba(0,0,0,0)");
+      vignette.addColorStop(1, "rgba(5,5,5,0.85)");
+      ctx.fillStyle = vignette;
+      ctx.fillRect(0, 0, width, height);
+
+      const margin = 80;
+
+      // Top Meta
       ctx.fillStyle = COLOR_MUTED;
+      ctx.font = "bold 12px monospace";
+      ctx.letterSpacing = "2px";
+      ctx.fillText("TIME-MACHINE.GIT", margin, margin);
+
+      ctx.save();
+      const currentChapNum = Math.floor(continuousIndex) + 1;
       ctx.textAlign = "right";
-      ctx.fillText(isVertical ? "1080P" : "DEVELOPER ODYSSEY · 1080P", width - margin - 32, margin + 46);
-      ctx.textAlign = "left";
+      ctx.font = "bold 12px monospace";
+      ctx.letterSpacing = "0px";
+      const rightLabelEnd = ` · ${new Date().getFullYear()}`;
 
-      ctx.globalAlpha = alpha;
-
-      const contentW = isVertical ? width - margin * 2 - 80 : Math.round(width * 0.54);
-      const contentX = margin + 40;
-
-      // Right-side abstract "commit constellation" panel — landscape only.
-      if (!isVertical) {
-        const panelX = margin + contentW + 40;
-        const panelW = width - margin - panelX - 20;
-        const panelY = margin + 20;
-        const panelH = height - margin * 2 - 40;
-
-        ctx.fillStyle = COLOR_SURFACE;
-        ctx.beginPath();
-        ctx.roundRect(panelX, panelY, panelW, panelH, 16);
-        ctx.fill();
-
-        // Abstracted git commit graph: vertical branch lanes with commit
-        // dots, connected by straight same-lane lines and curved merge/branch
-        // strokes between adjacent lanes — reads as an intentional motif tied
-        // to what this app actually is, instead of generic scattered dots.
-        const laneCount = 4;
-        const laneMargin = panelW * 0.18;
-        const laneSpacing = (panelW - laneMargin * 2) / (laneCount - 1);
-        const laneX = Array.from({ length: laneCount }, (_, i) => panelX + laneMargin + i * laneSpacing);
-
-        const topY = panelY + panelH * 0.08;
-        const bottomY = panelY + panelH * 0.92;
-        const rowCount = 13;
-        const rowSpacing = (bottomY - topY) / (rowCount - 1);
-
-        // Deterministic per-row lane + "is this row a commit" pattern, with a
-        // slow drift over time so exported frames aren't perfectly static.
-        type Commit = { lane: number; x: number; y: number; r: number };
-        const commits: Commit[] = [];
-        const drift = elapsedFrame * 0.015;
-        for (let row = 0; row < rowCount; row++) {
-          const y = topY + row * rowSpacing;
-          const laneSeed = Math.floor(((Math.sin(row * 12.9898 + drift) * 43758.5453) % laneCount) + laneCount) % laneCount;
-          commits.push({ lane: laneSeed, x: laneX[laneSeed], y, r: row % 4 === 0 ? 4.5 : 3 });
-          // Occasionally add a second, adjacent-lane commit on the same row to
-          // set up a branch/merge curve.
-          if (row % 3 === 1 && laneCount > 1) {
-            const otherLane = (laneSeed + 1) % laneCount;
-            commits.push({ lane: otherLane, x: laneX[otherLane], y, r: 3 });
-          }
-        }
-
-        // Same-lane vertical connectors
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.14)";
-        ctx.lineWidth = 1.5;
-        for (let lane = 0; lane < laneCount; lane++) {
-          const laneCommits = commits.filter((c) => c.lane === lane).sort((a, b) => a.y - b.y);
-          for (let i = 0; i < laneCommits.length - 1; i++) {
-            ctx.beginPath();
-            ctx.moveTo(laneCommits[i].x, laneCommits[i].y);
-            ctx.lineTo(laneCommits[i + 1].x, laneCommits[i + 1].y);
-            ctx.stroke();
-          }
-        }
-
-        // Curved branch/merge connectors between adjacent-lane commits that
-        // share a row.
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.10)";
-        ctx.lineWidth = 1.25;
-        for (let row = 0; row < rowCount; row++) {
-          const y = topY + row * rowSpacing;
-          const rowCommits = commits.filter((c) => Math.abs(c.y - y) < 0.5);
-          if (rowCommits.length > 1) {
-            for (let i = 0; i < rowCommits.length - 1; i++) {
-              const a = rowCommits[i];
-              const b = rowCommits[i + 1];
-              const prevY = y - rowSpacing;
-              ctx.beginPath();
-              ctx.moveTo(a.x, prevY >= topY ? prevY : y - rowSpacing * 0.5);
-              ctx.bezierCurveTo(a.x, y - rowSpacing * 0.2, b.x, y - rowSpacing * 0.2, b.x, y);
-              ctx.stroke();
-            }
-          }
-        }
-
-        // Commit dots on top
-        for (const c of commits) {
-          ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
-          ctx.beginPath();
-          ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
-          ctx.fill();
-        }
-
-        // Soft vignette so the panel fades toward its edges instead of
-        // ending in a hard, flat rectangle.
-        const vignette = ctx.createRadialGradient(
-          panelX + panelW / 2, panelY + panelH / 2, panelH * 0.2,
-          panelX + panelW / 2, panelY + panelH / 2, panelH * 0.75
-        );
-        vignette.addColorStop(0, "rgba(0, 0, 0, 0)");
-        vignette.addColorStop(1, "rgba(0, 0, 0, 0.55)");
-        ctx.fillStyle = vignette;
-        ctx.beginPath();
-        ctx.roundRect(panelX, panelY, panelW, panelH, 16);
-        ctx.fill();
-
-        ctx.strokeStyle = COLOR_BORDER;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.roundRect(panelX, panelY, panelW, panelH, 16);
-        ctx.stroke();
-      }
-
-      // Vertically center the content block within the frame (previously it
-      // was pinned to the top with a large dead gap below once the fake
-      // transport bar was removed).
-      const blockH = 470;
-      let y = (height - blockH) / 2 + 60;
-
-      // Chapter label
-      ctx.fillStyle = COLOR_MUTED;
-      ctx.font = "bold 19px monospace";
-      ctx.fillText(chapterLabel.toUpperCase(), contentX, y);
-      y += 58;
-
-      // Repo badge pill
-      if (badgeText) {
-        ctx.font = "bold 19px monospace";
-        const pillText = `⚡  ${badgeText}`;
-        const pillW = Math.min(contentW, ctx.measureText(pillText).width + 56);
-        ctx.strokeStyle = COLOR_BORDER;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.roundRect(contentX, y - 33, pillW, 50, 12);
-        ctx.stroke();
-        ctx.fillStyle = COLOR_TEXT;
-        ctx.fillText(pillText, contentX + 24, y);
-        y += 88;
+      // Chapter Odometer logic
+      if (eventProgress > 0 && eventProgress < 0.2) {
+         const slideP = easeOut(eventProgress / 0.2);
+         const prevNum = Math.max(1, currentChapNum - 1);
+         
+         ctx.globalAlpha = 1 - slideP;
+         ctx.fillText(`CHAPTER ${prevNum.toString().padStart(2, '0')}${rightLabelEnd}`, width - margin, margin - (slideP * 10));
+         
+         ctx.globalAlpha = slideP;
+         ctx.fillText(`CHAPTER ${currentChapNum.toString().padStart(2, '0')}${rightLabelEnd}`, width - margin, margin + 10 - (slideP * 10));
       } else {
-        y += 28;
+         ctx.globalAlpha = 1;
+         ctx.fillText(`CHAPTER ${currentChapNum.toString().padStart(2, '0')}${rightLabelEnd}`, width - margin, margin);
       }
+      ctx.restore();
+      ctx.textAlign = "left";
+      ctx.letterSpacing = "0px";
 
-      // Large serif title — main text bright white, accent phrase a soft
-      // 70%-opacity white instead of a second hue, keeping the monochrome
-      // system intact while still separating the two lines visually.
-      ctx.font = "bold 56px Georgia, serif";
-      ctx.fillStyle = COLOR_TEXT;
-      const mainLines = wrapText(ctx, titleMain, contentW);
-      for (const line of mainLines) {
-        ctx.fillText(line, contentX, y);
-        y += 64;
-      }
-      if (titleAccent) {
-        ctx.font = "italic bold 56px Georgia, serif";
-        ctx.fillStyle = "rgba(255, 255, 255, 0.72)";
-        const accentLines = wrapText(ctx, titleAccent, contentW);
-        for (const line of accentLines) {
-          ctx.fillText(line, contentX, y);
-          y += 64;
-        }
-      }
-      y += 26;
+      const leftW = Math.round(width * 0.58) - margin * 2;
+      const contentX = margin;
+      
+      // 1. Left Column (Text)
+      let y = height * 0.30;
 
-      // Date row with bullet
+      // Chapter / Metadata
+      ctx.globalAlpha = alpha;
+      const kickerY = y;
+
       ctx.fillStyle = COLOR_MUTED;
-      ctx.font = "20px monospace";
-      ctx.beginPath();
-      ctx.arc(contentX + 5, y - 7, 4, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillText(dateLabel, contentX + 22, y);
-      y += 60;
+      ctx.font = "bold 15px monospace";
+      ctx.letterSpacing = "1px";
+      ctx.fillText(chapterLabel.toUpperCase(), contentX, kickerY);
+      ctx.letterSpacing = "0px";
+      y += 48;
 
-      // Milestone box
-      if (milestoneLabel && milestoneQuote) {
-        const boxH = 132;
-        ctx.strokeStyle = COLOR_BORDER;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.roundRect(contentX, y, contentW, boxH, 14);
-        ctx.stroke();
+      // Repo Pill
+      if (badgeText) {
+        ctx.font = "bold 15px monospace";
+        const pillText = badgeText.toUpperCase();
+        const pillW = ctx.measureText(pillText).width + 36;
         ctx.fillStyle = COLOR_BORDER_SOFT;
         ctx.beginPath();
-        ctx.roundRect(contentX, y, contentW, boxH, 14);
+        // Hang the pill background into the left margin so the text aligns perfectly with contentX
+        ctx.roundRect(contentX - 18, y - 22, pillW, 34, 17);
         ctx.fill();
-
+        ctx.strokeStyle = COLOR_BORDER;
+        ctx.lineWidth = 1;
+        ctx.stroke();
         ctx.fillStyle = COLOR_TEXT;
-        ctx.font = "bold 17px monospace";
-        ctx.fillText(`★  MILESTONE: ${milestoneLabel.toUpperCase()}`, contentX + 28, y + 42);
+        ctx.fillText(pillText, contentX, y);
+        y += 85;
+      } else {
+        y += 45;
+      }
 
-        ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
-        ctx.font = "italic 20px Georgia, serif";
-        const quoteLines = wrapText(ctx, `"${milestoneQuote}"`, contentW - 56);
-        let qy = y + 78;
-        for (const line of quoteLines.slice(0, 2)) {
-          ctx.fillText(line, contentX + 28, qy);
-          qy += 28;
+      // Title Main
+      ctx.globalAlpha = alpha;
+      const titleY = y;
+      
+      ctx.save();
+      ctx.translate(contentX, titleY);
+
+      ctx.font = "500 72px Georgia, serif";
+      ctx.fillStyle = COLOR_TEXT;
+      let ty = 0;
+      const mainLines = wrapText(ctx, titleMain, leftW);
+      for (const line of mainLines) {
+        ctx.fillText(line, 0, ty);
+        ty += 84;
+      }
+      
+      if (titleAccent) {
+        ctx.font = "italic 400 72px Georgia, serif";
+        ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+        const accentLines = wrapText(ctx, titleAccent, leftW);
+        for (const line of accentLines) {
+          ctx.fillText(line, 0, ty);
+          ty += 84;
         }
+      }
+      ctx.restore();
+      
+      y += ty + 24;
+
+      // Date Label
+      ctx.globalAlpha = alpha;
+      const metaY = y;
+      ctx.fillStyle = COLOR_MUTED;
+      ctx.font = "17px monospace";
+      ctx.fillText(`Pushed on ${dateLabel}`, contentX, metaY);
+      
+      y += 75;
+
+      // Milestone Panel
+      if (milestoneLabel && milestoneQuote) {
+        ctx.globalAlpha = alpha;
+        const msY = y;
+        
+        ctx.font = "italic 26px Georgia, serif";
+        const quoteLines = wrapText(ctx, milestoneQuote, leftW);
+        const borderHeight = 40 + (Math.min(quoteLines.length, 3) * 40);
+        
+        ctx.strokeStyle = GLOW_COLOR;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(contentX - 18, msY);
+        ctx.lineTo(contentX - 18, msY + borderHeight);
+        ctx.stroke();
+
+        ctx.fillStyle = GLOW_COLOR;
+        ctx.font = "bold 14px monospace";
+        ctx.letterSpacing = "3px";
+        ctx.fillText(`★ MILESTONE · ${milestoneLabel.toUpperCase()}`, contentX, msY + 12);
+        ctx.letterSpacing = "0px";
+        
+        ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+        let quoteY = msY + 54;
+        for (const line of quoteLines.slice(0, 3)) {
+          ctx.fillText(line, contentX, quoteY);
+          quoteY += 40;
+        }
+      }
+
+      // 2. Right Column (Git Visualization as a 2D Camera Viewport)
+      if (!isVertical) {
+        const rightX = width * 0.58;
+        const rightW = width * 0.42;
+        const centerY = height / 2;
+        const centerX = rightX + rightW / 2;
+        
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(rightX, 0, rightW, height);
+        ctx.clip();
+        
+        // Cinematic Lighting Bloom in background
+        const bgBloom2 = ctx.createRadialGradient(
+          rightX + rightW * 0.4, centerY, 0,
+          rightX + rightW * 0.4, centerY, height * 0.7
+        );
+        bgBloom2.addColorStop(0, "rgba(255, 230, 200, 0.05)");
+        bgBloom2.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = bgBloom2;
+        ctx.fillRect(rightX, 0, rightW, height);
+
+        // --- CAMERA MATH ---
+        // We use the fractional continuousIndex to find exact timestamp and interpolate X/Y
+        const idxBase = Math.max(0, Math.min(sampledEvents.length - 1, Math.floor(continuousIndex)));
+        const frac = continuousIndex - idxBase;
+        const ev1 = sampledEvents[idxBase];
+        const ev2 = sampledEvents[Math.min(idxBase + 1, sampledEvents.length - 1)];
+        
+        const node1 = nodes.find(n => n.id === ev1.id) || nodes[0];
+        const node2 = nodes.find(n => n.id === ev2.id) || node1;
+        
+        let targetCamX = node1.x + (node2.x - node1.x) * frac;
+        let targetCamY = node1.y + (node2.y - node1.y) * frac;
+        let scale = 1.0;
+        const currentTimestamp = ev1.timestamp + (ev2.timestamp - ev1.timestamp) * frac;
+
+        // Phase specific camera overrides
+        if (currentFrame < introFrames) {
+          const introProgress = currentFrame / introFrames;
+          const easeIntro = 1 - Math.pow(1 - introProgress, 3);
+          targetCamX = node1.x;
+          targetCamY = node1.y;
+          scale = 0.8 + 0.2 * easeIntro;
+        } else if (currentFrame >= introFrames + eventFrames) {
+          const outroProgress = (currentFrame - (introFrames + eventFrames)) / outroFrames;
+          const easeOutro = outroProgress < 0.5 ? 4 * outroProgress * outroProgress * outroProgress : 1 - Math.pow(-2 * outroProgress + 2, 3) / 2;
+          
+          const graphTotalHeight = nodes[nodes.length-1].y - nodes[0].y;
+          const minX = Math.min(...nodes.map(n => n.x));
+          const maxX = Math.max(...nodes.map(n => n.x));
+          const graphTotalWidth = Math.max(800, maxX - minX + 200);
+          
+          const fitScale = Math.min((rightW - 160) / graphTotalWidth, (height - 160) / graphTotalHeight, 0.5);
+          
+          scale = 1.0 + (fitScale - 1.0) * easeOutro;
+          targetCamX = targetCamX + ((minX + maxX)/2 - targetCamX) * easeOutro;
+          targetCamY = targetCamY + (graphTotalHeight / 2 - targetCamY) * easeOutro;
+        }
+
+        ctx.translate(centerX - targetCamX * scale, centerY - targetCamY * scale);
+        ctx.scale(scale, scale);
+
+        // --- DRAW GRAPH ---
+        ctx.strokeStyle = COLOR_BORDER;
+        ctx.lineWidth = 2 / scale;
+
+        // Draw Edges (with opacity based on timestamp to reveal them over time)
+        for (const edge of edges) {
+          const n1 = nodes.find(n => n.id === edge.sourceId);
+          const n2 = nodes.find(n => n.id === edge.targetId);
+          if (!n1 || !n2) continue;
+          
+          let edgeProgress = 1.0;
+          if (n2.timestamp > currentTimestamp && currentFrame < introFrames + eventFrames) {
+            if (n1.timestamp >= currentTimestamp) continue; // Not revealed yet
+            edgeProgress = (currentTimestamp - n1.timestamp) / (n2.timestamp - n1.timestamp);
+          }
+
+          ctx.beginPath();
+          ctx.moveTo(n1.x, n1.y);
+          if (n1.lane === n2.lane) {
+            ctx.lineTo(n2.x, n2.y);
+          } else {
+            // Elegant bezier branch
+            ctx.bezierCurveTo(n1.x, n1.y + (n2.y - n1.y) * 0.4, n2.x, n2.y - (n2.y - n1.y) * 0.4, n2.x, n2.y);
+          }
+          
+          if (edgeProgress < 1.0) {
+            const len = Math.sqrt(Math.pow(n2.x - n1.x, 2) + Math.pow(n2.y - n1.y, 2)) * (n1.lane === n2.lane ? 1 : 1.2);
+            ctx.setLineDash([len]);
+            ctx.lineDashOffset = len * (1 - edgeProgress);
+          } else {
+            ctx.setLineDash([]);
+          }
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        // Draw Nodes
+        for (const node of nodes) {
+          if (node.timestamp > currentTimestamp && currentFrame < introFrames + eventFrames) {
+            continue; // Not revealed yet
+          }
+          
+          // Distance from the camera target to calculate glow falloff
+          const dx = node.x - targetCamX;
+          const dy = node.y - targetCamY;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          const activeRadius = 150;
+          
+          if (dist < activeRadius) {
+            // It's the active node area
+            const intensity = 1 - (dist / activeRadius);
+            
+            // Pulse continuous: scale 1 -> 1.15 -> 1, opacity breathing
+            const pulse = 1 + (Math.sin(currentFrame * 0.15) * 0.5 + 0.5) * 0.15;
+            const pulseOp = 0.7 + (Math.sin(currentFrame * 0.1) * 0.5 + 0.5) * 0.3;
+            
+            // Bloom
+            const nodeBloom = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, 100);
+            nodeBloom.addColorStop(0, `rgba(255, 230, 200, ${0.4 * intensity * pulseOp})`);
+            nodeBloom.addColorStop(1, "rgba(255, 230, 200, 0)");
+            ctx.fillStyle = nodeBloom;
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, 100, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Core
+            ctx.fillStyle = `rgba(255, 255, 255, ${pulseOp})`;
+            ctx.shadowColor = GLOW_COLOR;
+            ctx.shadowBlur = 20 * intensity * pulse;
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, 7 * pulse, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.strokeStyle = `rgba(255, 230, 200, ${intensity * pulseOp})`;
+            ctx.lineWidth = 2 / scale;
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, (14 + 4*intensity) * pulse, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            ctx.shadowBlur = 0;
+          } else {
+            // Normal node
+            const isMilestone = node.isMilestone;
+            ctx.fillStyle = isMilestone ? "rgba(255, 255, 255, 0.7)" : "rgba(255, 255, 255, 0.3)";
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, isMilestone ? 5 : 3.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+
+        ctx.restore();
       }
 
       ctx.globalAlpha = 1;
@@ -724,11 +985,10 @@ export async function exportReplayVideoFormat(
         }
       }
       if (line) lines.push(line);
-      return lines.slice(0, 2);
+      return lines.slice(0, 3);
     }
 
     const renderMovie = () => {
-      // Phase 1: Cinematic Intro (2.5s)
       if (currentFrame < introFrames) {
         const introProgress = currentFrame / introFrames;
         drawDocumentaryFrame({
@@ -737,11 +997,11 @@ export async function exportReplayVideoFormat(
           dateLabel: "From your first repository to your latest project",
           milestoneLabel: "Journey Begins",
           milestoneQuote: `${events.length} commits reconstructed across the years.`,
-          elapsedFrame: currentFrame,
+          continuousIndex: 0,
+          totalEvents: sampledEvents.length,
           alpha: Math.min(1, Math.sin(introProgress * Math.PI)),
         });
       }
-      // Phase 2: Main Replay Sequence
       else if (currentFrame < introFrames + eventFrames) {
         const eventIndex = Math.min(
           sampledEvents.length - 1,
@@ -750,32 +1010,44 @@ export async function exportReplayVideoFormat(
         const ev = sampledEvents[eventIndex];
         const frameInEvent = (currentFrame - introFrames) % framesPerEvent;
         const eventProgress = frameInEvent / framesPerEvent;
-        const eventAlpha = Math.min(1, Math.sin(eventProgress * Math.PI) * 1.3);
+        
+        // Easing function for smooth scroll between nodes
+        const easeProgress = eventProgress < 0.5 
+          ? 4 * eventProgress * eventProgress * eventProgress 
+          : 1 - Math.pow(-2 * eventProgress + 2, 3) / 2;
+          
+        const continuousIndex = eventIndex + easeProgress;
+        // Keep alpha at 1.0 so the text doesn't fade away to black between events. 
+        // It will just update and apply the entrance animation for the next event.
+        const eventAlpha = 1.0;
 
         if (ev.type === "year_milestone") {
           drawDocumentaryFrame({
-            chapterLabel: `Chapter · ${ev.year}`,
+            chapterLabel: `Chapter \u00B7 ${ev.year}`,
             titleMain: "Chapter:",
             titleAccent: ev.chapterName || "Progression",
             dateLabel: ev.subtitle || "A new chapter begins",
-            elapsedFrame: currentFrame,
-            alpha: Math.max(0.2, eventAlpha),
+            continuousIndex,
+            totalEvents: sampledEvents.length,
+            alpha: eventAlpha,
+            eventProgress,
           });
         } else {
           const chapterName = ev.chapterName || "The Developer Journey";
           drawDocumentaryFrame({
-            chapterLabel: `Chapter: ${chapterName} · ${ev.year}`,
+            chapterLabel: `${chapterName} \u00B7 ${ev.year}`,
             badgeText: ev.repoName || "Repository",
             titleMain: ev.title,
-            dateLabel: `Pushed on ${ev.date.slice(0, 10)}`,
+            dateLabel: ev.date.slice(0, 10),
             milestoneLabel: ev.impactBadge || "Progression",
             milestoneQuote: ev.impactDescription,
-            elapsedFrame: currentFrame,
-            alpha: Math.max(0.2, eventAlpha),
+            continuousIndex,
+            totalEvents: sampledEvents.length,
+            alpha: eventAlpha,
+            eventProgress,
           });
         }
       }
-      // Phase 3: Outro
       else {
         const outroProgress = (currentFrame - (introFrames + eventFrames)) / outroFrames;
         drawDocumentaryFrame({
@@ -785,33 +1057,442 @@ export async function exportReplayVideoFormat(
           dateLabel: `${events.length} commits. Built one push at a time.`,
           milestoneLabel: "The Story Continues",
           milestoneQuote: "Your GitHub history is not a graph. It is a story.",
-          elapsedFrame: currentFrame,
+          continuousIndex: sampledEvents.length - 1,
+          totalEvents: sampledEvents.length,
           alpha: Math.min(1, Math.sin(outroProgress * Math.PI)),
         });
       }
 
       currentFrame++;
-      onProgress?.(
+      updateGlobalProgress(
         `Rendering 1080p frame ${currentFrame} of ${totalFrames} (${Math.round(
           (currentFrame / totalFrames) * 100
-        )}%)...`
+        )}%)`
       );
 
-      if (currentFrame >= totalFrames) {
-        clearInterval(renderIntervalId);
-        recorder.stop();
-      }
     };
 
-    // setInterval instead of requestAnimationFrame: rAF is fully suspended by
-    // browsers the moment a tab loses focus, which is very likely to happen
-    // during a real-time recording that can run 30-90+ seconds — the export
-    // would appear to hang forever if the user switches tabs while waiting.
-    // setInterval keeps firing (throttled, but not paused) in the background.
-    const renderIntervalId = window.setInterval(renderMovie, 1000 / 30);
-    return true;
-  } catch (err) {
-    console.error("Cinematic 1080p video export error:", err);
-    return false;
+    // Use an inline Web Worker for the render loop instead of setInterval.
+    // Modern browsers throttle window.setInterval to 1000ms or suspend it completely
+    // when a tab is in the background. A Web Worker is immune to UI thread throttling.
+    // We use a ping-pong 'ack' pattern instead of setInterval so that if the main
+    // thread is busy (rendering/encoding), we don't flood the message queue with ticks.
+    const workerCode = `
+      let nextTime = 0;
+      let isRunning = false;
+      self.onmessage = function(e) {
+        if (e.data.command === 'start') {
+          isRunning = true;
+          nextTime = performance.now() + 33.33;
+          setTimeout(function() {
+            if (!isRunning) return;
+            self.postMessage('tick');
+          }, 33.33);
+        } else if (e.data.command === 'ack') {
+          if (!isRunning) return;
+          const now = performance.now();
+          nextTime += 33.33;
+          const delay = Math.max(0, nextTime - now);
+          setTimeout(function() {
+            if (!isRunning) return;
+            self.postMessage('tick');
+          }, delay);
+        } else if (e.data.command === 'stop') {
+          isRunning = false;
+          close();
+        }
+      };
+    `;
+    const workerBlob = new Blob([workerCode], { type: 'application/javascript' });
+    const workerUrl = URL.createObjectURL(workerBlob);
+    const worker = new Worker(workerUrl);
+
+    if (currentFrame >= totalFrames) {
+      worker.postMessage({ command: 'stop' });
+      URL.revokeObjectURL(workerUrl);
+      recorder.stop();
+    } else {
+      worker.onmessage = () => {
+        if (currentFrame >= totalFrames) {
+          worker.postMessage({ command: 'stop' });
+          URL.revokeObjectURL(workerUrl);
+          recorder.stop();
+        } else {
+          renderMovie();
+          // Tell the worker we are ready for the next tick
+          worker.postMessage({ command: 'ack' });
+        }
+      };
+      worker.postMessage({ command: 'start' });
+    }
+    } catch (err) {
+      console.error("Cinematic 1080p video export error:", err);
+      // Clean up toast on error
+      const toasts = document.querySelectorAll("div[style*='999999']");
+      toasts.forEach(t => t.remove());
+      resolve(false);
+    }
+  });
+}
+
+/**
+ * Builds a shareable repo documentary URL and copies it to the clipboard.
+ */
+export async function copyRepoDocumentaryLink(
+  repoFullName: string,
+  currentScene: number = 0
+): Promise<{ success: boolean; url: string }> {
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const url = `${origin}/repo/${encodeURIComponent(repoFullName)}?scene=${currentScene}`;
+
+  try {
+    if (!navigator.clipboard) {
+      return { success: false, url };
+    }
+    await navigator.clipboard.writeText(url);
+    return { success: true, url };
+  } catch {
+    return { success: false, url };
   }
+}
+
+/**
+ * Generates a printable PDF-style documentary report for a single repository.
+ * Opens a styled print window with the repo's full scene-by-scene story.
+ */
+export function downloadRepoDocumentaryPDF(
+  repo: GitHubRepo,
+  events: ReplayEvent[],
+  chapters: Chapter[]
+) {
+  if (typeof window === "undefined") return;
+
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) {
+    window.print();
+    return;
+  }
+
+  const repoName = repo.name;
+  const language = repo.language || "Code";
+  const stars = repo.stargazers_count || 0;
+  const forks = repo.forks_count || 0;
+  const commitCount = events.length;
+  const createdDate = new Date(repo.created_at).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+  const lastPush = new Date(repo.pushed_at).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  const scenesHtml = events
+    .map(
+      (ev, idx) => `
+      <div class="scene-card">
+        <div class="scene-number">Scene ${idx + 1}</div>
+        <div class="scene-header">
+          <h3>${ev.title}</h3>
+          <span class="scene-date">${new Date(ev.date).toLocaleDateString("en-US", { month: "long", year: "numeric" })}</span>
+        </div>
+        <p class="scene-narrative">${ev.description || ""}</p>
+        <div class="scene-meta">
+          <div class="scene-badge">${ev.impactBadge || "Milestone"}</div>
+          ${ev.commit?.message ? `<div class="scene-commit">"${ev.commit.message.split("\\n")[0].slice(0, 80)}"</div>` : ""}
+        </div>
+      </div>
+    `
+    )
+    .join("");
+
+  const chaptersHtml = chapters.length > 0
+    ? `
+      <h2>Chapters</h2>
+      <div class="chapters-list">
+        ${chapters.map((ch, i) => `
+          <div class="chapter-item">
+            <span class="chapter-num">${i + 1}</span>
+            <div>
+              <strong>${ch.name}</strong>
+              <span class="chapter-sub">${ch.subtitle}</span>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    `
+    : "";
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Repository Documentary — ${repoName}</title>
+        <style>
+          :root {
+            --bg: #0A0A0A;
+            --surface: #111111;
+            --border: rgba(255, 255, 255, 0.08);
+            --text: #F2F0EB;
+            --muted: #71717A;
+            --accent: #D4A853;
+          }
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body {
+            font-family: Georgia, 'Times New Roman', serif;
+            background: var(--bg);
+            color: var(--text);
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 60px 40px;
+            line-height: 1.65;
+          }
+          .doc-header {
+            text-align: center;
+            padding-bottom: 48px;
+            margin-bottom: 48px;
+            border-bottom: 1px solid var(--border);
+          }
+          .doc-header .label {
+            display: block;
+            font-family: monospace;
+            font-size: 11px;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.3em;
+            margin-bottom: 16px;
+          }
+          .doc-header h1 {
+            font-size: 48px;
+            font-weight: 400;
+            letter-spacing: -0.02em;
+            margin-bottom: 12px;
+          }
+          .doc-header .subtitle {
+            font-size: 18px;
+            color: var(--muted);
+            font-style: italic;
+          }
+          .stats-row {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin: 40px 0 56px;
+          }
+          .stat-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px 28px;
+            text-align: center;
+            min-width: 120px;
+          }
+          .stat-box .val {
+            font-size: 32px;
+            color: var(--accent);
+            display: block;
+            margin-bottom: 6px;
+          }
+          .stat-box .lbl {
+            font-family: monospace;
+            font-size: 10px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+          }
+          h2 {
+            font-size: 24px;
+            font-weight: 400;
+            text-align: center;
+            margin-bottom: 32px;
+            color: var(--text);
+          }
+          .chapters-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 56px;
+          }
+          .chapter-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 20px;
+          }
+          .chapter-num {
+            font-family: monospace;
+            font-size: 11px;
+            color: var(--accent);
+            background: rgba(212, 168, 83, 0.1);
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+          }
+          .chapter-item strong {
+            display: block;
+            font-size: 14px;
+            color: var(--text);
+          }
+          .chapter-sub {
+            font-family: monospace;
+            font-size: 11px;
+            color: var(--muted);
+          }
+          .scenes-grid {
+            display: grid;
+            gap: 24px;
+          }
+          .scene-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 28px;
+            page-break-inside: avoid;
+          }
+          .scene-number {
+            font-family: monospace;
+            font-size: 10px;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            margin-bottom: 12px;
+          }
+          .scene-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+          }
+          .scene-header h3 {
+            font-size: 22px;
+            font-weight: 400;
+            color: var(--accent);
+          }
+          .scene-date {
+            font-family: monospace;
+            font-size: 12px;
+            color: var(--muted);
+          }
+          .scene-narrative {
+            font-size: 15px;
+            color: var(--muted);
+            margin-bottom: 16px;
+            line-height: 1.7;
+          }
+          .scene-meta {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+          }
+          .scene-badge {
+            font-family: monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            padding: 4px 14px;
+          }
+          .scene-commit {
+            font-family: monospace;
+            font-size: 12px;
+            color: var(--muted);
+            font-style: italic;
+          }
+          footer {
+            margin-top: 64px;
+            border-top: 1px solid var(--border);
+            padding-top: 28px;
+            font-family: monospace;
+            font-size: 11px;
+            color: var(--muted);
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+          }
+          @media print {
+            body { background: #FFF; color: #1A1A1A; }
+            :root {
+              --bg: #FFF;
+              --surface: #FAFAFA;
+              --border: #E5E5E5;
+              --text: #1A1A1A;
+              --muted: #666;
+              --accent: #8E6B35;
+            }
+            .scene-card, .stat-box, .chapter-item { box-shadow: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="doc-header">
+          <span class="label">GitHub Time Machine · Repository Documentary</span>
+          <h1>${repoName}</h1>
+          <p class="subtitle">${repo.description || `The complete story of ${repoName}, told through its milestones.`}</p>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-box"><span class="val">${commitCount}</span><span class="lbl">Scenes</span></div>
+          <div class="stat-box"><span class="val">${language}</span><span class="lbl">Language</span></div>
+          <div class="stat-box"><span class="val">★ ${stars}</span><span class="lbl">Stars</span></div>
+          <div class="stat-box"><span class="val">${forks}</span><span class="lbl">Forks</span></div>
+        </div>
+
+        ${chaptersHtml}
+
+        <h2>The Story</h2>
+        <div class="scenes-grid">
+          ${scenesHtml}
+        </div>
+
+        <footer>
+          Created ${createdDate} · Last pushed ${lastPush} · Documented by GitHub Time Machine
+        </footer>
+      </body>
+    </html>
+  `);
+
+  printWindow.document.close();
+  printWindow.focus();
+  setTimeout(() => {
+    printWindow.print();
+  }, 400);
+}
+
+/**
+ * Exports a single-repo documentary as a 1080p cinematic video.
+ * Tailored for repo documentaries with scene-by-scene narration.
+ */
+export async function exportRepoDocumentaryVideo(
+  repo: GitHubRepo,
+  events: ReplayEvent[],
+  chapters: Chapter[],
+  onProgress?: (msg: string) => void,
+  withAudio: boolean = false,
+  durationPreset: "full" | "30s" | "60s" = "full"
+): Promise<boolean> {
+  return exportReplayVideoFormat(
+    `${repo.name} — A Repository Documentary`,
+    "landscape",
+    events,
+    chapters,
+    onProgress,
+    withAudio,
+    durationPreset
+  );
 }

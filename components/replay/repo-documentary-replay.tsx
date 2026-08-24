@@ -3,19 +3,31 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
+  Check,
   ChevronLeft,
   ChevronRight,
+  Download,
+  FileText,
+  Film,
+  Loader2,
   Maximize2,
   Minimize2,
   Pause,
   Play,
   RotateCcw,
+  Share2,
   Volume2,
   VolumeX,
+  X,
 } from "lucide-react";
 import type { GitHubCommit, GitHubRepo, ReplayEvent } from "@/lib/github/types";
 import { useRepoDocumentaryEngine } from "@/lib/github/replay-engine";
 import { ambientSoundtrack } from "@/lib/audio/ambient-soundtrack";
+import {
+  copyRepoDocumentaryLink,
+  downloadRepoDocumentaryPDF,
+  exportRepoDocumentaryVideo,
+} from "@/lib/github/export-utils";
 import { Button } from "@/components/ui/button";
 import { ReplayBackground } from "@/components/replay/replay-background";
 
@@ -116,6 +128,56 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [hoverX, setHoverX] = useState(0);
   const scrubTrackRef = useRef<HTMLDivElement>(null);
+
+  // Export state
+  const [isExportOpen, setIsExportOpen] = useState(false);
+  const [exportProgress, setExportProgress] = useState<string | null>(null);
+  const [exportDuration, setExportDuration] = useState<"30s" | "60s" | "full">("full");
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
+
+  // Close export menu on outside click
+  useEffect(() => {
+    if (!isExportOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+        setIsExportOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isExportOpen]);
+
+  const handleCopyLink = useCallback(async () => {
+    const result = await copyRepoDocumentaryLink(repo.full_name, engine.currentIndex);
+    setLinkCopied(result.success);
+    setTimeout(() => setLinkCopied(false), 2000);
+  }, [repo.full_name, engine.currentIndex]);
+
+  const handleExportPDF = useCallback(() => {
+    downloadRepoDocumentaryPDF(repo, engine.events, engine.chapters);
+    setIsExportOpen(false);
+  }, [repo, engine.events, engine.chapters]);
+
+  const handleExportVideo = useCallback(() => {
+    setIsExporting(true);
+    setExportProgress("Initializing...");
+    
+    exportRepoDocumentaryVideo(
+      repo,
+      engine.events,
+      engine.chapters,
+      (msg) => setExportProgress(msg),
+      soundEnabled,
+      exportDuration
+    ).finally(() => {
+      setIsExporting(false);
+      setExportProgress(null);
+    });
+
+    setIsExportOpen(false);
+  }, [repo, engine.events, engine.chapters, soundEnabled, exportDuration]);
 
   const indexFromClientX = useCallback(
     (clientX: number) => {
@@ -302,7 +364,7 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
     <div ref={theaterRef} className={`relative flex h-full w-full flex-col overflow-hidden bg-black selection:bg-white/20 ${!isHUDVisible && isFullscreen ? 'cursor-none' : ''}`} onMouseMove={handleMouseMove}>
       
 
-      <header className={`absolute top-0 left-0 z-50 p-6 transition-all duration-300 ease-in-out ${isHUDVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full pointer-events-none"} ${isFullscreen ? 'hidden' : ''}`}>
+      <header className={`absolute top-0 left-0 right-0 z-50 flex items-center justify-between p-6 transition-all duration-300 ease-in-out ${isHUDVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full pointer-events-none"} ${isFullscreen ? 'hidden' : ''}`}>
         <a
           href="/dashboard#repos"
           className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/60 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-400 backdrop-blur-md transition-colors hover:border-white/20 hover:text-white"
@@ -310,6 +372,118 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
           <ChevronLeft className="h-3.5 w-3.5" />
           <span>Back to Archive</span>
         </a>
+        {/* Export Menu — Top Right */}
+        <div ref={exportRef} className="relative">
+          <button
+            type="button"
+            onClick={() => setIsExportOpen((prev) => !prev)}
+            className={`inline-flex items-center gap-2 rounded-full border bg-black/60 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] backdrop-blur-md transition-colors ${
+              isExportOpen
+                ? "border-white/20 text-white"
+                : "border-white/10 text-zinc-400 hover:border-white/20 hover:text-white"
+            }`}
+            title="Export Documentary"
+          >
+            <Download className="h-3.5 w-3.5" />
+            <span>Export</span>
+          </button>
+          <AnimatePresence>
+            {isExportOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="absolute top-12 right-0 z-[60] w-64 overflow-hidden rounded-xl border border-white/10 bg-[#0A0A0A]/96 shadow-2xl backdrop-blur-2xl"
+              >
+                <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-400">Export</span>
+                  <button
+                    type="button"
+                    onClick={() => setIsExportOpen(false)}
+                    className="text-zinc-500 transition-colors hover:text-white"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <div className="p-2">
+                  {/* Copy Link */}
+                  <button
+                    type="button"
+                    onClick={handleCopyLink}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-white/5"
+                  >
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5">
+                      {linkCopied ? <Check className="h-4 w-4 text-emerald-400" /> : <Share2 className="h-4 w-4 text-zinc-400" />}
+                    </div>
+                    <div>
+                      <span className="block text-sm font-medium text-zinc-200">
+                        {linkCopied ? "Link Copied!" : "Copy Link"}
+                      </span>
+                      <span className="block font-mono text-[10px] text-zinc-500">Share this documentary</span>
+                    </div>
+                  </button>
+                  {/* Export PDF */}
+                  <button
+                    type="button"
+                    onClick={handleExportPDF}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-white/5"
+                  >
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5">
+                      <FileText className="h-4 w-4 text-zinc-400" />
+                    </div>
+                    <div>
+                      <span className="block text-sm font-medium text-zinc-200">Export PDF</span>
+                      <span className="block font-mono text-[10px] text-zinc-500">Printable documentary report</span>
+                    </div>
+                  </button>
+                  {/* Export Video */}
+                  <div className="flex w-full flex-col gap-1 rounded-lg px-3 py-2.5 transition-colors hover:bg-white/5">
+                    <button
+                      type="button"
+                      onClick={handleExportVideo}
+                      disabled={isExporting}
+                      className="flex w-full items-center gap-3 text-left disabled:opacity-50 disabled:pointer-events-none"
+                    >
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5">
+                        {isExporting ? <Loader2 className="h-4 w-4 animate-spin text-zinc-400" /> : <Film className="h-4 w-4 text-zinc-400" />}
+                      </div>
+                      <div className="flex-1">
+                        <span className="block text-sm font-medium text-zinc-200">
+                          {isExporting ? "Rendering..." : "Export Video"}
+                        </span>
+                        <span className="block font-mono text-[10px] text-zinc-500">
+                          {exportProgress || "1080p cinematic MP4"}
+                        </span>
+                      </div>
+                    </button>
+                    
+                    {!isExporting && (
+                      <div className="flex gap-2 pl-11 pt-2">
+                        {(["30s", "60s", "full"] as const).map((dur) => (
+                          <button
+                            key={dur}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExportDuration(dur);
+                            }}
+                            className={`px-2 py-1 text-[10px] font-mono rounded uppercase transition-colors ${
+                              exportDuration === dur 
+                                ? "bg-white/20 text-white" 
+                                : "bg-white/5 text-zinc-400 hover:bg-white/10"
+                            }`}
+                          >
+                            {dur}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </header>
 
       {/* Main Content Area */}

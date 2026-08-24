@@ -7,9 +7,12 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock3,
+  Download,
   ExternalLink,
   FileText,
+  Film,
   FolderGit2,
+  Loader2,
   Maximize2,
   Minimize2,
   Pause,
@@ -19,6 +22,7 @@ import {
   SlidersHorizontal,
   Volume2,
   VolumeX,
+  X,
 } from "lucide-react";
 import type {
   ContributionWeek,
@@ -32,6 +36,7 @@ import { ambientSoundtrack } from "@/lib/audio/ambient-soundtrack";
 import {
   copyShareableReplayLink,
   downloadReplaySummaryPDF,
+  exportReplayVideoFormat,
 } from "@/lib/github/export-utils";
 import { Button } from "@/components/ui/button";
 import { ReplayBackground } from "@/components/replay/replay-background";
@@ -262,7 +267,7 @@ function ReplayMilestoneCard({
   );
 }
 
-export function TimelineReplay({ commits, repos = [], profile = null }: TimelineReplayProps) {
+export function TimelineReplay({ commits, repos = [], profile = null, contributions = [] }: TimelineReplayProps) {
   const username = profile?.name || profile?.login || "Developer";
   const engine = useReplayEngine(commits, repos, username);
   const theaterRef = useRef<HTMLDivElement>(null);
@@ -277,6 +282,52 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
   const previousChapterIdRef = useRef<string | null>(null);
 
   const [volume, setVolume] = useState(0.22);
+
+  // Export state
+  const [isExportOpen, setIsExportOpen] = useState(false);
+  const [exportProgress, setExportProgress] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
+
+  // Close export menu on outside click
+  useEffect(() => {
+    if (!isExportOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+        setIsExportOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isExportOpen]);
+
+  const handleExportPDF = useCallback(() => {
+    downloadReplaySummaryPDF(profile, engine.chapters, commits, repos, contributions);
+    setIsExportOpen(false);
+  }, [profile, engine.chapters, commits, repos, contributions]);
+
+  const handleExportVideo = useCallback(() => {
+    setIsExporting(true);
+    setExportProgress("Initializing...");
+    
+    // Fire and forget - runs in background with its own global toast
+    exportReplayVideoFormat(
+      `${username}'s Developer Documentary`,
+      "landscape",
+      engine.events,
+      engine.chapters,
+      (msg) => setExportProgress(msg),
+      soundEnabled
+    ).finally(() => {
+      // This state update might happen after unmount if they leave the page,
+      // but React handles that fine now.
+      setIsExporting(false);
+      setExportProgress(null);
+    });
+    
+    // Immediately close the export modal so they aren't trapped
+    setIsExportOpen(false);
+  }, [username, engine.events, engine.chapters, soundEnabled]);
 
   // HUD Auto-hide state
   const [isHUDVisible, setIsHUDVisible] = useState(true);
@@ -548,6 +599,98 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
           </a>
 
           <div className="flex items-center gap-2 relative">
+            {/* Export Button */}
+            <div ref={exportRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setIsExportOpen((prev) => !prev)}
+                className={`inline-flex items-center gap-2 rounded-full border bg-black/60 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] backdrop-blur-md transition-colors ${
+                  isExportOpen
+                    ? "border-white/20 text-white"
+                    : "border-white/10 text-zinc-400 hover:border-white/20 hover:text-white"
+                }`}
+                title="Export Documentary"
+              >
+                <Download className="h-3.5 w-3.5" />
+                <span>Export</span>
+              </button>
+              <AnimatePresence>
+                {isExportOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    className="absolute top-12 right-0 z-[60] w-64 overflow-hidden rounded-xl border border-white/10 bg-[#0A0A0A]/96 shadow-2xl backdrop-blur-2xl"
+                  >
+                    <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-400">Export</span>
+                      <button
+                        type="button"
+                        onClick={() => setIsExportOpen(false)}
+                        className="text-zinc-500 transition-colors hover:text-white"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    <div className="p-2">
+                      {/* Copy Link */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          copyReplayLink();
+                          setIsExportOpen(false);
+                        }}
+                        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-white/5"
+                      >
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5">
+                          {copiedLink ? <Check className="h-4 w-4 text-emerald-400" /> : <Share2 className="h-4 w-4 text-zinc-400" />}
+                        </div>
+                        <div>
+                          <span className="block text-sm font-medium text-zinc-200">
+                            {copiedLink ? "Link Copied!" : "Copy Link"}
+                          </span>
+                          <span className="block font-mono text-[10px] text-zinc-500">Share this documentary</span>
+                        </div>
+                      </button>
+                      {/* Export PDF */}
+                      <button
+                        type="button"
+                        onClick={handleExportPDF}
+                        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-white/5"
+                      >
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5">
+                          <FileText className="h-4 w-4 text-zinc-400" />
+                        </div>
+                        <div>
+                          <span className="block text-sm font-medium text-zinc-200">Export PDF</span>
+                          <span className="block font-mono text-[10px] text-zinc-500">Printable developer yearbook</span>
+                        </div>
+                      </button>
+                      {/* Export Video */}
+                      <button
+                        type="button"
+                        onClick={handleExportVideo}
+                        disabled={isExporting}
+                        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-white/5 disabled:opacity-50 disabled:pointer-events-none"
+                      >
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5">
+                          {isExporting ? <Loader2 className="h-4 w-4 animate-spin text-zinc-400" /> : <Film className="h-4 w-4 text-zinc-400" />}
+                        </div>
+                        <div>
+                          <span className="block text-sm font-medium text-zinc-200">
+                            {isExporting ? "Rendering..." : "Export Video"}
+                          </span>
+                          <span className="block font-mono text-[10px] text-zinc-500">
+                            {exportProgress || "1080p cinematic MP4"}
+                          </span>
+                        </div>
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
             <button
               type="button"
               onClick={() => setShowControls(!showControls)}
@@ -559,22 +702,7 @@ export function TimelineReplay({ commits, repos = [], profile = null }: Timeline
             {showControls && (
               <div className="absolute right-0 top-12 w-64 rounded-xl border border-[#3A332B] bg-[#0B0A09]/95 p-4 shadow-2xl backdrop-blur-xl">
                 <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-muted">Controls</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button variant="outline" size="sm" onClick={copyReplayLink} className="border-[#3A332B] font-mono text-[10px] text-muted">
-                    {copiedLink ? <Check className="mr-1.5 h-3 w-3 text-brass-light" /> : <Share2 className="mr-1.5 h-3 w-3" />}
-                    {copiedLink ? "Copied" : "Share"}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => downloadReplaySummaryPDF(profile, engine.chapters, commits, repos)}
-                    className="border-[#3A332B] font-mono text-[10px] text-muted"
-                  >
-                    <FileText className="mr-1.5 h-3 w-3 text-white" />
-                    Chronicle
-                  </Button>
-                </div>
-                <div className="mt-4 border-t border-white/10 pt-4">
+                <div className="mt-0 border-t border-white/10 pt-4">
                   <div className="flex items-center justify-between font-mono text-[10px] text-zinc-400 mb-2">
                     <span>Volume</span>
                     <span>{Math.round(volume * 100)}%</span>

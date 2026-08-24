@@ -445,25 +445,29 @@ export function generateChaptersAndStories(
       cName = `${startMonthYear} Sprint`;
     }
 
-    let narrative = `During ${startMonthYear}, focus sharpened on ${mainRepo}. ${chunk.length} milestones were reached as ideas turned into reality.`;
+    const realCommitsInChapter = events.filter(
+      (e) => e.type === "commit" && e.timestamp >= startEv.timestamp && e.timestamp <= endEv.timestamp
+    ).length;
+
+    let narrative = `During ${startMonthYear}, focus sharpened on ${mainRepo}. ${realCommitsInChapter} commits were pushed as ideas turned into reality.`;
     if (reposCreated > 0 && maxStreakInChunk > 5) {
       narrative = `In ${startMonthYear}, you created ${reposCreated === 1 ? "a new repository" : `${reposCreated} new repositories`} and maintained a powerful ${maxStreakInChunk}-day coding streak.`;
     } else if (reposCreated > 0) {
-      narrative = `In ${startMonthYear}, you expanded your archive by creating ${reposCreated === 1 ? "a new repository" : `${reposCreated} new repositories`}, laying down ${chunk.length} meaningful milestones.`;
+      narrative = `In ${startMonthYear}, you expanded your archive by creating ${reposCreated === 1 ? "a new repository" : `${reposCreated} new repositories`}, pushing ${realCommitsInChapter} commits across the codebase.`;
     } else if (maxStreakInChunk > 7) {
-      narrative = `In ${startMonthYear}, you maintained a relentless ${maxStreakInChunk}-day coding streak, pushing ${chunk.length} major updates to ${mainRepo}.`;
+      narrative = `In ${startMonthYear}, you maintained a relentless ${maxStreakInChunk}-day coding streak, pushing ${realCommitsInChapter} updates primarily to ${mainRepo}.`;
     }
 
     const chapter: Chapter = {
       id: `chapter-${chapterIndex + 1}`,
       name: cName,
-      subtitle: `${startMonthYear} \u00B7 ${chunk.length} commits`,
+      subtitle: `${startMonthYear} \u00B7 ${realCommitsInChapter} commits`,
       narrative,
       startEventIndex: i,
       endEventIndex: i + chunk.length - 1,
       startDate: startEv.date,
       endDate: endEv.date,
-      totalCommits: chunk.filter((s) => s.type === "commit").length,
+      totalCommits: realCommitsInChapter,
       primaryLanguage: primaryLang,
       highlightRepos: chunkRepos.slice(0, 3),
     };
