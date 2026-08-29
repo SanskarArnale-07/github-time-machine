@@ -72,21 +72,21 @@ function GitHubDetailStrip({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.9, delay: 1.1, ease: "easeOut" }}
-      className="mt-4 flex items-center gap-4 font-mono text-[11px] tracking-wider"
+      className="mt-4 flex items-center gap-5 font-mono text-[15px] sm:text-base tracking-wider"
       style={{ color: isFinal ? `rgba(${GOLD_RGB},0.7)` : `rgba(${ZINC_RGB},0.65)` }}
     >
       <span className="flex items-center gap-1.5">
-        <GitCommit className="h-3 w-3 opacity-70" />
+        <GitCommit className="h-3.5 w-3.5 opacity-70" />
         {visibleCommitCount} commit{visibleCommitCount !== 1 ? "s" : ""}
       </span>
       <span className="opacity-40">·</span>
       <span className="flex items-center gap-1.5">
-        <GitBranch className="h-3 w-3 opacity-70" />
+        <GitBranch className="h-3.5 w-3.5 opacity-70" />
         ~{inferredBranches} branch{inferredBranches !== 1 ? "es" : ""}
       </span>
       <span className="opacity-40">·</span>
       <span className="flex items-center gap-1.5">
-        <User className="h-3 w-3 opacity-70" />
+        <User className="h-3.5 w-3.5 opacity-70" />
         ~{prCount} PR{prCount !== 1 ? "s" : ""}
       </span>
     </motion.div>
@@ -160,7 +160,7 @@ function RepoDocumentaryCard({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: fadeDuration, delay: 0.2 }}
-        className="mb-6 font-mono text-sm tracking-widest"
+        className="mb-6 font-mono text-base sm:text-lg tracking-widest"
         style={{ color: isFinal ? `rgba(${GOLD_RGB},0.88)` : "rgba(212,212,216,0.85)" }}
       >
         {new Date(event.date).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
@@ -171,7 +171,7 @@ function RepoDocumentaryCard({
         initial={titleInitial as { opacity: number; y?: number; x?: number; scale?: number }}
         animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
         transition={{ duration: fadeDuration, delay: 0.4, ease: "easeOut" }}
-        className="font-display font-black tracking-tight text-5xl leading-tight sm:text-6xl md:text-7xl lg:text-8xl"
+        className="font-display font-black tracking-tight text-6xl leading-tight sm:text-7xl md:text-8xl lg:text-9xl"
         style={{
           color: isFinal ? IVORY_LIGHT : IVORY_DARK,
           textShadow: isFinal
@@ -187,7 +187,7 @@ function RepoDocumentaryCard({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: fadeDuration, delay: 0.65, ease: "easeOut" }}
-        className="mx-auto mt-8 max-w-3xl text-xl sm:text-2xl font-medium leading-relaxed text-balance tracking-wide"
+        className="mx-auto mt-8 max-w-4xl text-2xl sm:text-3xl font-medium leading-relaxed text-balance tracking-wide"
         style={{
           color: isFinal ? `rgba(${IVORY_LIGHT},0.97)` : "rgba(255,255,255,0.97)",
           textShadow: "0 2px 16px rgba(0,0,0,0.95)",
@@ -202,7 +202,7 @@ function RepoDocumentaryCard({
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1.4, delay: 1.2, ease: "easeOut" }}
-          className="mx-auto mt-6 max-w-2xl text-2xl sm:text-3xl font-semibold leading-relaxed text-balance tracking-wide"
+          className="mx-auto mt-6 max-w-3xl text-3xl sm:text-4xl font-semibold leading-relaxed text-balance tracking-wide"
           style={{
             color: `rgba(${GOLD_RGB},0.92)`,
             textShadow: `0 2px 24px rgba(0,0,0,0.98), 0 0 40px rgba(${GOLD_RGB},0.30)`,
@@ -232,10 +232,10 @@ function RepoDocumentaryCard({
 
         <div className="flex items-start justify-between border-b border-white/5 pb-4 mb-4">
           <div>
-            <h3 className="font-sans text-xl font-semibold" style={{ color: isFinal ? IVORY_LIGHT : "#ffffff" }}>
+            <h3 className="font-sans text-3xl sm:text-4xl font-semibold" style={{ color: isFinal ? IVORY_LIGHT : "#ffffff" }}>
               {event.repoName}
             </h3>
-            <div className="mt-2 flex items-center gap-3 font-mono text-xs text-zinc-400">
+            <div className="mt-2 flex items-center gap-3 font-mono text-base sm:text-lg text-zinc-400">
               {event.language && (
                 <div className="flex items-center gap-1.5">
                   <span
@@ -250,7 +250,7 @@ function RepoDocumentaryCard({
             </div>
           </div>
           <div
-            className="rounded-full px-3 py-1 font-mono text-[10px] uppercase tracking-wider"
+            className="rounded-full px-3 py-1 font-mono text-sm uppercase tracking-wider"
             style={{
               border: isFinal ? `1px solid rgba(${GOLD_RGB},0.35)` : "1px solid rgba(255,255,255,0.18)",
               backgroundColor: isFinal ? `rgba(${GOLD_RGB},0.1)` : "rgba(255,255,255,0.08)",
@@ -262,10 +262,10 @@ function RepoDocumentaryCard({
         </div>
 
         <div>
-          <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-300 block mb-1.5">
+          <span className="font-mono text-sm uppercase tracking-widest text-zinc-300 block mb-1.5">
             Highlighted Commit
           </span>
-          <p className="font-mono text-sm sm:text-base text-zinc-100 break-words line-clamp-2 leading-relaxed">
+          <p className="font-mono text-xl sm:text-[22px] text-zinc-100 break-words line-clamp-2 leading-relaxed">
             {event.commit?.message || "Repository created."}
           </p>
         </div>
@@ -284,7 +284,7 @@ function RepoDocumentaryCard({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 2, delay: 1.5 }}
-          className="absolute bottom-0 right-4 font-mono text-[11px] tracking-[0.25em] uppercase pointer-events-none select-none"
+          className="absolute bottom-0 right-4 font-mono text-sm sm:text-base tracking-[0.25em] uppercase pointer-events-none select-none"
           style={{ color: `rgba(${GOLD_RGB},0.25)` }}
         >
           fin.
@@ -566,7 +566,7 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
         <a
           href="/dashboard#repos"
           aria-label="Back to repository archive"
-          className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/60 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-400 backdrop-blur-md transition-colors hover:border-white/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+          className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/60 px-4 py-2 font-mono text-xs uppercase tracking-[0.15em] text-zinc-400 backdrop-blur-md transition-colors hover:border-white/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
         >
           <ChevronLeft className="h-3.5 w-3.5" />
           <span>Back to Archive</span>
@@ -577,7 +577,7 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
           <button
             type="button"
             onClick={() => setIsExportOpen((prev) => !prev)}
-            className={`inline-flex items-center gap-2 rounded-full border bg-black/60 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] backdrop-blur-md transition-colors ${
+            className={`inline-flex items-center gap-2 rounded-full border bg-black/60 px-4 py-2 font-mono text-xs uppercase tracking-[0.15em] backdrop-blur-md transition-colors ${
               isExportOpen
                 ? "border-white/20 text-white"
                 : "border-white/10 text-zinc-400 hover:border-white/20 hover:text-white"
@@ -598,7 +598,7 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
                 className="absolute top-12 right-0 z-[60] w-64 overflow-hidden rounded-xl border border-white/10 bg-[#0A0A0A]/96 shadow-2xl backdrop-blur-2xl"
               >
                 <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
-                  <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-400">Export</span>
+                  <span className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-400">Export</span>
                   <button
                     type="button"
                     onClick={() => setIsExportOpen(false)}
@@ -618,10 +618,10 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
                       {linkCopied ? <Check className="h-4 w-4 text-emerald-400" /> : <Share2 className="h-4 w-4 text-zinc-400" />}
                     </div>
                     <div>
-                      <span className="block text-sm font-medium text-zinc-200">
+                      <span className="block text-[15px] font-medium text-zinc-200">
                         {linkCopied ? "Link Copied!" : "Copy Link"}
                       </span>
-                      <span className="block font-mono text-[10px] text-zinc-500">Share this documentary</span>
+                      <span className="block font-mono text-xs text-zinc-500">Share this documentary</span>
                     </div>
                   </button>
                   {/* Export PDF */}
@@ -634,8 +634,8 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
                       <FileText className="h-4 w-4 text-zinc-400" />
                     </div>
                     <div>
-                      <span className="block text-sm font-medium text-zinc-200">Export PDF</span>
-                      <span className="block font-mono text-[10px] text-zinc-500">Printable documentary report</span>
+                      <span className="block text-[15px] font-medium text-zinc-200">Export PDF</span>
+                      <span className="block font-mono text-xs text-zinc-500">Printable documentary report</span>
                     </div>
                   </button>
                   {/* Export Video */}
@@ -650,10 +650,10 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
                         {isExporting ? <Loader2 className="h-4 w-4 animate-spin text-zinc-400" /> : <Film className="h-4 w-4 text-zinc-400" />}
                       </div>
                       <div className="flex-1">
-                        <span className="block text-sm font-medium text-zinc-200">
+                        <span className="block text-[15px] font-medium text-zinc-200">
                           {isExporting ? "Rendering..." : "Export Video"}
                         </span>
-                        <span className="block font-mono text-[10px] text-zinc-500">
+                        <span className="block font-mono text-xs text-zinc-500">
                           {exportProgress || "1080p cinematic MP4"}
                         </span>
                       </div>
@@ -668,7 +668,7 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
                               e.stopPropagation();
                               setExportDuration(dur);
                             }}
-                            className={`px-2 py-1 text-[10px] font-mono rounded uppercase transition-colors ${
+                            className={`px-2 py-1 text-xs font-mono rounded uppercase transition-colors ${
                               exportDuration === dur
                                 ? "bg-white/20 text-white"
                                 : "bg-white/5 text-zinc-400 hover:bg-white/10"
@@ -708,7 +708,10 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
                 exit={{
                   opacity: 0,
                   scale: exitScale,
-                  transition: { duration: 0.85, ease: "easeIn" },
+                  transition: { 
+                    opacity: { duration: 0.85, ease: "easeIn" },
+                    scale: { duration: 0.85, ease: "easeIn" }
+                  },
                 }}
                 transition={{
                   opacity: { duration: isFinal ? 1.6 : 1.1, ease: "easeOut" },
@@ -759,7 +762,7 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
           {/* Hover/scrub tooltip */}
           {hoverIndex !== null && engine.events[hoverIndex] && (
             <div
-              className="pointer-events-none absolute bottom-4 z-40 -translate-x-1/2 whitespace-nowrap rounded-md border border-white/10 bg-black/90 px-2.5 py-1.5 font-mono text-[10px] text-zinc-200 shadow-xl"
+              className="pointer-events-none absolute bottom-4 z-40 -translate-x-1/2 whitespace-nowrap rounded-md border border-white/10 bg-black/90 px-3 py-2 font-mono text-xs text-zinc-200 shadow-xl"
               style={{ left: `${hoverX}px` }}
             >
               {engine.events[hoverIndex].title}
@@ -862,7 +865,7 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
 
           {/* Center: Chapter name + scene arc dots */}
           <div className="flex w-1/3 flex-col items-center justify-center text-center">
-            <span className="font-mono text-xs uppercase tracking-[0.2em] text-white">
+            <span className="font-mono text-[15px] uppercase tracking-[0.2em] text-white">
               {engine.currentEvent?.chapterName || "Documentary"}
             </span>
             <SceneArcDots total={engine.total} current={engine.currentIndex} />
@@ -875,7 +878,7 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
                 <button
                   key={speed}
                   onClick={() => engine.setSpeed(speed)}
-                  className={`rounded px-2 py-1 font-mono text-[10px] font-semibold transition-colors ${
+                  className={`rounded px-2.5 py-1 font-mono text-xs font-semibold transition-colors ${
                     engine.speed === speed ? "bg-white/10 text-white" : "text-zinc-500 hover:text-white"
                   }`}
                 >
@@ -891,7 +894,7 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
                 const nextSpeed = speeds[(speeds.indexOf(engine.speed) + 1) % speeds.length];
                 engine.setSpeed(nextSpeed);
               }}
-              className="mr-1 inline-flex h-10 min-w-10 items-center justify-center rounded-md border border-white/10 bg-black/50 px-2 font-mono text-[10px] font-semibold text-zinc-300 transition-colors hover:bg-white/10 hover:text-white sm:hidden"
+              className="mr-1 inline-flex h-10 min-w-10 items-center justify-center rounded-md border border-white/10 bg-black/50 px-2.5 font-mono text-xs font-semibold text-zinc-300 transition-colors hover:bg-white/10 hover:text-white sm:hidden"
               title="Playback speed"
             >
               {engine.speed}×
