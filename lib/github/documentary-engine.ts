@@ -40,6 +40,8 @@ export function buildRepoDocumentaryEvents(
       impactDescription: description,
       chapterId,
       chapterName,
+      // Store scene index in streakCount slot for background component access
+      streakCount: sceneIndex,
       language: repo.language || undefined,
       languageColor: getLanguageColor(repo.language),
     };
@@ -63,13 +65,14 @@ export function buildRepoDocumentaryEvents(
 
   // 1. The Beginning
   const firstCommit = sortedCommits[0];
+  const shaPrefix = firstCommit.sha.slice(0, 7);
   const dateFirst = new Date(firstCommit.date).toLocaleDateString("en-US", { month: "long", year: "numeric" });
   chapters.push(createChapter("scene-1", "The Beginning", 0, firstCommit.date));
   events.push(createEvent(
     firstCommit, 
     "repository", 
     "The Beginning", 
-    `${dateFirst}. The repository began to take shape. What started as a small experiment became a focused project.`, 
+    `${dateFirst}. Commit ${shaPrefix} — the first line of code pushed to the main branch. What started as a blank repository became the foundation of something real.`, 
     "First Commit", 
     "scene-1", 
     "The Beginning",
@@ -92,7 +95,7 @@ export function buildRepoDocumentaryEvents(
       meaningfulCommit,
       "milestone",
       "Finding Direction",
-      `${dateDir}. The foundation was laid. Real features started merging as the codebase found its true purpose.`,
+      `${dateDir}. The main branch began to take shape. Real features started landing as the codebase found its true purpose and the first patterns emerged.`,
       "First Feature",
       "scene-2",
       "Finding Direction",
@@ -124,7 +127,7 @@ export function buildRepoDocumentaryEvents(
       momentumCommit,
       "volume",
       "Building Momentum",
-      `${dateMom}. Development accelerated. Multiple commits flowed in as active development took hold.`,
+      `${dateMom}. Development accelerated. Commits flowed across multiple branches as active collaboration and iteration took hold.`,
       "Rapid Progress",
       "scene-3",
       "Building Momentum",
@@ -161,7 +164,7 @@ export function buildRepoDocumentaryEvents(
       bestStreakEndCommit,
       "streak",
       "The Long Run",
-      `${dateLR}. Consistency became a habit. A sustained period of progress marked the longest contribution streak.`,
+      `${dateLR}. Consistency became a habit. A ${maxStreak}-day streak marked the longest unbroken period of contribution — proof that showing up matters.`,
       `${maxStreak}-Day Streak`,
       "scene-4",
       "The Long Run",
@@ -185,7 +188,7 @@ export function buildRepoDocumentaryEvents(
       rewriteCommit,
       "architecture",
       "The Rewrite",
-      `${dateRW}. The codebase evolved. Significant restructuring and architectural changes elevated the project's capabilities.`,
+      `${dateRW}. The codebase evolved. Significant restructuring elevated the architecture — a sign that the project had grown beyond its original design.`,
       "Major Refactor",
       "scene-5",
       "The Rewrite",
@@ -203,7 +206,7 @@ export function buildRepoDocumentaryEvents(
     }
   }
 
-  let peakCommit = peakWeekCommits.length > 0 ? peakWeekCommits[Math.floor(peakWeekCommits.length / 2)] : sortedCommits[Math.floor(sortedCommits.length * 0.8)];
+  const peakCommit = peakWeekCommits.length > 0 ? peakWeekCommits[Math.floor(peakWeekCommits.length / 2)] : sortedCommits[Math.floor(sortedCommits.length * 0.8)];
   
   if (peakCommit && events.length < 6) {
     const datePeak = new Date(peakCommit.date).toLocaleDateString("en-US", { month: "long", year: "numeric" });
@@ -212,7 +215,7 @@ export function buildRepoDocumentaryEvents(
       peakCommit,
       "volume",
       "The Peak",
-      `${datePeak}. The highest commit density achieved. The strongest momentum pushed the project to its peak productivity.`,
+      `${datePeak}. The most productive week in this repository's history — ${maxWeekCount} commits merged as the project reached its highest velocity.`,
       "Most Productive Week",
       "scene-6",
       "The Peak",
@@ -220,16 +223,17 @@ export function buildRepoDocumentaryEvents(
     ));
   }
 
-  // 7. Today
+  // 7. Today — the climax
   const latestCommit = sortedCommits[sortedCommits.length - 1];
   if (latestCommit && events.length < 7) {
     const dateToday = new Date(latestCommit.date).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    const totalCount = sortedCommits.length;
     chapters.push(createChapter("scene-7", "Today", events.length, latestCommit.date));
     events.push(createEvent(
       latestCommit,
       "milestone",
       "Today",
-      `${dateToday}. The current repository state. A final chapter that represents the culmination of all previous milestones.`,
+      `${dateToday}. ${totalCount} commits. Every line of code a decision. Every merge a step forward. — From your first repository to your latest project.`,
       "Latest Commit",
       "scene-7",
       "Today",
