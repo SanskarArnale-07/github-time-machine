@@ -16,7 +16,17 @@ export function buildRepoDocumentaryEvents(
   const sortedCommits = [...commits].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   
   // Helpers
-  const createEvent = (commit: GitHubCommit, type: "milestone" | "volume" | "streak" | "architecture" | "language" | "repository", title: string, description: string, badge: string, chapterId: string, chapterName: string, sceneIndex: number): ReplayEvent => {
+  const createEvent = (
+    commit: GitHubCommit,
+    type: "milestone" | "volume" | "streak" | "architecture" | "language" | "repository",
+    title: string,
+    description: string,
+    badge: string,
+    chapterId: string,
+    chapterName: string,
+    sceneIndex: number,
+    sceneDuration: number
+  ): ReplayEvent => {
     const d = new Date(commit.date);
     return {
       id: `doc-${repo.name}-scene${sceneIndex}-${commit.sha}-${type}`,
@@ -40,8 +50,8 @@ export function buildRepoDocumentaryEvents(
       impactDescription: description,
       chapterId,
       chapterName,
-      // Store scene index in streakCount slot for background component access
-      streakCount: sceneIndex,
+      sceneIndex: sceneIndex,
+      sceneDuration: sceneDuration,
       language: repo.language || undefined,
       languageColor: getLanguageColor(repo.language),
     };
@@ -63,20 +73,21 @@ export function buildRepoDocumentaryEvents(
     };
   };
 
-  // 1. The Beginning
+  // 1. The Beginning — slow, deliberate open (7 s)
   const firstCommit = sortedCommits[0];
   const shaPrefix = firstCommit.sha.slice(0, 7);
   const dateFirst = new Date(firstCommit.date).toLocaleDateString("en-US", { month: "long", year: "numeric" });
   chapters.push(createChapter("scene-1", "The Beginning", 0, firstCommit.date));
   events.push(createEvent(
-    firstCommit, 
-    "repository", 
-    "The Beginning", 
-    `${dateFirst}. Commit ${shaPrefix} — the first line of code pushed to the main branch. What started as a blank repository became the foundation of something real.`, 
-    "First Commit", 
-    "scene-1", 
+    firstCommit,
+    "repository",
     "The Beginning",
-    1
+    `${dateFirst}. Commit ${shaPrefix} — the first line of code pushed to the main branch. What started as a blank repository became the foundation of something real.`,
+    "First Commit",
+    "scene-1",
+    "The Beginning",
+    1,
+    7000
   ));
 
   // 2. Finding Direction
@@ -99,7 +110,8 @@ export function buildRepoDocumentaryEvents(
       "First Feature",
       "scene-2",
       "Finding Direction",
-      2
+      2,
+      6500
     ));
   }
 
@@ -131,7 +143,8 @@ export function buildRepoDocumentaryEvents(
       "Rapid Progress",
       "scene-3",
       "Building Momentum",
-      3
+      3,
+      5500
     ));
   }
 
@@ -168,7 +181,8 @@ export function buildRepoDocumentaryEvents(
       `${maxStreak}-Day Streak`,
       "scene-4",
       "The Long Run",
-      4
+      4,
+      5500
     ));
   }
 
@@ -192,7 +206,8 @@ export function buildRepoDocumentaryEvents(
       "Major Refactor",
       "scene-5",
       "The Rewrite",
-      5
+      5,
+      5000
     ));
   }
 
@@ -219,11 +234,12 @@ export function buildRepoDocumentaryEvents(
       "Most Productive Week",
       "scene-6",
       "The Peak",
-      6
+      6,
+      5000
     ));
   }
 
-  // 7. Today — the climax
+  // 7. Today — the climax (9 s — linger on the final line)
   const latestCommit = sortedCommits[sortedCommits.length - 1];
   if (latestCommit && events.length < 7) {
     const dateToday = new Date(latestCommit.date).toLocaleDateString("en-US", { month: "long", year: "numeric" });
@@ -233,11 +249,12 @@ export function buildRepoDocumentaryEvents(
       latestCommit,
       "milestone",
       "Today",
-      `${dateToday}. ${totalCount} commits. Every line of code a decision. Every merge a step forward. — From your first repository to your latest project.`,
+      `${dateToday}. ${totalCount} commits. Every line of code a decision. Every merge a step forward.\n\nFrom your first repository to your latest project.`,
       "Latest Commit",
       "scene-7",
       "Today",
-      7
+      7,
+      9000
     ));
   }
 

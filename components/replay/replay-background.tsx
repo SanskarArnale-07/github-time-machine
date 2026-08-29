@@ -8,6 +8,15 @@ interface ReplayBackgroundProps {
   sceneIndex?: number; // 1-7, controls node network phase
 }
 
+// ─── Theme Colors ─────────────────────────────────────────────────────────────
+const GOLD_RGB = "216,181,108";
+const GOLD_HEX = "#D8B56C";
+const BROWN_RGB = "181,138,74";
+const BG_BASE = "#050505";
+const BG_CAMERA = "#0B0A09";
+const BG_BROWN = "139,101,48";
+const BG_DARK_BROWN = "51,39,27";
+
 const PARTICLES = Array.from({ length: 18 }, (_, id) => ({
   id,
   left: `${(id * 17.3 + 7) % 96}%`,
@@ -60,17 +69,17 @@ const NODES = [
   { cx: 550, cy: 20, visibleFrom: 6, r: 3 },
 ];
 
-// ─── Per-scene cinematic camera targets ──────────────────────────────────────
-// Each scene drifts the background layer to a unique (x, y, scale) destination
-// Values are intentionally small — cinematic, not disorienting
-const SCENE_CAMERA: Record<number, { x: number; y: number; scale: number }> = {
-  1: { x: -8,  y: 12,  scale: 1.06 },
-  2: { x: 10,  y: -8,  scale: 1.08 },
-  3: { x: -6,  y: -14, scale: 1.10 },
-  4: { x: 14,  y: 6,   scale: 1.09 },
-  5: { x: -10, y: 10,  scale: 1.12 },
-  6: { x: 6,   y: -10, scale: 1.14 },
-  7: { x: 0,   y: 0,   scale: 1.22 }, // Final: slow zoom-in to center
+// ─── Per-scene cinematic camera targets ───────────────────────────────────────────
+// Each scene drifts the background layer to a unique (x, y, scale) target
+// AND has its own transition speed so opening is deliberate, middle accelerates.
+const SCENE_CAMERA: Record<number, { x: number; y: number; scale: number; dur: number }> = {
+  1: { x:  0,   y:  14,  scale: 1.05, dur: 4.0 }, // pull back, slow open
+  2: { x: -16,  y:  6,   scale: 1.08, dur: 3.5 }, // drift left
+  3: { x:  14,  y: -10,  scale: 1.10, dur: 3.0 }, // snap right
+  4: { x: -10,  y: -16,  scale: 1.11, dur: 2.8 }, // diagonal lift
+  5: { x:  16,  y:  4,   scale: 1.13, dur: 2.5 }, // push right, quickening
+  6: { x:  -6,  y:  12,  scale: 1.15, dur: 2.5 }, // settle left-down
+  7: { x:   0,  y:  0,   scale: 1.22, dur: 6.0 }, // climax: slow zoom to center
 };
 
 /** A dedicated, low-contrast field for the replay theater. */
@@ -82,7 +91,7 @@ export function ReplayBackground({ progress, isFinal, sceneIndex = 0 }: ReplayBa
 
   const camera = isFinal
     ? SCENE_CAMERA[7]
-    : (SCENE_CAMERA[scene] ?? { x: 0, y: 0, scale: 1.08 });
+    : (SCENE_CAMERA[scene] ?? { x: 0, y: 0, scale: 1.08, dur: 3.5 });
 
   // Per-scene path visibility thresholds
   const showBranch1  = scene >= 2;
@@ -98,10 +107,10 @@ export function ReplayBackground({ progress, isFinal, sceneIndex = 0 }: ReplayBa
   const networkOpacity = Math.min(0.22, 0.08 + scene * 0.02);
 
   // Gold glow intensity increases toward the finale
-  const glowBrightness = isFinal ? "rgba(216,181,108,0.28)" : `rgba(216,181,108,${0.06 + scene * 0.012})`;
+  const glowBrightness = isFinal ? `rgba(${GOLD_RGB},0.28)` : `rgba(${GOLD_RGB},${0.06 + scene * 0.012})`;
 
   return (
-    <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden bg-[#050505]">
+    <div aria-hidden="true" className={`pointer-events-none absolute inset-0 -z-10 overflow-hidden bg-[${BG_BASE}]`}>
       {/* Cinematic Camera Layer — slow drift per scene */}
       <motion.div
         className="absolute inset-0 origin-center"
@@ -110,23 +119,33 @@ export function ReplayBackground({ progress, isFinal, sceneIndex = 0 }: ReplayBa
           x: camera.x,
           y: camera.y,
         }}
-        transition={{ duration: isFinal ? 6 : 3.5, ease: "easeInOut" }}
+        transition={{ duration: isFinal ? 6 : camera.dur ?? 3.5, ease: "easeInOut" }}
       >
-        <div className="absolute inset-0 bg-[#0B0A09]" />
+        <div className={`absolute inset-0 bg-[${BG_CAMERA}]`} />
 
         {/* Core Lighting — brightens toward final */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_65%_55%_at_50%_34%,rgba(201,168,106,0.06),transparent_72%)]" />
+        <div className={`absolute inset-0 bg-[radial-gradient(ellipse_65%_55%_at_50%_34%,rgba(${GOLD_RGB},0.06),transparent_72%)]`} />
 
+        {/* Animated gold orb — scale only, no blur filter to avoid compositor cost */}
         <motion.div
-          className="absolute left-1/2 top-1/2 h-[40vh] w-[60vw] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[120px]"
+          className="absolute left-1/2 top-1/2 h-[40vh] w-[60vw] -translate-x-1/2 -translate-y-1/2 rounded-full"
           animate={{
             backgroundColor: glowBrightness,
             scale: isFinal ? 1.6 : 1 + scene * 0.04,
+            opacity: isFinal ? 0.9 : 0.65,
           }}
+          style={{ filter: "blur(90px)" }}
           transition={{ duration: 3, ease: "easeInOut" }}
         />
-        <div className="absolute -right-[18%] -top-[28%] h-[68%] w-[58%] rounded-full bg-[#8B6530]/15 blur-[150px] motion-safe:animate-pulse" />
-        <div className="absolute -bottom-[34%] -left-[15%] h-[65%] w-[58%] rounded-full bg-[#33271B]/50 blur-[160px]" />
+        {/* Static ambient blobs — baked into a single CSS gradient, zero GPU blur cost */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              `radial-gradient(ellipse 58% 68% at 96% 0%, rgba(${BG_BROWN},0.12) 0%, transparent 70%), ` +
+              `radial-gradient(ellipse 58% 65% at 0% 110%, rgba(${BG_DARK_BROWN},0.40) 0%, transparent 70%)`,
+          }}
+        />
 
         {/* Git Network SVG — progressively reveals paths and nodes by scene */}
         <div
@@ -149,7 +168,7 @@ export function ReplayBackground({ progress, isFinal, sceneIndex = 0 }: ReplayBa
             <motion.path
               d={TRUNK_PATH}
               fill="none"
-              stroke="rgba(216,181,108,0.30)"
+              stroke={`rgba(${GOLD_RGB},0.30)`}
               strokeWidth="2"
               strokeDasharray="1"
               strokeDashoffset={1 - pathScalar}
@@ -162,7 +181,7 @@ export function ReplayBackground({ progress, isFinal, sceneIndex = 0 }: ReplayBa
             <motion.path
               d={BRANCH_1_PATH}
               fill="none"
-              stroke="rgba(181,138,74,0.22)"
+              stroke={`rgba(${BROWN_RGB},0.22)`}
               strokeWidth="1.5"
               strokeDasharray="1"
               strokeDashoffset={showBranch1 ? Math.max(0, 1 - Math.max(0, (pathScalar - 0.1) / 0.7)) : 1}
@@ -174,7 +193,7 @@ export function ReplayBackground({ progress, isFinal, sceneIndex = 0 }: ReplayBa
             <motion.path
               d={BRANCH_2_PATH}
               fill="none"
-              stroke="rgba(181,138,74,0.20)"
+              stroke={`rgba(${BROWN_RGB},0.20)`}
               strokeWidth="1.5"
               strokeDasharray="1"
               strokeDashoffset={showBranch2 ? Math.max(0, 1 - Math.max(0, (pathScalar - 0.3) / 0.5)) : 1}
@@ -186,7 +205,7 @@ export function ReplayBackground({ progress, isFinal, sceneIndex = 0 }: ReplayBa
             <motion.path
               d={BRANCH_3_PATH}
               fill="none"
-              stroke="rgba(181,138,74,0.15)"
+              stroke={`rgba(${BROWN_RGB},0.15)`}
               strokeWidth="1.2"
               strokeDasharray="1"
               strokeDashoffset={showBranch3 ? Math.max(0, 1 - Math.max(0, (pathScalar - 0.25) / 0.6)) : 1}
@@ -198,7 +217,7 @@ export function ReplayBackground({ progress, isFinal, sceneIndex = 0 }: ReplayBa
             <motion.path
               d={BRANCH_4_PATH}
               fill="none"
-              stroke="rgba(181,138,74,0.12)"
+              stroke={`rgba(${BROWN_RGB},0.12)`}
               strokeWidth="1.2"
               strokeDasharray="1"
               strokeDashoffset={showBranch4 ? Math.max(0, 1 - Math.max(0, (pathScalar - 0.4) / 0.5)) : 1}
@@ -210,7 +229,7 @@ export function ReplayBackground({ progress, isFinal, sceneIndex = 0 }: ReplayBa
             <motion.path
               d={MERGE_1_PATH}
               fill="none"
-              stroke="rgba(216,181,108,0.17)"
+              stroke={`rgba(${GOLD_RGB},0.17)`}
               strokeWidth="1.5"
               strokeDasharray="1"
               strokeDashoffset={showMerge1 ? Math.max(0, 1 - Math.max(0, (pathScalar - 0.5) / 0.4)) : 1}
@@ -222,7 +241,7 @@ export function ReplayBackground({ progress, isFinal, sceneIndex = 0 }: ReplayBa
             <motion.path
               d={MERGE_2_PATH}
               fill="none"
-              stroke="rgba(216,181,108,0.13)"
+              stroke={`rgba(${GOLD_RGB},0.13)`}
               strokeWidth="1.2"
               strokeDasharray="1"
               strokeDashoffset={showMerge2 ? Math.max(0, 1 - Math.max(0, (pathScalar - 0.55) / 0.35)) : 1}
@@ -234,7 +253,7 @@ export function ReplayBackground({ progress, isFinal, sceneIndex = 0 }: ReplayBa
             <motion.path
               d={FORK_1_PATH}
               fill="none"
-              stroke="rgba(181,138,74,0.15)"
+              stroke={`rgba(${BROWN_RGB},0.15)`}
               strokeWidth="1.5"
               strokeDasharray="1"
               strokeDashoffset={showFork1 ? Math.max(0, 1 - Math.max(0, (pathScalar - 0.6) / 0.4)) : 1}
@@ -248,7 +267,7 @@ export function ReplayBackground({ progress, isFinal, sceneIndex = 0 }: ReplayBa
                 key={`exp-${i}`}
                 d={path}
                 fill="none"
-                stroke="rgba(216,181,108,0.35)"
+                stroke={`rgba(${GOLD_RGB},0.35)`}
                 strokeWidth="1.2"
                 strokeDasharray="1"
                 strokeDashoffset={showExplosion ? 0 : 1}
@@ -271,7 +290,7 @@ export function ReplayBackground({ progress, isFinal, sceneIndex = 0 }: ReplayBa
                   cx={node.cx}
                   cy={node.cy}
                   r={node.r}
-                  fill="#D8B56C"
+                  fill={GOLD_HEX}
                   animate={{
                     opacity: nodeOpacity,
                     scale: nodeScale,
@@ -288,8 +307,9 @@ export function ReplayBackground({ progress, isFinal, sceneIndex = 0 }: ReplayBa
         {PARTICLES.map((particle) => (
           <span
             key={particle.id}
-            className="absolute rounded-full bg-brass-light shadow-[0_0_10px_rgba(216,181,108,0.45)] motion-safe:animate-particle-drift"
+            className="absolute rounded-full bg-brass-light motion-safe:animate-particle-drift"
             style={{
+              boxShadow: `0 0 10px rgba(${GOLD_RGB},0.45)`,
               left: particle.left,
               top: particle.top,
               width: particle.size,

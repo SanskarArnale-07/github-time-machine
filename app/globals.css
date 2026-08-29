@@ -223,12 +223,30 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* Preserve opacity and color so state changes still communicate to assistive users;
+     remove physical movement, scale, blur, and looping animations only. */
   *,
   *::before,
   *::after {
-    animation-duration: 0.01ms !important;
+    animation-duration: 150ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    transition-duration: 150ms !important;
     scroll-behavior: auto !important;
   }
+
+  /* Kill transforms and filter on anything explicitly animated by Framer or CSS */
+  [style*="transform"],
+  [style*="filter"] {
+    transform: none !important;
+    filter: none !important;
+    transition-property: opacity, color, background-color, border-color !important;
+  }
+
+  /* Kill all looping CSS animations (particle drift, pulse, spin etc.) */
+  .animate-particle-drift,
+  .animate-pulse,
+  .animate-spin {
+    animation: none !important;
+  }
 }
+

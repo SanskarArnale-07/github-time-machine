@@ -42,6 +42,11 @@ import { Button } from "@/components/ui/button";
 import { ReplayBackground } from "@/components/replay/replay-background";
 import { cleanCommitMessage } from "@/lib/github/story-generator";
 
+// ─── Theme Colors ─────────────────────────────────────────────────────────────
+const IVORY_DARK = "#F5F0E8";
+const BG_PANEL = "#0B0A09";
+const BORDER_PANEL = "#3A332B";
+
 interface TimelineReplayProps {
   commits: GitHubCommit[];
   repos?: GitHubRepo[];
@@ -76,7 +81,7 @@ function ReplayMilestoneCard({
 }: ReplayMilestoneCardProps) {
   if (isFinal) {
     return (
-      <motion.article 
+      <motion.section
         className="flex h-full w-full flex-col items-center justify-center text-center px-6"
         initial="initial" animate="animate" exit="exit"
       >
@@ -97,7 +102,7 @@ function ReplayMilestoneCard({
             exit: { opacity: 0, transition: { duration: 0.5, delay: 0.2 } }
           }}
           className="mt-4 font-display font-semibold tracking-tight text-4xl sm:text-5xl md:text-6xl drop-shadow-2xl"
-          style={{ color: "#F5F0E8" }}
+          style={{ color: IVORY_DARK }}
         >
           This is how a developer is built.
         </motion.h2>
@@ -141,7 +146,7 @@ function ReplayMilestoneCard({
         >
           To be continued...
         </motion.p>
-      </motion.article>
+      </motion.section>
     );
   }
 
@@ -175,7 +180,7 @@ function ReplayMilestoneCard({
   }
 
   return (
-    <motion.article 
+    <motion.section
       className="flex h-full w-full flex-col items-center justify-center text-center px-4 sm:px-8"
       initial="initial" animate="animate" exit="exit"
     >
@@ -203,7 +208,7 @@ function ReplayMilestoneCard({
             exit: { opacity: 0, transition: { duration: 0.5, delay: 0.2 } }
           }}
           className="font-display font-semibold tracking-tight text-4xl leading-tight sm:text-5xl md:text-6xl lg:text-7xl drop-shadow-2xl"
-          style={{ color: "#F5F0E8" }}
+          style={{ color: IVORY_DARK }}
         >
           {title}
         </motion.h2>
@@ -263,7 +268,7 @@ function ReplayMilestoneCard({
           </>
         )}
       </motion.div>
-    </motion.article>
+    </motion.section>
   );
 }
 
@@ -280,6 +285,9 @@ export function TimelineReplay({ commits, repos = [], profile = null, contributi
   const [showControls, setShowControls] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const previousChapterIdRef = useRef<string | null>(null);
+  
+  const settingsButtonRef = useRef<HTMLButtonElement>(null);
+  const volumeSliderRef = useRef<HTMLInputElement>(null);
 
   const [volume, setVolume] = useState(0.22);
 
@@ -487,13 +495,22 @@ export function TimelineReplay({ commits, repos = [], profile = null, contributi
 
       if (event.key === "Escape") {
         setShowChapterSelector(false);
-        setShowControls(false);
+        if (showControls) {
+          setShowControls(false);
+          settingsButtonRef.current?.focus();
+        }
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [toggleFullscreen]);
+  }, [toggleFullscreen, showControls]);
+
+  useEffect(() => {
+    if (showControls && volumeSliderRef.current) {
+      volumeSliderRef.current.focus();
+    }
+  }, [showControls]);
 
   const toggleSoundtrack = useCallback(() => {
     const nextSoundEnabled = !soundEnabled;
@@ -568,7 +585,7 @@ export function TimelineReplay({ commits, repos = [], profile = null, contributi
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className={`absolute right-6 sm:right-8 z-30 flex flex-col items-end text-right transition-all duration-300 ease-in-out ${isHUDVisible ? "bottom-24 sm:bottom-28 opacity-100" : "bottom-6 sm:bottom-8 opacity-70 pointer-events-none"}`}
+            className={`absolute right-6 sm:right-8 z-30 flex flex-col items-end text-right transition-all duration-300 ease-in-out ${isHUDVisible ? "bottom-[calc(theme(spacing.24)+env(safe-area-inset-bottom))] sm:bottom-28 opacity-100" : "bottom-6 sm:bottom-8 opacity-70 pointer-events-none"}`}
           >
             <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-zinc-500">
               Chapter {chapterIndex + 1}
@@ -692,15 +709,23 @@ export function TimelineReplay({ commits, repos = [], profile = null, contributi
               </AnimatePresence>
             </div>
             <button
+              ref={settingsButtonRef}
               type="button"
               onClick={() => setShowControls(!showControls)}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/60 text-zinc-400 backdrop-blur-md transition-colors hover:border-white/20 hover:text-white"
+              aria-label="Open playback settings"
+              aria-expanded={showControls}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-black/60 text-zinc-400 backdrop-blur-md transition-colors hover:border-white/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
             </button>
             
             {showControls && (
-              <div className="absolute right-0 top-12 w-64 rounded-xl border border-[#3A332B] bg-[#0B0A09]/95 p-4 shadow-2xl backdrop-blur-xl">
+              <div 
+                role="dialog"
+                aria-modal="true"
+                aria-label="Playback settings"
+                className={`absolute right-0 top-12 w-64 rounded-xl border border-[${BORDER_PANEL}] bg-[${BG_PANEL}]/95 p-4 shadow-2xl backdrop-blur-xl`}
+              >
                 <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-muted">Controls</p>
                 <div className="mt-0 border-t border-white/10 pt-4">
                   <div className="flex items-center justify-between font-mono text-[10px] text-zinc-400 mb-2">
@@ -708,6 +733,7 @@ export function TimelineReplay({ commits, repos = [], profile = null, contributi
                     <span>{Math.round(volume * 100)}%</span>
                   </div>
                   <input 
+                    ref={volumeSliderRef}
                     type="range" 
                     min="0" 
                     max="1" 
@@ -727,17 +753,21 @@ export function TimelineReplay({ commits, repos = [], profile = null, contributi
           </div>
         </header>
 
-        <main className="relative z-10 flex w-full flex-1 items-center justify-center overflow-hidden">
+        <main
+          className="relative z-10 flex w-full flex-1 items-center justify-center overflow-hidden"
+          aria-label="Documentary scene"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           <AnimatePresence mode="popLayout">
             <motion.div
               key={engine.currentEvent?.id || engine.currentIndex}
               className="absolute inset-0 flex items-center justify-center"
-              initial={{ opacity: 0, scale: 0.98, filter: "blur(4px)" }}
-              animate={{ opacity: 1, scale: 1.0, filter: "blur(0px)" }}
-              exit={{ opacity: 0, filter: "blur(4px)" }}
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1.0 }}
+              exit={{ opacity: 0 }}
               transition={{ 
                 opacity: { duration: 0.4, ease: "easeInOut" },
-                filter: { duration: 0.4, ease: "easeInOut" },
                 scale: { duration: 0.6, ease: "easeOut" } 
               }}
             >
@@ -757,8 +787,26 @@ export function TimelineReplay({ commits, repos = [], profile = null, contributi
           </AnimatePresence>
         </main>
 
-        <section className={`absolute bottom-0 left-0 right-0 z-50 w-full border-t border-white/10 bg-black/80 backdrop-blur-xl transition-all duration-300 ease-in-out ${isHUDVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-full pointer-events-none"}`}>
-          <div className="group relative h-1.5 w-full bg-zinc-900 cursor-pointer" onClick={(e) => {
+        <section
+          role="toolbar"
+          aria-label="Playback controls"
+          className={`absolute bottom-0 left-0 right-0 z-50 w-full border-t border-white/10 bg-black/80 backdrop-blur-xl transition-all duration-300 ease-in-out ${isHUDVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-full pointer-events-none"}`}
+        >
+          <div
+            className="group relative h-1.5 w-full bg-zinc-900 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+            role="progressbar"
+            aria-label="Playback progress"
+            aria-valuemin={0}
+            aria-valuemax={engine.total}
+            aria-valuenow={engine.currentIndex}
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowLeft") { e.preventDefault(); engine.stepBack(); }
+              if (e.key === "ArrowRight") { e.preventDefault(); engine.stepForward(); }
+              if (e.key === "Home") { e.preventDefault(); engine.seek(0); }
+              if (e.key === "End") { e.preventDefault(); engine.seek(engine.total - 1); }
+            }}
+            onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
             const percentage = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
             engine.seek(Math.floor(percentage * engine.total));
@@ -801,15 +849,17 @@ export function TimelineReplay({ commits, repos = [], profile = null, contributi
           
           <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-8">
             <div className="flex w-1/3 items-center gap-2">
-              <Button variant="ghost" size="icon" onClick={engine.replay} className="h-10 w-10 text-muted hover:bg-white/5 hover:text-ivory" title="Replay (R)">
+              <Button variant="ghost" size="icon" onClick={engine.replay} aria-label="Restart from beginning" className="h-10 w-10 text-muted hover:bg-white/5 hover:text-ivory focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-1 focus-visible:ring-offset-black" title="Replay (R)">
                 <RotateCcw className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon" onClick={engine.stepBack} disabled={engine.currentIndex === 0} className="h-10 w-10 text-muted hover:bg-white/5 hover:text-ivory" title="Previous">
+              <Button variant="ghost" size="icon" onClick={engine.stepBack} disabled={engine.currentIndex === 0} aria-label="Previous scene" className="h-10 w-10 text-muted hover:bg-white/5 hover:text-ivory focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-1 focus-visible:ring-offset-black" title="Previous">
                 <ChevronLeft className="h-5 w-5" />
               </Button>
               <Button
                 onClick={engine.togglePlay}
-                className="group relative flex h-12 w-12 items-center justify-center rounded-full bg-white text-black shadow-md transition-all duration-200 hover:scale-105 hover:bg-zinc-200 active:scale-95"
+                aria-label={engine.isPlaying ? "Pause" : "Play"}
+                aria-pressed={engine.isPlaying}
+                className="group relative flex h-12 w-12 items-center justify-center rounded-full bg-white text-black shadow-md transition-all duration-200 hover:scale-105 hover:bg-zinc-200 active:scale-95 focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                 title="Play/Pause (Space)"
               >
                 <AnimatePresence>
@@ -838,7 +888,7 @@ export function TimelineReplay({ commits, repos = [], profile = null, contributi
                   )}
                 </AnimatePresence>
               </Button>
-              <Button variant="ghost" size="icon" onClick={engine.stepForward} disabled={isFinal} className="h-10 w-10 text-zinc-400 hover:bg-white/5 hover:text-white" title="Next">
+              <Button variant="ghost" size="icon" onClick={engine.stepForward} disabled={isFinal} aria-label="Next scene" className="h-10 w-10 text-zinc-400 hover:bg-white/5 hover:text-white focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-1 focus-visible:ring-offset-black" title="Next">
                 <ChevronRight className="h-5 w-5" />
               </Button>
             </div>
@@ -869,7 +919,9 @@ export function TimelineReplay({ commits, repos = [], profile = null, contributi
               <button
                 type="button"
                 onClick={toggleSoundtrack}
-                className={`inline-flex h-10 w-10 items-center justify-center rounded-md border backdrop-blur-md transition-colors mr-1 sm:mr-2 ${
+                aria-label={soundEnabled ? "Mute soundtrack" : "Unmute soundtrack"}
+                aria-pressed={soundEnabled}
+                className={`inline-flex h-10 w-10 items-center justify-center rounded-md border backdrop-blur-md transition-colors mr-1 sm:mr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-1 focus-visible:ring-offset-black ${
                   soundEnabled
                     ? "border-white/20 bg-white/10 text-white hover:bg-white/20"
                     : "border-transparent text-zinc-500 hover:bg-white/5 hover:text-white"
@@ -878,7 +930,7 @@ export function TimelineReplay({ commits, repos = [], profile = null, contributi
               >
                 {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
               </button>
-              <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="h-10 w-10 text-muted hover:bg-white/5 hover:text-ivory" title="Fullscreen (F)">
+              <Button variant="ghost" size="icon" onClick={toggleFullscreen} aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"} aria-pressed={isFullscreen} className="h-10 w-10 text-muted hover:bg-white/5 hover:text-ivory focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-1 focus-visible:ring-offset-black" title="Fullscreen (F)">
                 {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
               </Button>
             </div>

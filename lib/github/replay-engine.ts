@@ -633,12 +633,13 @@ export function useRepoDocumentaryEngine(
 
   const getEventDuration = (event: ReplayEvent | null, spd: 1 | 2 | 5, isFinal: boolean) => {
     if (!event) return 2000 / spd;
-    let baseDuration = 6000; // scenes in documentary should be longer
-    if (isFinal) {
-      baseDuration = 7500;
-    }
+    // Per-event override wins (set by documentary-engine for varied pacing)
+    if (event.sceneDuration) return event.sceneDuration / spd;
+    let baseDuration = 6000;
+    if (isFinal) baseDuration = 7500;
     return baseDuration / spd;
   };
+
 
   const animFrameRef = useRef<number | null>(null);
   const lastAdvanceTimeRef = useRef<number | null>(null);

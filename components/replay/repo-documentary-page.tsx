@@ -20,7 +20,20 @@ export function RepoDocumentaryPage({
   const [isLoading, setIsLoading] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [backoffUntil, setBackoffUntil] = useState<number | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState(0);
   const hasAttemptedLoad = useRef(false);
+
+  useEffect(() => {
+    if (!backoffUntil) return;
+    const interval = setInterval(() => {
+      const remaining = Math.max(0, Math.ceil((backoffUntil - Date.now()) / 1000));
+      setTimeRemaining(remaining);
+      if (remaining === 0) setBackoffUntil(null);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [backoffUntil]);
 
   const cacheKey = `gtm_cache_${initialUsername.toLowerCase()}`;
 
@@ -38,6 +51,7 @@ export function RepoDocumentaryPage({
   }, [repoFullName]);
 
   const loadCommitHistory = useCallback(async () => {
+    if (backoffUntil && Date.now() < backoffUntil) return;
     setIsLoading(true);
     setError(null);
 
@@ -55,12 +69,19 @@ export function RepoDocumentaryPage({
       }
 
       setHasLoaded(true);
+      setRetryCount(0);
     } catch (fetchError: unknown) {
       setError(fetchError instanceof Error ? fetchError.message : "Something went wrong. Please try again.");
+      const newCount = retryCount + 1;
+      setRetryCount(newCount);
+      if (newCount >= 3) {
+        setBackoffUntil(Date.now() + 30000);
+        setRetryCount(0); // reset count for next attempt
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [applyReplayData, cacheKey]);
+  }, [applyReplayData, cacheKey, retryCount, backoffUntil]);
 
   useEffect(() => {
     if (hasAttemptedLoad.current) return;
@@ -89,12 +110,15 @@ export function RepoDocumentaryPage({
             <div className="rounded-xl border border-red-500/30 bg-red-950/20 px-6 py-4 text-sm text-red-300">
               {error}
             </div>
+            {timeRemaining > 0 && (
+              <p className="text-sm text-zinc-400">Please wait {timeRemaining}s before retrying.</p>
+            )}
             <button
               onClick={loadCommitHistory}
-              disabled={isLoading}
-              className="rounded-full border border-brass/30 bg-brass/10 px-5 py-2 font-mono text-xs text-brass-light transition-colors hover:bg-brass/20"
+              disabled={isLoading || timeRemaining > 0}
+              className="rounded-full border border-brass/30 bg-brass/10 px-5 py-2 font-mono text-xs text-brass-light transition-colors hover:bg-brass/20 disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
             >
-              {isLoading ? "Retrying…" : "Try again"}
+              {isLoading ? "Retrying…" : timeRemaining > 0 ? `Wait ${timeRemaining}s` : "Try again"}
             </button>
           </div>
         ) : !hasLoaded ? (

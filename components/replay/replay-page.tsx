@@ -7,7 +7,6 @@ import type {
   GitHubRepo,
   GitHubUserProfile,
 } from "@/lib/github/types";
-import { ReplayBackground } from "@/components/replay/replay-background";
 import { TimelineReplay } from "@/components/replay/timeline-replay";
 
 interface ReplayPageProps {
@@ -108,8 +107,6 @@ export function ReplayPage({
 
   return (
     <div className="relative h-[100dvh] w-full overflow-hidden">
-      <ReplayBackground />
-
       <div className="relative z-10 h-full w-full">
         {error ? (
           <div className="flex h-full flex-col items-center justify-center gap-4 px-6 text-center">

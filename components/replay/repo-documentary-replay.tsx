@@ -34,6 +34,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { ReplayBackground } from "@/components/replay/replay-background";
 
+// ─── Theme Colors ─────────────────────────────────────────────────────────────
+const GOLD_RGB = "216,181,108";
+const ZINC_RGB = "161,161,170";
+const IVORY_DARK = "#FDF8ED";
+const IVORY_LIGHT = "#FFF4D6";
+
 interface RepoDocumentaryReplayProps {
   commits: GitHubCommit[];
   repo: GitHubRepo;
@@ -67,7 +73,7 @@ function GitHubDetailStrip({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.9, delay: 1.1, ease: "easeOut" }}
       className="mt-4 flex items-center gap-4 font-mono text-[11px] tracking-wider"
-      style={{ color: isFinal ? "rgba(216,181,108,0.7)" : "rgba(161,161,170,0.65)" }}
+      style={{ color: isFinal ? `rgba(${GOLD_RGB},0.7)` : `rgba(${ZINC_RGB},0.65)` }}
     >
       <span className="flex items-center gap-1.5">
         <GitCommit className="h-3 w-3 opacity-70" />
@@ -76,12 +82,12 @@ function GitHubDetailStrip({
       <span className="opacity-40">·</span>
       <span className="flex items-center gap-1.5">
         <GitBranch className="h-3 w-3 opacity-70" />
-        {inferredBranches} branch{inferredBranches !== 1 ? "es" : ""}
+        ~{inferredBranches} branch{inferredBranches !== 1 ? "es" : ""}
       </span>
       <span className="opacity-40">·</span>
       <span className="flex items-center gap-1.5">
         <User className="h-3 w-3 opacity-70" />
-        {prCount} PR{prCount !== 1 ? "s" : ""}
+        ~{prCount} PR{prCount !== 1 ? "s" : ""}
       </span>
     </motion.div>
   );
@@ -124,13 +130,30 @@ function RepoDocumentaryCard({
 
   // Opening scene gets a slower, more deliberate entry
   const isOpening = event.chapterId === "scene-1";
-  const fadeDuration = isOpening ? 1.8 : isFinal ? 1.6 : 1.2;
-  const blurDuration = isOpening ? 1.8 : isFinal ? 1.6 : 1.2;
+  const scene = event.sceneIndex ?? 1;
+  const fadeDuration = isOpening ? 1.8 : isFinal ? 1.6 : 1.1;
+
+  // Progressive entry direction — each scene feels geometrically distinct
+  const titleInitial: { opacity: number; y?: number; x?: number; scale?: number } = (() => {
+    if (scene === 1) return { opacity: 0, y: 20, scale: 0.96 };          // rise up
+    if (scene === 2) return { opacity: 0, y: 12, scale: 0.98 };          // gentle rise
+    if (scene === 3) return { opacity: 0, x: -18, scale: 0.98 };         // enter from left
+    if (scene === 4) return { opacity: 0, x: 18, scale: 0.98 };          // enter from right
+    if (scene === 5) return { opacity: 0, y: -10, scale: 0.97 };         // drop in
+    if (scene === 6) return { opacity: 0, scale: 0.94, y: 8 };           // expand from small
+    return { opacity: 0, y: 6, scale: 0.99 };                            // final: subtle
+  })();
+
+
+  // Split the final description so the climax sentence can be styled separately
+  const [mainDesc, climaxLine] = isFinal
+    ? (event.description ?? "").split("\n\n")
+    : [event.description ?? "", null];
 
   return (
     <div className="relative flex w-full flex-col items-center justify-center text-center px-4 sm:px-8 max-w-4xl mx-auto z-10">
       {/* Soft illumination behind text */}
-      <div className="absolute inset-0 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[140%] -z-10 bg-[radial-gradient(ellipse_at_center,rgba(216,181,108,0.08)_0%,rgba(0,0,0,0.4)_40%,transparent_70%)] pointer-events-none blur-2xl" />
+      <div className={`absolute inset-0 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[140%] -z-10 bg-[radial-gradient(ellipse_at_center,rgba(${GOLD_RGB},0.08)_0%,rgba(0,0,0,0.4)_40%,transparent_70%)] pointer-events-none blur-2xl`} />
 
       {/* Date */}
       <motion.div
@@ -138,22 +161,22 @@ function RepoDocumentaryCard({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: fadeDuration, delay: 0.2 }}
         className="mb-6 font-mono text-sm tracking-widest"
-        style={{ color: isFinal ? "rgba(216,181,108,0.8)" : "rgba(212,212,216,0.75)" }}
+        style={{ color: isFinal ? `rgba(${GOLD_RGB},0.88)` : "rgba(212,212,216,0.85)" }}
       >
         {new Date(event.date).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
       </motion.div>
 
       {/* Chapter Title */}
       <motion.h2
-        initial={{ opacity: 0, y: 15, scale: isOpening ? 0.96 : 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
+        initial={titleInitial as { opacity: number; y?: number; x?: number; scale?: number }}
+        animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
         transition={{ duration: fadeDuration, delay: 0.4, ease: "easeOut" }}
         className="font-display font-black tracking-tight text-5xl leading-tight sm:text-6xl md:text-7xl lg:text-8xl"
         style={{
-          color: isFinal ? "#FFF4D6" : "#FDF8ED",
+          color: isFinal ? IVORY_LIGHT : IVORY_DARK,
           textShadow: isFinal
-            ? "0 4px 32px rgba(0,0,0,0.95), 0 0 80px rgba(216,181,108,0.55)"
-            : "0 4px 24px rgba(0,0,0,0.92), 0 0 60px rgba(216,181,108,0.35)",
+            ? `0 4px 32px rgba(0,0,0,0.95), 0 0 80px rgba(${GOLD_RGB},0.55)`
+            : `0 4px 24px rgba(0,0,0,0.92), 0 0 60px rgba(${GOLD_RGB},0.35)`,
         }}
       >
         {event.title}
@@ -163,15 +186,31 @@ function RepoDocumentaryCard({
       <motion.p
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: blurDuration, delay: 0.65, ease: "easeOut" }}
+        transition={{ duration: fadeDuration, delay: 0.65, ease: "easeOut" }}
         className="mx-auto mt-8 max-w-3xl text-xl sm:text-2xl font-medium leading-relaxed text-balance tracking-wide"
         style={{
-          color: isFinal ? "rgba(253,248,237,0.97)" : "rgba(255,255,255,0.92)",
+          color: isFinal ? `rgba(${IVORY_LIGHT},0.97)` : "rgba(255,255,255,0.97)",
           textShadow: "0 2px 16px rgba(0,0,0,0.95)",
         }}
       >
-        {event.description}
+        {mainDesc}
       </motion.p>
+
+      {/* Climax line — final scene only, delayed, gold-tinted */}
+      {climaxLine && (
+        <motion.p
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.4, delay: 1.2, ease: "easeOut" }}
+          className="mx-auto mt-6 max-w-2xl text-2xl sm:text-3xl font-semibold leading-relaxed text-balance tracking-wide"
+          style={{
+            color: `rgba(${GOLD_RGB},0.92)`,
+            textShadow: `0 2px 24px rgba(0,0,0,0.98), 0 0 40px rgba(${GOLD_RGB},0.30)`,
+          }}
+        >
+          {climaxLine}
+        </motion.p>
+      )}
 
       {/* Milestone Card */}
       <motion.div
@@ -182,18 +221,18 @@ function RepoDocumentaryCard({
         style={{
           backgroundColor: "rgba(5,5,5,0.62)",
           border: isFinal
-            ? "1px solid rgba(216,181,108,0.28)"
+            ? `1px solid rgba(${GOLD_RGB},0.28)`
             : "1px solid rgba(255,255,255,0.18)",
         }}
       >
         {/* Final scene: subtle gold shimmer on card */}
         {isFinal && (
-          <div className="absolute inset-0 pointer-events-none rounded-2xl bg-[radial-gradient(ellipse_at_top_left,rgba(216,181,108,0.06),transparent_60%)]" />
+          <div className={`absolute inset-0 pointer-events-none rounded-2xl bg-[radial-gradient(ellipse_at_top_left,rgba(${GOLD_RGB},0.06),transparent_60%)]`} />
         )}
 
         <div className="flex items-start justify-between border-b border-white/5 pb-4 mb-4">
           <div>
-            <h3 className="font-sans text-xl font-semibold" style={{ color: isFinal ? "#FFF4D6" : "#ffffff" }}>
+            <h3 className="font-sans text-xl font-semibold" style={{ color: isFinal ? IVORY_LIGHT : "#ffffff" }}>
               {event.repoName}
             </h3>
             <div className="mt-2 flex items-center gap-3 font-mono text-xs text-zinc-400">
@@ -213,9 +252,9 @@ function RepoDocumentaryCard({
           <div
             className="rounded-full px-3 py-1 font-mono text-[10px] uppercase tracking-wider"
             style={{
-              border: isFinal ? "1px solid rgba(216,181,108,0.35)" : "1px solid rgba(255,255,255,0.18)",
-              backgroundColor: isFinal ? "rgba(216,181,108,0.1)" : "rgba(255,255,255,0.08)",
-              color: isFinal ? "rgba(216,181,108,0.9)" : "rgba(228,228,231,0.9)",
+              border: isFinal ? `1px solid rgba(${GOLD_RGB},0.35)` : "1px solid rgba(255,255,255,0.18)",
+              backgroundColor: isFinal ? `rgba(${GOLD_RGB},0.1)` : "rgba(255,255,255,0.08)",
+              color: isFinal ? `rgba(${GOLD_RGB},0.9)` : "rgba(228,228,231,0.9)",
             }}
           >
             {event.impactBadge}
@@ -246,7 +285,7 @@ function RepoDocumentaryCard({
           animate={{ opacity: 1 }}
           transition={{ duration: 2, delay: 1.5 }}
           className="absolute bottom-0 right-4 font-mono text-[11px] tracking-[0.25em] uppercase pointer-events-none select-none"
-          style={{ color: "rgba(216,181,108,0.25)" }}
+          style={{ color: `rgba(${GOLD_RGB},0.25)` }}
         >
           fin.
         </motion.div>
@@ -503,8 +542,8 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
 
   const isFinal = engine.currentIndex >= engine.total - 1;
 
-  // Extract sceneIndex from engine — stored in streakCount field by documentary-engine.ts
-  const sceneIndex = engine.currentEvent?.streakCount ?? engine.currentIndex + 1;
+  // Extract sceneIndex from engine — set by documentary-engine.ts on each event
+  const sceneIndex = engine.currentEvent?.sceneIndex ?? engine.currentIndex + 1;
 
   // Visible commit count for detail strip (use visibleCommits from engine)
   const visibleCommitCount = Math.max(1, engine.visibleCommits?.length ?? engine.currentIndex + 1);
@@ -526,7 +565,8 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
       >
         <a
           href="/dashboard#repos"
-          className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/60 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-400 backdrop-blur-md transition-colors hover:border-white/20 hover:text-white"
+          aria-label="Back to repository archive"
+          className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/60 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-400 backdrop-blur-md transition-colors hover:border-white/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
         >
           <ChevronLeft className="h-3.5 w-3.5" />
           <span>Back to Archive</span>
@@ -542,6 +582,7 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
                 ? "border-white/20 text-white"
                 : "border-white/10 text-zinc-400 hover:border-white/20 hover:text-white"
             }`}
+            aria-label={isExportOpen ? "Close export menu" : "Open export menu"}
             title="Export Documentary"
           >
             <Download className="h-3.5 w-3.5" />
@@ -647,49 +688,73 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
       </header>
 
       {/* Main Content Area */}
-      <main className="relative z-10 flex flex-1 items-center justify-center w-full h-full">
+      <main
+        className="relative z-10 flex flex-1 items-center justify-center w-full h-full"
+        aria-label="Documentary scene"
+        aria-live="polite"
+        aria-atomic="true"
+      >
         <AnimatePresence mode="wait">
-          {engine.currentEvent && (
-            <motion.div
-              key={engine.currentEvent.id}
-              initial={{ opacity: 0, scale: isFinal ? 0.97 : 0.95, filter: "blur(10px)" }}
-              animate={{ opacity: 1, scale: 1.0, filter: "blur(0px)" }}
-              exit={{
-                opacity: 0,
-                scale: isFinal ? 1.02 : 1.05,
-                filter: "blur(10px)",
-                transition: { duration: 0.9, ease: "easeIn" },
-              }}
-              transition={{
-                opacity: { duration: isFinal ? 1.6 : 1.2, ease: "easeOut" },
-                filter: { duration: isFinal ? 1.6 : 1.2, ease: "easeOut" },
-                scale: { duration: isFinal ? 2.0 : 1.5, ease: "easeOut" },
-              }}
-              className="absolute inset-0 flex items-center justify-center w-full h-full"
-            >
-              <RepoDocumentaryCard
-                event={engine.currentEvent}
-                visibleCommitCount={visibleCommitCount}
-                isFinal={isFinal}
-              />
-            </motion.div>
-          )}
+          {engine.currentEvent && (() => {
+            // Progressive enter scale: opening breathes in wide, middle scenes snap, finale subtle
+            const enterScale = sceneIndex === 1 ? 0.94 : sceneIndex <= 3 ? 0.96 : isFinal ? 0.98 : 0.97;
+            // Progressive exit push: grows with scene, peaks at scene 6, climax is still
+            const exitScale = isFinal ? 1.01 : Math.min(1.06, 1.02 + sceneIndex * 0.005);
+            return (
+              <motion.div
+                key={engine.currentEvent.id}
+                initial={{ opacity: 0, scale: enterScale }}
+                animate={{ opacity: 1, scale: 1.02 }}
+                exit={{
+                  opacity: 0,
+                  scale: exitScale,
+                  transition: { duration: 0.85, ease: "easeIn" },
+                }}
+                transition={{
+                  opacity: { duration: isFinal ? 1.6 : 1.1, ease: "easeOut" },
+                  scale: { duration: ((engine.currentEvent.sceneDuration || 6000) / 1000) + 1, ease: "linear" },
+                }}
+                className="absolute inset-0 flex items-center justify-center w-full h-full"
+              >
+                <RepoDocumentaryCard
+                  event={engine.currentEvent}
+                  visibleCommitCount={visibleCommitCount}
+                  isFinal={isFinal}
+                />
+              </motion.div>
+            );
+          })()}
         </AnimatePresence>
+
       </main>
 
       {/* Fixed Bottom Control Dock */}
       <section
+        role="toolbar"
+        aria-label="Playback controls"
         className={`absolute bottom-0 left-0 right-0 z-50 w-full border-t border-white/10 bg-black/80 backdrop-blur-xl transition-all duration-300 ease-in-out ${isHUDVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-full pointer-events-none"}`}
       >
         <div
           ref={scrubTrackRef}
-          className="group relative h-1.5 w-full cursor-pointer bg-zinc-900 hover:h-2.5 transition-[height] duration-150"
+          role="progressbar"
+          aria-label="Playback progress"
+          aria-valuemin={0}
+          aria-valuemax={engine.total - 1}
+          aria-valuenow={engine.currentIndex}
+          tabIndex={0}
+          className="group relative h-1.5 w-full cursor-pointer bg-zinc-900 hover:h-2.5 transition-[height] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
           onMouseDown={(e) => {
             setIsScrubbing(true);
             engine.seek(indexFromClientX(e.clientX));
           }}
           onMouseMove={handleTrackHover}
           onMouseLeave={() => !isScrubbing && setHoverIndex(null)}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowLeft") { e.preventDefault(); engine.stepBack(); }
+            if (e.key === "ArrowRight") { e.preventDefault(); engine.stepForward(); }
+            if (e.key === "Home") { e.preventDefault(); engine.seek(0); }
+            if (e.key === "End") { e.preventDefault(); engine.seek(engine.total - 1); }
+          }}
         >
           {/* Hover/scrub tooltip */}
           {hoverIndex !== null && engine.events[hoverIndex] && (
@@ -716,7 +781,7 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
             className="absolute left-0 top-0 bottom-0 transition-[width] duration-300 ease-out z-20"
             style={{
               width: `${engine.progress}%`,
-              backgroundColor: isFinal ? "rgba(216,181,108,0.85)" : "white",
+              backgroundColor: isFinal ? `rgba(${GOLD_RGB},0.85)` : "white",
             }}
           />
           {/* Scrub handle */}
@@ -732,7 +797,8 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
               variant="ghost"
               size="icon"
               onClick={engine.replay}
-              className="h-10 w-10 text-muted hover:bg-white/5 hover:text-ivory"
+              aria-label="Restart from beginning"
+              className="h-10 w-10 text-muted hover:bg-white/5 hover:text-ivory focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-1 focus-visible:ring-offset-black"
               title="Replay (R)"
             >
               <RotateCcw className="h-4 w-4" />
@@ -742,14 +808,17 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
               size="icon"
               onClick={engine.stepBack}
               disabled={engine.currentIndex === 0}
-              className="h-10 w-10 text-muted hover:bg-white/5 hover:text-ivory"
+              aria-label="Previous scene"
+              className="h-10 w-10 text-muted hover:bg-white/5 hover:text-ivory focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-1 focus-visible:ring-offset-black"
               title="Previous"
             >
               <ChevronLeft className="h-5 w-5" />
             </Button>
             <Button
               onClick={engine.togglePlay}
-              className="group relative flex h-12 w-12 items-center justify-center rounded-full bg-white text-black shadow-md transition-all duration-200 hover:scale-105 hover:bg-zinc-200 active:scale-95"
+              aria-label={engine.isPlaying ? "Pause" : "Play"}
+              aria-pressed={engine.isPlaying}
+              className="group relative flex h-12 w-12 items-center justify-center rounded-full bg-white text-black shadow-md transition-all duration-200 hover:scale-105 hover:bg-zinc-200 active:scale-95 focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
               title="Play/Pause (Space)"
             >
               <AnimatePresence>
@@ -783,7 +852,8 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
               size="icon"
               onClick={engine.stepForward}
               disabled={isFinal}
-              className="h-10 w-10 text-zinc-400 hover:bg-white/5 hover:text-white"
+              aria-label="Next scene"
+              className="h-10 w-10 text-zinc-400 hover:bg-white/5 hover:text-white focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-1 focus-visible:ring-offset-black"
               title="Next"
             >
               <ChevronRight className="h-5 w-5" />
@@ -829,7 +899,9 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
             <button
               type="button"
               onClick={toggleSoundtrack}
-              className={`inline-flex h-10 w-10 items-center justify-center rounded-md border backdrop-blur-md transition-colors mr-1 sm:mr-2 ${
+              aria-label={soundEnabled ? "Mute soundtrack" : "Unmute soundtrack"}
+              aria-pressed={soundEnabled}
+              className={`inline-flex h-10 w-10 items-center justify-center rounded-md border backdrop-blur-md transition-colors mr-1 sm:mr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-1 focus-visible:ring-offset-black ${
                 soundEnabled
                   ? "border-white/20 bg-white/10 text-white hover:bg-white/20"
                   : "border-transparent text-zinc-500 hover:bg-white/5 hover:text-white"
@@ -842,7 +914,9 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
               variant="ghost"
               size="icon"
               onClick={toggleFullscreen}
-              className="h-10 w-10 text-muted hover:bg-white/5 hover:text-ivory"
+              aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+              aria-pressed={isFullscreen}
+              className="h-10 w-10 text-muted hover:bg-white/5 hover:text-ivory focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-1 focus-visible:ring-offset-black"
               title="Fullscreen (F)"
             >
               {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}

@@ -121,6 +121,10 @@ export interface ReplayEvent {
   languageColor?: string;
   stargazersCount?: number;
   streakCount?: number;
+  sceneIndex?: number;
+  /** Override hold duration (ms at 1× speed) for this specific scene */
+  sceneDuration?: number;
+
   gapDays?: number;
   relativeActivity?: "high" | "medium" | "steady" | "breakthrough";
   chapterId?: string;
