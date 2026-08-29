@@ -72,21 +72,21 @@ function GitHubDetailStrip({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.9, delay: 1.1, ease: "easeOut" }}
-      className="mt-4 flex items-center gap-5 font-mono text-[15px] sm:text-base tracking-wider"
+      className="mt-16 flex items-center gap-16 font-mono text-[72px] sm:text-[100px] tracking-wider"
       style={{ color: isFinal ? `rgba(${GOLD_RGB},0.7)` : `rgba(${ZINC_RGB},0.65)` }}
     >
       <span className="flex items-center gap-1.5">
-        <GitCommit className="h-3.5 w-3.5 opacity-70" />
+        <GitCommit className="h-16 w-16 opacity-70" />
         {visibleCommitCount} commit{visibleCommitCount !== 1 ? "s" : ""}
       </span>
       <span className="opacity-40">·</span>
       <span className="flex items-center gap-1.5">
-        <GitBranch className="h-3.5 w-3.5 opacity-70" />
+        <GitBranch className="h-16 w-16 opacity-70" />
         ~{inferredBranches} branch{inferredBranches !== 1 ? "es" : ""}
       </span>
       <span className="opacity-40">·</span>
       <span className="flex items-center gap-1.5">
-        <User className="h-3.5 w-3.5 opacity-70" />
+        <User className="h-16 w-16 opacity-70" />
         ~{prCount} PR{prCount !== 1 ? "s" : ""}
       </span>
     </motion.div>
@@ -151,7 +151,7 @@ function RepoDocumentaryCard({
     : [event.description ?? "", null];
 
   return (
-    <div className="relative flex w-full flex-col items-center justify-center text-center px-4 sm:px-8 max-w-4xl mx-auto z-10">
+    <div className="relative flex w-full h-full flex-col items-start justify-center text-left px-10 sm:px-20 lg:px-32 max-w-[1600px] mx-auto z-10">
       {/* Soft illumination behind text */}
       <div className={`absolute inset-0 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[140%] -z-10 bg-[radial-gradient(ellipse_at_center,rgba(${GOLD_RGB},0.08)_0%,rgba(0,0,0,0.4)_40%,transparent_70%)] pointer-events-none blur-2xl`} />
 
@@ -160,7 +160,7 @@ function RepoDocumentaryCard({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: fadeDuration, delay: 0.2 }}
-        className="mb-6 font-mono text-base sm:text-lg tracking-widest"
+        className="mb-8 font-mono text-[64px] sm:text-[86px] tracking-widest"
         style={{ color: isFinal ? `rgba(${GOLD_RGB},0.88)` : "rgba(212,212,216,0.85)" }}
       >
         {new Date(event.date).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
@@ -187,7 +187,7 @@ function RepoDocumentaryCard({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: fadeDuration, delay: 0.65, ease: "easeOut" }}
-        className="mx-auto mt-8 max-w-4xl text-2xl sm:text-3xl font-medium leading-relaxed text-balance tracking-wide"
+        className="mt-12 w-full max-w-[95%] lg:max-w-[85%] text-left text-[115px] sm:text-[144px] font-medium leading-[1.35] text-balance tracking-wide"
         style={{
           color: isFinal ? `rgba(${IVORY_LIGHT},0.97)` : "rgba(255,255,255,0.97)",
           textShadow: "0 2px 16px rgba(0,0,0,0.95)",
@@ -202,7 +202,7 @@ function RepoDocumentaryCard({
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1.4, delay: 1.2, ease: "easeOut" }}
-          className="mx-auto mt-6 max-w-3xl text-3xl sm:text-4xl font-semibold leading-relaxed text-balance tracking-wide"
+          className="mt-12 w-full max-w-[95%] lg:max-w-[85%] text-left text-[130px] sm:text-[172px] font-semibold leading-[1.35] text-balance tracking-wide"
           style={{
             color: `rgba(${GOLD_RGB},0.92)`,
             textShadow: `0 2px 24px rgba(0,0,0,0.98), 0 0 40px rgba(${GOLD_RGB},0.30)`,
@@ -217,7 +217,7 @@ function RepoDocumentaryCard({
         initial={{ opacity: 0, y: 20, filter: "blur(5px)" }}
         animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
         transition={{ duration: 1, delay: 0.85, ease: "easeOut" }}
-        className="mt-14 w-full max-w-xl rounded-2xl p-7 shadow-[0_0_40px_rgba(255,255,255,0.05)] backdrop-blur-md text-left relative overflow-hidden"
+        className="mt-12 w-full max-w-[95%] lg:max-w-[90%] rounded-[60px] p-20 sm:p-24 shadow-[0_0_80px_rgba(255,255,255,0.08)] backdrop-blur-md text-left relative overflow-hidden"
         style={{
           backgroundColor: "rgba(5,5,5,0.62)",
           border: isFinal
@@ -232,14 +232,14 @@ function RepoDocumentaryCard({
 
         <div className="flex items-start justify-between border-b border-white/5 pb-4 mb-4">
           <div>
-            <h3 className="font-sans text-3xl sm:text-4xl font-semibold" style={{ color: isFinal ? IVORY_LIGHT : "#ffffff" }}>
+            <h3 className="font-sans text-[144px] sm:text-[216px] leading-tight font-semibold" style={{ color: isFinal ? IVORY_LIGHT : "#ffffff" }}>
               {event.repoName}
             </h3>
-            <div className="mt-2 flex items-center gap-3 font-mono text-base sm:text-lg text-zinc-400">
+            <div className="mt-8 flex items-center gap-12 font-mono text-[86px] sm:text-[108px] text-zinc-400">
               {event.language && (
                 <div className="flex items-center gap-1.5">
                   <span
-                    className="h-2 w-2 rounded-full"
+                    className="h-10 w-10 rounded-full"
                     style={{ backgroundColor: event.languageColor || "#8b949e" }}
                   />
                   {event.language}
@@ -250,7 +250,7 @@ function RepoDocumentaryCard({
             </div>
           </div>
           <div
-            className="rounded-full px-3 py-1 font-mono text-sm uppercase tracking-wider"
+            className="rounded-full px-10 py-5 font-mono text-[64px] sm:text-[86px] uppercase tracking-wider"
             style={{
               border: isFinal ? `1px solid rgba(${GOLD_RGB},0.35)` : "1px solid rgba(255,255,255,0.18)",
               backgroundColor: isFinal ? `rgba(${GOLD_RGB},0.1)` : "rgba(255,255,255,0.08)",
@@ -262,10 +262,10 @@ function RepoDocumentaryCard({
         </div>
 
         <div>
-          <span className="font-mono text-sm uppercase tracking-widest text-zinc-300 block mb-1.5">
+          <span className="font-mono text-[64px] sm:text-[86px] uppercase tracking-widest text-zinc-300 block mb-8">
             Highlighted Commit
           </span>
-          <p className="font-mono text-xl sm:text-[22px] text-zinc-100 break-words line-clamp-2 leading-relaxed">
+          <p className="font-mono text-[115px] sm:text-[144px] text-zinc-100 break-words line-clamp-2 leading-[1.4]">
             {event.commit?.message || "Repository created."}
           </p>
         </div>
@@ -284,7 +284,7 @@ function RepoDocumentaryCard({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 2, delay: 1.5 }}
-          className="absolute bottom-0 right-4 font-mono text-sm sm:text-base tracking-[0.25em] uppercase pointer-events-none select-none"
+          className="absolute bottom-10 right-12 font-mono text-[32px] sm:text-[40px] tracking-[0.25em] uppercase pointer-events-none select-none"
           style={{ color: `rgba(${GOLD_RGB},0.25)` }}
         >
           fin.
