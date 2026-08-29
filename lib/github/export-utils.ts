@@ -2,6 +2,7 @@
 
 import { Chapter, GitHubCommit, GitHubRepo, GitHubUserProfile, ReplayEvent, ContributionWeek } from "./types";
 import { ambientSoundtrack } from "../audio/ambient-soundtrack";
+import * as Mp4Muxer from 'mp4-muxer';
 
 /**
  * Builds a shareable replay URL and attempts to copy it to the clipboard.
@@ -400,7 +401,7 @@ export function exportReplayVideoFormat(
       const width = isVertical ? 1080 : 1920;
       const height = isVertical ? 1920 : 1080;
 
-      onProgress?.(`Initializing 1080p 30fps Cinematic Video Engine...`);
+      onProgress?.(`Initializing 1080p 60fps Cinematic Video Engine...`);
       
       // Create global floating progress toast so user can leave the screen
       const toast = document.createElement("div");
@@ -444,11 +445,10 @@ export function exportReplayVideoFormat(
       toast.appendChild(text);
       document.body.appendChild(toast);
 
+      let currentFrame = 0;
       const updateGlobalProgress = (msg: string) => {
         text.innerText = msg;
-        // Throttle React state updates to every 15 frames (0.5s) to prevent locking up the main thread
-        // which was causing MediaRecorder to drop frames and stutter heavily.
-        if (currentFrame % 15 === 0) {
+        if (currentFrame % 10 === 0) {
           onProgress?.(msg);
         }
       };
@@ -463,66 +463,40 @@ export function exportReplayVideoFormat(
         return;
       }
 
-      // Start video stream
-      const videoStream = canvas.captureStream(30);
-
-      // If audio soundtrack requested, mix the warm piano stream
-      if (withAudio) {
-        const audioTrack = ambientSoundtrack.getStreamDestination();
-        if (audioTrack) {
-          videoStream.addTrack(audioTrack);
-          ambientSoundtrack.start();
-        }
-      }
-
-      const mimeType = MediaRecorder.isTypeSupported("video/mp4")
-        ? "video/mp4"
-        : "video/webm;codecs=vp9,opus";
-      const recorder = new MediaRecorder(videoStream, {
-        mimeType,
-        videoBitsPerSecond: 8000000,
+      // Initialize WebCodecs and mp4-muxer
+      const fps = 60;
+      let muxer = new Mp4Muxer.Muxer({
+        target: new Mp4Muxer.ArrayBufferTarget(),
+        video: {
+          codec: 'avc',
+          width: width,
+          height: height
+        },
+        fastStart: "in-memory",
+        firstTimestampBehavior: 'offset'
       });
-      const chunks: Blob[] = [];
 
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunks.push(e.data);
-      };
-
-      recorder.onstop = () => {
-        if (withAudio) {
-          ambientSoundtrack.stop();
+      const videoEncoder = new VideoEncoder({
+        output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+        error: (e) => {
+          console.error("VideoEncoder error:", e);
+          if (document.body.contains(toast)) document.body.removeChild(toast);
+          resolve(false);
         }
-        
-        spinner.style.display = "none";
-        text.innerText = "Export Complete! Downloading...";
-        text.style.color = "#4ade80"; // Success green
-        
-        const blob = new Blob(chunks, { type: mimeType });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `github-time-machine-${mode}-documentary.${
-          mimeType.includes("mp4") ? "mp4" : "webm"
-        }`;
-        a.click();
-        URL.revokeObjectURL(url);
-        
-        setTimeout(() => {
-          if (document.body.contains(toast)) {
-            document.body.removeChild(toast);
-          }
-        }, 3000);
-        
-        onProgress?.("Cinematic documentary export completed!");
-        resolve(true);
-      };
+      });
 
-      recorder.start();
+      videoEncoder.configure({
+        codec: 'avc1.42E028',
+        width: width,
+        height: height,
+        bitrate: 8000000,
+        framerate: fps,
+      });
 
-    // 1. Intro sequence: 75 frames (2.5s)
-    const introFrames = 75;
-    // 2. Events: 75 frames per commit (2.5s per commit for true 1x unhurried documentary pacing)
-    const framesPerEvent = 75;
+    // 1. Intro sequence: 150 frames (2.5s @ 60fps)
+    const introFrames = 150;
+    // 2. Events: 150 frames per commit (2.5s per commit @ 60fps)
+    const framesPerEvent = 150;
     
     // Determine max events based on duration preset
     let maxEvents = 35; // Default for "full"
@@ -535,8 +509,8 @@ export function exportReplayVideoFormat(
       : events;
       
     const eventFrames = sampledEvents.length * framesPerEvent;
-    // 3. Outro finale sequence: 90 frames (3.0s)
-    const outroFrames = 90;
+    // 3. Outro finale sequence: 180 frames (3.0s @ 60fps)
+    const outroFrames = 180;
     const totalFrames = introFrames + eventFrames + outroFrames;
 
     // --- SPATIAL GRAPH GENERATION ---
@@ -614,7 +588,7 @@ export function exportReplayVideoFormat(
     const noiseImg = new Image();
     noiseImg.src = `data:image/svg+xml;base64,${btoa(noiseSvg)}`;
 
-    let currentFrame = 0;
+
 
     const COLOR_BG = "#050505";
     const COLOR_SURFACE = "#0A0A0A";
@@ -1077,62 +1051,62 @@ export function exportReplayVideoFormat(
           (currentFrame / totalFrames) * 100
         )}%)`
       );
-
     };
 
-    // Use an inline Web Worker for the render loop instead of setInterval.
-    // Modern browsers throttle window.setInterval to 1000ms or suspend it completely
-    // when a tab is in the background. A Web Worker is immune to UI thread throttling.
-    // We use a ping-pong 'ack' pattern instead of setInterval so that if the main
-    // thread is busy (rendering/encoding), we don't flood the message queue with ticks.
-    const workerCode = `
-      let nextTime = 0;
-      let isRunning = false;
-      self.onmessage = function(e) {
-        if (e.data.command === 'start') {
-          isRunning = true;
-          nextTime = performance.now() + 33.33;
-          setTimeout(function() {
-            if (!isRunning) return;
-            self.postMessage('tick');
-          }, 33.33);
-        } else if (e.data.command === 'ack') {
-          if (!isRunning) return;
-          const now = performance.now();
-          nextTime += 33.33;
-          const delay = Math.max(0, nextTime - now);
-          setTimeout(function() {
-            if (!isRunning) return;
-            self.postMessage('tick');
-          }, delay);
-        } else if (e.data.command === 'stop') {
-          isRunning = false;
-          close();
-        }
-      };
-    `;
-    const workerBlob = new Blob([workerCode], { type: 'application/javascript' });
-    const workerUrl = URL.createObjectURL(workerBlob);
-    const worker = new Worker(workerUrl);
+    // Asynchronous rendering loop for WebCodecs
+    const runExport = async () => {
+      while (currentFrame < totalFrames) {
+        renderMovie();
+        
+        const frame = new VideoFrame(canvas, {
+          timestamp: ((currentFrame - 1) * 1000000) / fps,
+        });
 
-    if (currentFrame >= totalFrames) {
-      worker.postMessage({ command: 'stop' });
-      URL.revokeObjectURL(workerUrl);
-      recorder.stop();
-    } else {
-      worker.onmessage = () => {
-        if (currentFrame >= totalFrames) {
-          worker.postMessage({ command: 'stop' });
-          URL.revokeObjectURL(workerUrl);
-          recorder.stop();
-        } else {
-          renderMovie();
-          // Tell the worker we are ready for the next tick
-          worker.postMessage({ command: 'ack' });
+        // Throttle encoding if the queue gets too large
+        while (videoEncoder.encodeQueueSize > 15) {
+          await new Promise(r => setTimeout(r, 5));
         }
-      };
-      worker.postMessage({ command: 'start' });
-    }
+
+        videoEncoder.encode(frame, { keyFrame: (currentFrame - 1) % 60 === 0 });
+        frame.close();
+
+        // Yield to the browser's event loop every few frames to prevent UI freezing
+        if (currentFrame % 5 === 0) {
+          await new Promise(r => setTimeout(r, 0));
+        }
+      }
+
+      await videoEncoder.flush();
+      muxer.finalize();
+      const buffer = muxer.target.buffer;
+      
+      spinner.style.display = "none";
+      text.innerText = "Export Complete! Downloading...";
+      text.style.color = "#4ade80"; // Success green
+
+      const blob = new Blob([buffer], { type: "video/mp4" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `github-time-machine-${mode}-documentary.mp4`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      setTimeout(() => {
+        if (document.body.contains(toast)) {
+          document.body.removeChild(toast);
+        }
+      }, 3000);
+      
+      onProgress?.("Cinematic documentary export completed!");
+      resolve(true);
+    };
+
+    runExport().catch((err) => {
+      console.error("Video export run error:", err);
+      if (document.body.contains(toast)) document.body.removeChild(toast);
+      resolve(false);
+    });
     } catch (err) {
       console.error("Cinematic 1080p video export error:", err);
       // Clean up toast on error
