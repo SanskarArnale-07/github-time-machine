@@ -607,12 +607,14 @@ export function TimelineReplay({ commits, repos = [], profile = null, contributi
         )}
       </AnimatePresence>
 
-      {!isFullscreen && (
-        <div className="replay-fullscreen-background">
-          <ReplayBackground />
-        </div>
-      )}
-      <div className={`replay-safe-frame absolute inset-0 flex flex-col items-center justify-center overflow-hidden ${isFullscreen ? 'bg-black' : ''} ${!isHUDVisible && isFullscreen ? 'cursor-none' : ''}`}>
+      <div className="replay-fullscreen-background">
+        <ReplayBackground
+          progress={engine.progress}
+          chapterIndex={chapterIndex}
+          isFinal={isFinal}
+        />
+      </div>
+      <div className={`replay-safe-frame absolute inset-0 flex flex-col items-center justify-center overflow-hidden bg-transparent ${!isHUDVisible && isFullscreen ? 'cursor-none' : ''}`}>
         <header className={`absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 sm:px-8 pt-4 pb-0 transition-all duration-300 ease-in-out ${isHUDVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full pointer-events-none"} ${isFullscreen ? 'hidden' : ''}`}>
           <a
             href="/dashboard"
@@ -766,6 +768,31 @@ export function TimelineReplay({ commits, repos = [], profile = null, contributi
           aria-live="polite"
           aria-atomic="true"
         >
+          {/* Subtle space-time field radial glow behind the currently active chapter */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden -z-10"
+          >
+            <motion.div
+              key={engine.currentChapter?.id || chapterIndex}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{
+                opacity: isFinal ? [0.85, 1, 0.85] : [0.70, 0.95, 0.70],
+                scale: [1, 1.05, 1],
+              }}
+              transition={{
+                opacity: { duration: 7, repeat: Infinity, ease: "easeInOut" },
+                scale: { duration: 9, repeat: Infinity, ease: "easeInOut" },
+              }}
+              className="h-[520px] w-[750px] sm:h-[640px] sm:w-[900px] md:h-[750px] md:w-[1100px] rounded-full"
+              style={{
+                background:
+                  "radial-gradient(ellipse 65% 55% at 50% 50%, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.065) 35%, rgba(56, 189, 248, 0.02) 65%, transparent 78%)",
+                filter: "blur(65px)",
+              }}
+            />
+          </div>
+
           <AnimatePresence mode="popLayout">
             <motion.div
               key={engine.currentEvent?.id || engine.currentIndex}

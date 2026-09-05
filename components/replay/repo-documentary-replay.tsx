@@ -152,8 +152,8 @@ function RepoDocumentaryCard({
 
   return (
     <div className="relative flex w-full h-full flex-col items-start justify-center text-left px-10 sm:px-20 lg:px-32 max-w-[1600px] mx-auto z-10">
-      {/* Soft illumination behind text */}
-      <div className={`absolute inset-0 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[140%] -z-10 bg-[radial-gradient(ellipse_at_center,rgba(${GOLD_RGB},0.08)_0%,rgba(0,0,0,0.4)_40%,transparent_70%)] pointer-events-none blur-2xl`} />
+      {/* Subtle space-time radial glow behind active chapter narrative */}
+      <div className="absolute inset-0 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[140%] -z-10 bg-[radial-gradient(ellipse_at_center,rgba(99,102,241,0.11)_0%,rgba(139,92,246,0.06)_35%,rgba(3,6,12,0.4)_60%,transparent_75%)] pointer-events-none blur-3xl" />
 
       {/* Date */}
       <motion.div
@@ -551,7 +551,7 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
   return (
     <div
       ref={theaterRef}
-      className={`relative flex h-full w-full flex-col overflow-hidden bg-black selection:bg-white/20 ${!isHUDVisible && isFullscreen ? "cursor-none" : ""}`}
+      className={`relative flex h-full w-full flex-col overflow-hidden bg-[#04060a] selection:bg-white/20 ${!isHUDVisible && isFullscreen ? "cursor-none" : ""}`}
       onMouseMove={handleMouseMove}
     >
       <ReplayBackground
