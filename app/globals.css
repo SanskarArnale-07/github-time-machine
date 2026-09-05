@@ -248,13 +248,6 @@
     scroll-behavior: auto !important;
   }
 
-  /* Kill transforms and filter on anything explicitly animated by Framer or CSS */
-  [style*="transform"],
-  [style*="filter"] {
-    transform: none !important;
-    filter: none !important;
-    transition-property: opacity, color, background-color, border-color !important;
-  }
 
   /* Kill all looping CSS animations (particle drift, pulse, spin etc.) */
   .animate-particle-drift,
