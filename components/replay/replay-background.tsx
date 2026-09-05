@@ -10,15 +10,21 @@ export interface ReplayBackgroundProps {
   sceneIndex?: number;
   chapterIndex?: number;
   currentChapterId?: string;
+  isPaused?: boolean;
 }
 
 /**
  * Replay Theater Background Layer.
- * Wraps the global SpaceBackground with replay-specific configuration.
+ * 
+ * Performance Optimizations:
+ * - Reduced star density (0.4x) during replay preserves GPU fillrate for chapter animations.
+ * - Passes isPaused flag to stop the canvas RAF loop completely when documentary is paused.
+ * - Scene timing, audio, and replay engine state remain 100% untouched.
  */
 export const ReplayBackground = memo(function ReplayBackground({
   theme = "default",
   isFinal,
+  isPaused = false,
 }: ReplayBackgroundProps) {
   // On finale scene, shift to milestone theme if default
   const effectiveTheme: SpaceTheme = isFinal && theme === "default" ? "milestone" : theme;
@@ -28,7 +34,12 @@ export const ReplayBackground = memo(function ReplayBackground({
       aria-hidden="true"
       className="pointer-events-none absolute inset-0 -z-10 h-full w-full select-none overflow-hidden"
     >
-      <SpaceBackground theme={effectiveTheme} variant="absolute" />
+      <SpaceBackground 
+        theme={effectiveTheme} 
+        variant="absolute" 
+        starMultiplier={0.4}
+        isPaused={isPaused}
+      />
     </div>
   );
 });

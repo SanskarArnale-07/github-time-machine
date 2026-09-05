@@ -666,6 +666,7 @@ export function TimelineReplay({ commits, repos = [], profile = null, contributi
           progress={engine.progress}
           chapterIndex={chapterIndex}
           isFinal={isFinal}
+          isPaused={!engine.isPlaying}
         />
       </div>
       <div className={`replay-safe-frame absolute inset-0 flex flex-col items-center justify-center overflow-hidden bg-transparent ${!isHUDVisible && isFullscreen ? 'cursor-none' : ''}`}>

@@ -574,6 +574,7 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
         progress={engine.progress}
         isFinal={isFinal}
         sceneIndex={sceneIndex}
+        isPaused={!engine.isPlaying}
       />
 
       <header

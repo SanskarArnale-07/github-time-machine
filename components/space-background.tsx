@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useRef, useState, memo, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 
 export type SpaceTheme =
   | "default"
@@ -21,6 +20,9 @@ export interface SpaceBackgroundProps {
   showGrain?: boolean;
   className?: string;
   children?: React.ReactNode;
+  isPaused?: boolean;
+  starMultiplier?: number;
+  showGitGraph?: boolean;
 }
 
 interface Star {
@@ -37,69 +39,85 @@ interface Star {
   color: string;
 }
 
+interface GitNode {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  radius: number;
+  isMain: boolean;
+  connections: number[];
+}
+
 // ── Theme Color Configurations ───────────────────────────────────────────────
 const THEME_CONFIGS: Record<
   SpaceTheme,
   {
-    nebulaPrimary: string;
-    nebulaSecondary: string;
-    nebulaDust: string;
+    nebulaGradients: string;
     starMultiplier: number;
     haloBrightness: number;
   }
 > = {
   default: {
-    nebulaPrimary: "radial-gradient(circle, rgba(59, 130, 246, 0.55) 0%, rgba(37, 99, 235, 0.28) 45%, transparent 72%)",
-    nebulaSecondary: "radial-gradient(circle, rgba(124, 58, 237, 0.50) 0%, rgba(91, 33, 182, 0.25) 45%, transparent 72%)",
-    nebulaDust: "radial-gradient(circle, rgba(30, 58, 138, 0.45) 0%, rgba(30, 27, 75, 0.22) 50%, transparent 75%)",
+    nebulaGradients: `
+      radial-gradient(ellipse 65% 55% at 80% 10%, rgba(59, 130, 246, 0.16) 0%, rgba(37, 99, 235, 0.07) 40%, transparent 70%),
+      radial-gradient(ellipse 70% 60% at 15% 45%, rgba(124, 58, 237, 0.14) 0%, rgba(91, 33, 182, 0.05) 45%, transparent 72%),
+      radial-gradient(ellipse 60% 50% at 50% 85%, rgba(30, 58, 138, 0.14) 0%, rgba(15, 23, 42, 0.06) 50%, transparent 70%)
+    `,
     starMultiplier: 1.0,
     haloBrightness: 0.38,
   },
   architecture: {
-    // Deeper blue / royal violet atmosphere
-    nebulaPrimary: "radial-gradient(circle, rgba(37, 99, 235, 0.60) 0%, rgba(29, 78, 216, 0.32) 45%, transparent 72%)",
-    nebulaSecondary: "radial-gradient(circle, rgba(109, 40, 217, 0.55) 0%, rgba(76, 29, 149, 0.28) 45%, transparent 72%)",
-    nebulaDust: "radial-gradient(circle, rgba(30, 27, 75, 0.55) 0%, rgba(17, 24, 39, 0.3) 50%, transparent 75%)",
+    nebulaGradients: `
+      radial-gradient(ellipse 65% 55% at 80% 10%, rgba(37, 99, 235, 0.18) 0%, rgba(29, 78, 216, 0.08) 40%, transparent 70%),
+      radial-gradient(ellipse 70% 60% at 15% 45%, rgba(109, 40, 217, 0.15) 0%, rgba(76, 29, 149, 0.06) 45%, transparent 72%),
+      radial-gradient(ellipse 60% 50% at 50% 85%, rgba(30, 27, 75, 0.15) 0%, transparent 70%)
+    `,
     starMultiplier: 1.0,
     haloBrightness: 0.35,
   },
   performance: {
-    // Cooler cyan-blue glow
-    nebulaPrimary: "radial-gradient(circle, rgba(6, 182, 212, 0.55) 0%, rgba(14, 116, 144, 0.28) 45%, transparent 72%)",
-    nebulaSecondary: "radial-gradient(circle, rgba(30, 64, 175, 0.50) 0%, rgba(30, 58, 138, 0.25) 45%, transparent 72%)",
-    nebulaDust: "radial-gradient(circle, rgba(15, 23, 42, 0.6) 0%, rgba(8, 47, 73, 0.3) 50%, transparent 75%)",
+    nebulaGradients: `
+      radial-gradient(ellipse 65% 55% at 80% 10%, rgba(6, 182, 212, 0.16) 0%, rgba(14, 116, 144, 0.07) 40%, transparent 70%),
+      radial-gradient(ellipse 70% 60% at 15% 45%, rgba(30, 64, 175, 0.14) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 50% at 50% 85%, rgba(15, 23, 42, 0.16) 0%, transparent 70%)
+    `,
     starMultiplier: 1.05,
     haloBrightness: 0.42,
   },
   beginning: {
-    // Slightly brighter cosmic dawn glow
-    nebulaPrimary: "radial-gradient(circle, rgba(129, 140, 248, 0.65) 0%, rgba(99, 102, 241, 0.35) 45%, transparent 72%)",
-    nebulaSecondary: "radial-gradient(circle, rgba(168, 85, 247, 0.55) 0%, rgba(139, 92, 246, 0.28) 45%, transparent 72%)",
-    nebulaDust: "radial-gradient(circle, rgba(49, 46, 129, 0.5) 0%, rgba(67, 56, 202, 0.25) 50%, transparent 75%)",
+    nebulaGradients: `
+      radial-gradient(ellipse 65% 55% at 80% 10%, rgba(129, 140, 248, 0.18) 0%, transparent 70%),
+      radial-gradient(ellipse 70% 60% at 15% 45%, rgba(168, 85, 247, 0.15) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 50% at 50% 85%, rgba(49, 46, 129, 0.14) 0%, transparent 70%)
+    `,
     starMultiplier: 1.1,
     haloBrightness: 0.45,
   },
   refactor: {
-    // Muted violet atmosphere
-    nebulaPrimary: "radial-gradient(circle, rgba(139, 92, 246, 0.45) 0%, rgba(109, 40, 217, 0.22) 45%, transparent 72%)",
-    nebulaSecondary: "radial-gradient(circle, rgba(76, 29, 149, 0.42) 0%, rgba(55, 48, 163, 0.20) 45%, transparent 72%)",
-    nebulaDust: "radial-gradient(circle, rgba(24, 24, 27, 0.55) 0%, rgba(39, 39, 42, 0.25) 50%, transparent 75%)",
+    nebulaGradients: `
+      radial-gradient(ellipse 65% 55% at 80% 10%, rgba(139, 92, 246, 0.14) 0%, transparent 70%),
+      radial-gradient(ellipse 70% 60% at 15% 45%, rgba(76, 29, 149, 0.12) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 50% at 50% 85%, rgba(24, 24, 27, 0.15) 0%, transparent 70%)
+    `,
     starMultiplier: 0.95,
     haloBrightness: 0.32,
   },
   milestone: {
-    // Slightly stronger radial celestial glow
-    nebulaPrimary: "radial-gradient(circle, rgba(147, 51, 234, 0.65) 0%, rgba(126, 34, 206, 0.35) 45%, transparent 72%)",
-    nebulaSecondary: "radial-gradient(circle, rgba(59, 130, 246, 0.60) 0%, rgba(37, 99, 235, 0.32) 45%, transparent 72%)",
-    nebulaDust: "radial-gradient(circle, rgba(79, 70, 229, 0.55) 0%, rgba(55, 48, 163, 0.3) 50%, transparent 75%)",
+    nebulaGradients: `
+      radial-gradient(ellipse 65% 55% at 80% 10%, rgba(147, 51, 234, 0.18) 0%, transparent 70%),
+      radial-gradient(ellipse 70% 60% at 15% 45%, rgba(59, 130, 246, 0.16) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 50% at 50% 85%, rgba(79, 70, 229, 0.15) 0%, transparent 70%)
+    `,
     starMultiplier: 1.15,
     haloBrightness: 0.48,
   },
   streak: {
-    // Subtle star-density & starlight increase
-    nebulaPrimary: "radial-gradient(circle, rgba(56, 189, 248, 0.55) 0%, rgba(37, 99, 235, 0.3) 45%, transparent 72%)",
-    nebulaSecondary: "radial-gradient(circle, rgba(99, 102, 241, 0.50) 0%, rgba(79, 70, 229, 0.25) 45%, transparent 72%)",
-    nebulaDust: "radial-gradient(circle, rgba(30, 58, 138, 0.5) 0%, rgba(15, 23, 42, 0.25) 50%, transparent 75%)",
+    nebulaGradients: `
+      radial-gradient(ellipse 65% 55% at 80% 10%, rgba(56, 189, 248, 0.16) 0%, transparent 70%),
+      radial-gradient(ellipse 70% 60% at 15% 45%, rgba(99, 102, 241, 0.14) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 50% at 50% 85%, rgba(30, 58, 138, 0.14) 0%, transparent 70%)
+    `,
     starMultiplier: 1.25,
     haloBrightness: 0.46,
   },
@@ -108,7 +126,12 @@ const THEME_CONFIGS: Record<
 /**
  * Reusable Global Cinematic Deep-Space Background.
  * 
- * Used across the landing page, documentary replay, CTA bands, and legal routes.
+ * Optimized Architecture:
+ * - Replaces expensive multi-megapixel blur(80px-100px) Framer Motion loops with zero-cost static CSS radial gradients.
+ * - Single high-performance canvas loop with viewport IntersectionObserver detection.
+ * - Pauses automatically when tab is hidden or element is scrolled off-screen.
+ * - Supports merged git-graph rendering to prevent duplicate canvas loops on the landing page.
+ * - Full prefers-reduced-motion support (zero RAF loop, static render).
  */
 export const SpaceBackground = memo(function SpaceBackground({
   theme = "default",
@@ -119,12 +142,17 @@ export const SpaceBackground = memo(function SpaceBackground({
   showGrain = true,
   className = "",
   children,
+  isPaused = false,
+  starMultiplier,
+  showGitGraph = false,
 }: SpaceBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const starsRef = useRef<Star[]>([]);
+  const gitNodesRef = useRef<GitNode[]>([]);
   const animationFrameRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
+  const isVisibleRef = useRef<boolean>(true);
 
   const mouseTargetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const mouseCurrentRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -137,12 +165,13 @@ export const SpaceBackground = memo(function SpaceBackground({
 
   const [hasMounted, setHasMounted] = useState(false);
   const config = useMemo(() => THEME_CONFIGS[theme] || THEME_CONFIGS.default, [theme]);
+  const effectiveStarMultiplier = starMultiplier ?? config.starMultiplier;
 
   useEffect(() => {
     setHasMounted(true);
   }, []);
 
-  // Canvas starfield initialization & render loop
+  // Canvas starfield & git-graph initialization & render loop
   useEffect(() => {
     if (!hasMounted || !showStars) return;
 
@@ -172,10 +201,10 @@ export const SpaceBackground = memo(function SpaceBackground({
     };
 
     const initStars = (w: number, h: number) => {
-      const baseCount = Math.floor((w * h) / 13500);
+      const baseCount = Math.floor((w * h) / 14000);
       const targetCount = Math.min(
-        130,
-        Math.max(65, Math.floor(baseCount * config.starMultiplier))
+        110,
+        Math.max(45, Math.floor(baseCount * effectiveStarMultiplier))
       );
 
       const stars: Star[] = [];
@@ -184,26 +213,21 @@ export const SpaceBackground = memo(function SpaceBackground({
         let tier: 1 | 2 | 3 = 1;
         let radius = 0.5 + Math.random() * 0.35;
         let baseAlpha = 0.14 + Math.random() * 0.16;
-        let speedX = -0.012 - Math.random() * 0.015;
-        let speedY = -0.022 - Math.random() * 0.020;
+        let speedX = prefersReducedMotion ? 0 : -0.012 - Math.random() * 0.015;
+        let speedY = prefersReducedMotion ? 0 : -0.022 - Math.random() * 0.020;
 
         if (rand > 0.90) {
           tier = 3;
-          radius = 1.5 + Math.random() * 0.5;
-          baseAlpha = 0.65 + Math.random() * 0.25;
-          speedX = -0.035 - Math.random() * 0.03;
-          speedY = -0.055 - Math.random() * 0.04;
+          radius = 1.4 + Math.random() * 0.4;
+          baseAlpha = 0.60 + Math.random() * 0.22;
+          speedX = prefersReducedMotion ? 0 : -0.03 - Math.random() * 0.025;
+          speedY = prefersReducedMotion ? 0 : -0.05 - Math.random() * 0.035;
         } else if (rand > 0.55) {
           tier = 2;
-          radius = 0.9 + Math.random() * 0.35;
-          baseAlpha = 0.30 + Math.random() * 0.22;
-          speedX = -0.022 - Math.random() * 0.025;
-          speedY = -0.035 - Math.random() * 0.03;
-        }
-
-        if (prefersReducedMotion) {
-          speedX = 0;
-          speedY = 0;
+          radius = 0.85 + Math.random() * 0.3;
+          baseAlpha = 0.28 + Math.random() * 0.20;
+          speedX = prefersReducedMotion ? 0 : -0.02 - Math.random() * 0.02;
+          speedY = prefersReducedMotion ? 0 : -0.032 - Math.random() * 0.025;
         }
 
         stars.push({
@@ -222,6 +246,42 @@ export const SpaceBackground = memo(function SpaceBackground({
       }
 
       starsRef.current = stars;
+
+      // Optional merged git branch graph (eliminates duplicate canvas on landing page)
+      if (showGitGraph) {
+        const nodeCount = Math.min(Math.floor(w / 70), 20);
+        const nodes: GitNode[] = [];
+        for (let i = 0; i < nodeCount; i++) {
+          const isMain = Math.random() > 0.6;
+          nodes.push({
+            x: Math.random() * w,
+            y: (Math.random() * 0.75) * h, // Focused in hero / upper viewport
+            vx: prefersReducedMotion ? 0 : (Math.random() - 0.5) * 0.03,
+            vy: prefersReducedMotion ? 0 : (Math.random() - 0.5) * 0.03 - 0.008,
+            radius: isMain ? 3 : 2,
+            isMain,
+            connections: [],
+          });
+        }
+
+        // Branch connections
+        for (let i = 0; i < nodes.length; i++) {
+          const node = nodes[i];
+          const distances = nodes
+            .map((n, idx) => ({ idx, dist: Math.hypot(n.x - node.x, n.y - node.y) }))
+            .filter(d => d.idx !== i && d.dist < 320)
+            .sort((a, b) => a.dist - b.dist);
+
+          const connectionCount = Math.floor(Math.random() * 2) + 1;
+          for (let j = 0; j < Math.min(connectionCount, distances.length); j++) {
+            const targetIdx = distances[j].idx;
+            if (!node.connections.includes(targetIdx) && !nodes[targetIdx].connections.includes(i)) {
+              node.connections.push(targetIdx);
+            }
+          }
+        }
+        gitNodesRef.current = nodes;
+      }
     };
 
     const handleResize = () => {
@@ -244,6 +304,7 @@ export const SpaceBackground = memo(function SpaceBackground({
     window.addEventListener("resize", handleResize, { passive: true });
 
     const handleMouseMove = (e: MouseEvent) => {
+      if (prefersReducedMotion) return;
       const { width: w, height: h } = dimensionsRef.current;
       if (w <= 0 || h <= 0) return;
       mouseTargetRef.current = {
@@ -252,20 +313,42 @@ export const SpaceBackground = memo(function SpaceBackground({
       };
     };
 
-    window.addEventListener("mousemove", handleMouseMove, { passive: true });
+    if (!prefersReducedMotion) {
+      window.addEventListener("mousemove", handleMouseMove, { passive: true });
+    }
 
+    // Visibility detection: Pause RAF when tab is hidden or element is off-screen
     let isTabVisible = !document.hidden;
     const handleVisibilityChange = () => {
       isTabVisible = !document.hidden;
-      if (isTabVisible) {
+      if (isTabVisible && !isPaused && isVisibleRef.current) {
         lastTimeRef.current = performance.now();
+        if (!animationFrameRef.current) {
+          animationFrameRef.current = requestAnimationFrame(render);
+        }
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
+    // IntersectionObserver detection for off-screen canvas pause
+    let observer: IntersectionObserver | null = null;
+    if (typeof IntersectionObserver !== "undefined" && containerRef.current) {
+      observer = new IntersectionObserver(
+        ([entry]) => {
+          isVisibleRef.current = entry.isIntersecting;
+          if (entry.isIntersecting && isTabVisible && !isPaused && !animationFrameRef.current) {
+            lastTimeRef.current = performance.now();
+            animationFrameRef.current = requestAnimationFrame(render);
+          }
+        },
+        { threshold: 0.05 }
+      );
+      observer.observe(containerRef.current);
+    }
+
     const render = (time: number) => {
-      if (!isTabVisible) {
-        animationFrameRef.current = requestAnimationFrame(render);
+      if (!isTabVisible || isPaused || !isVisibleRef.current) {
+        animationFrameRef.current = null;
         return;
       }
 
@@ -279,8 +362,10 @@ export const SpaceBackground = memo(function SpaceBackground({
         return;
       }
 
-      mouseCurrentRef.current.x += (mouseTargetRef.current.x - mouseCurrentRef.current.x) * 0.035;
-      mouseCurrentRef.current.y += (mouseTargetRef.current.y - mouseCurrentRef.current.y) * 0.035;
+      if (!prefersReducedMotion) {
+        mouseCurrentRef.current.x += (mouseTargetRef.current.x - mouseCurrentRef.current.x) * 0.035;
+        mouseCurrentRef.current.y += (mouseTargetRef.current.y - mouseCurrentRef.current.y) * 0.035;
+      }
 
       ctx.save();
       ctx.scale(dpr, dpr);
@@ -289,41 +374,46 @@ export const SpaceBackground = memo(function SpaceBackground({
       const stars = starsRef.current;
       const speedMultiplier = delta / 16.666;
 
+      // Draw stars
       for (let i = 0; i < stars.length; i++) {
         const star = stars[i];
 
-        star.twinklePhase += star.twinkleSpeed * speedMultiplier;
-        const twinkle = Math.sin(star.twinklePhase);
-        const alphaScale = star.tier === 3 ? 0.70 + 0.30 * twinkle : 0.80 + 0.20 * twinkle;
-        star.currentAlpha = Math.max(0.04, Math.min(1, star.baseAlpha * alphaScale));
+        if (!prefersReducedMotion) {
+          star.twinklePhase += star.twinkleSpeed * speedMultiplier;
+          const twinkle = Math.sin(star.twinklePhase);
+          const alphaScale = star.tier === 3 ? 0.70 + 0.30 * twinkle : 0.80 + 0.20 * twinkle;
+          star.currentAlpha = Math.max(0.04, Math.min(1, star.baseAlpha * alphaScale));
 
-        star.x += star.speedX * speedMultiplier;
-        star.y += star.speedY * speedMultiplier;
+          star.x += star.speedX * speedMultiplier;
+          star.y += star.speedY * speedMultiplier;
 
-        const pad = 24;
-        if (star.x < -pad) star.x = w + pad;
-        if (star.x > w + pad) star.x = -pad;
-        if (star.y < -pad) star.y = h + pad;
-        if (star.y > h + pad) star.y = -pad;
+          const pad = 24;
+          if (star.x < -pad) star.x = w + pad;
+          if (star.x > w + pad) star.x = -pad;
+          if (star.y < -pad) star.y = h + pad;
+          if (star.y > h + pad) star.y = -pad;
+        }
 
         let px = 0;
         let py = 0;
-        if (star.tier === 1) {
-          px = mouseCurrentRef.current.x * 5;
-          py = mouseCurrentRef.current.y * 5;
-        } else if (star.tier === 2) {
-          px = mouseCurrentRef.current.x * 11;
-          py = mouseCurrentRef.current.y * 11;
-        } else {
-          px = mouseCurrentRef.current.x * 19;
-          py = mouseCurrentRef.current.y * 19;
+        if (!prefersReducedMotion) {
+          if (star.tier === 1) {
+            px = mouseCurrentRef.current.x * 4;
+            py = mouseCurrentRef.current.y * 4;
+          } else if (star.tier === 2) {
+            px = mouseCurrentRef.current.x * 9;
+            py = mouseCurrentRef.current.y * 9;
+          } else {
+            px = mouseCurrentRef.current.x * 16;
+            py = mouseCurrentRef.current.y * 16;
+          }
         }
 
         const drawX = star.x + px;
         const drawY = star.y + py;
 
         if (star.tier === 3) {
-          const haloRadius = star.radius * 3.2;
+          const haloRadius = star.radius * 3.0;
           const halo = ctx.createRadialGradient(drawX, drawY, 0, drawX, drawY, haloRadius);
           halo.addColorStop(0, `rgba(${star.color}, ${star.currentAlpha * config.haloBrightness})`);
           halo.addColorStop(0.5, `rgba(${star.color}, ${star.currentAlpha * (config.haloBrightness * 0.3)})`);
@@ -341,27 +431,74 @@ export const SpaceBackground = memo(function SpaceBackground({
         ctx.fill();
       }
 
+      // Draw optional merged Git branch lines & nodes (Zero per-frame allocation)
+      if (showGitGraph && gitNodesRef.current.length > 0) {
+        const nodes = gitNodesRef.current;
+        ctx.lineWidth = 1;
+
+        for (let i = 0; i < nodes.length; i++) {
+          const node = nodes[i];
+          if (!prefersReducedMotion) {
+            node.x += node.vx * speedMultiplier;
+            node.y += node.vy * speedMultiplier;
+            if (node.x < 0 || node.x > w) node.vx *= -1;
+            if (node.y < 0 || node.y > h) node.vy *= -1;
+          }
+
+          // Pre-defined solid stroke to prevent createLinearGradient allocation in loop
+          ctx.strokeStyle = node.isMain ? "rgba(212, 168, 83, 0.20)" : "rgba(88, 166, 255, 0.10)";
+
+          for (let j = 0; j < node.connections.length; j++) {
+            const target = nodes[node.connections[j]];
+            if (!target) continue;
+
+            ctx.beginPath();
+            ctx.moveTo(node.x, node.y);
+            const midY = node.y + (target.y - node.y) / 2;
+            ctx.bezierCurveTo(node.x, midY, target.x, midY, target.x, target.y);
+            ctx.stroke();
+          }
+
+          // Commit node
+          ctx.fillStyle = node.isMain ? "rgba(212, 168, 83, 0.75)" : "rgba(88, 166, 255, 0.50)";
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
       ctx.restore();
-      animationFrameRef.current = requestAnimationFrame(render);
+
+      if (!prefersReducedMotion) {
+        animationFrameRef.current = requestAnimationFrame(render);
+      }
     };
 
-    animationFrameRef.current = requestAnimationFrame(render);
+    // If reduced motion is requested, render once statically and do NOT loop
+    if (prefersReducedMotion) {
+      render(performance.now());
+    } else if (!isPaused) {
+      animationFrameRef.current = requestAnimationFrame(render);
+    }
 
     return () => {
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (observer) observer.disconnect();
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
       }
     };
-  }, [hasMounted, showStars, config]);
+  }, [hasMounted, showStars, config, effectiveStarMultiplier, isPaused, showGitGraph]);
 
   const positionClass = variant === "fixed" ? "fixed inset-0" : "absolute inset-0";
 
   return (
     <div
       ref={containerRef}
+      data-space-background="true"
       aria-hidden="true"
       className={`pointer-events-none ${positionClass} -z-10 h-full w-full select-none overflow-hidden bg-[#071426] ${className}`}
       style={{ isolation: "isolate" }}
@@ -375,77 +512,17 @@ export const SpaceBackground = memo(function SpaceBackground({
         }}
       />
 
-      {/* ── 2. Subtle Volumetric Blue / Purple Nebula Clouds ─────────────── */}
+      {/* ── 2. High-Performance Static CSS Nebulae (Replaces blur(100px) loops) ── */}
       {showNebula && (
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={theme}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1.6, ease: "easeInOut" }}
-            className="absolute inset-0"
-          >
-            {/* Upper-right celestial nebula wash */}
-            <motion.div
-              className="absolute -top-[25%] -right-[15%] h-[75vw] w-[75vw] max-w-[1200px] max-h-[1200px] rounded-full opacity-[0.14]"
-              animate={{
-                x: [0, 24, -12, 0],
-                y: [0, -18, 16, 0],
-                scale: [1, 1.05, 0.97, 1],
-              }}
-              transition={{
-                duration: 32,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-              style={{
-                background: config.nebulaPrimary,
-                filter: "blur(90px)",
-              }}
-            />
-
-            {/* Center-left cosmic purple/indigo nebula */}
-            <motion.div
-              className="absolute top-[20%] -left-[20%] h-[80vw] w-[80vw] max-w-[1300px] max-h-[1300px] rounded-full opacity-[0.13]"
-              animate={{
-                x: [0, -20, 15, 0],
-                y: [0, 25, -15, 0],
-                scale: [1, 0.96, 1.06, 1],
-              }}
-              transition={{
-                duration: 38,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-              style={{
-                background: config.nebulaSecondary,
-                filter: "blur(100px)",
-              }}
-            />
-
-            {/* Low-center subtle sapphire/space dust */}
-            <motion.div
-              className="absolute -bottom-[20%] left-[20%] h-[65vw] w-[65vw] max-w-[1000px] max-h-[1000px] rounded-full opacity-[0.10]"
-              animate={{
-                scale: [1, 1.08, 0.95, 1],
-                opacity: [0.10, 0.14, 0.08, 0.10],
-              }}
-              transition={{
-                duration: 26,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-              style={{
-                background: config.nebulaDust,
-                filter: "blur(80px)",
-              }}
-            />
-          </motion.div>
-        </AnimatePresence>
+        <div
+          className="absolute inset-0 pointer-events-none transition-opacity duration-1000"
+          style={{
+            background: config.nebulaGradients,
+          }}
+        />
       )}
 
-      {/* ── 3. High-Performance Particle Canvas (Stars & Time Drift) ─────── */}
+      {/* ── 3. High-Performance Particle Canvas (Stars & Optional Git Graph) ─ */}
       {showStars && (
         <canvas
           ref={canvasRef}

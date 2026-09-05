@@ -25,8 +25,8 @@ export default async function Home({
 
   return (
     <main className="relative min-h-screen bg-[#071426]">
-      {/* Global cinematic deep-space background */}
-      <SpaceBackground variant="fixed" theme="default" />
+      {/* Global cinematic deep-space background with merged git-graph (single unified canvas) */}
+      <SpaceBackground variant="fixed" theme="default" showGitGraph={true} />
 
       <div className="relative z-10">
         <Navbar />

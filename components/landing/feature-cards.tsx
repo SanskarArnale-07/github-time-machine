@@ -118,11 +118,11 @@ export function FeatureCards() {
                     {/* Background track */}
                     <div className="w-full h-1 rounded-full bg-gradient-to-r from-blue-500/20 via-[#d4a853]/40 to-blue-400/70" />
 
-                    {/* Progress indicator overlay */}
+                    {/* Progress indicator overlay (GPU scaleX instead of layout reflow) */}
                     <motion.div 
-                      className="absolute left-0 top-1/2 -translate-y-1/2 h-1 rounded-full bg-gradient-to-r from-blue-400 to-[#d4a853]"
-                      initial={{ width: "20%" }}
-                      animate={{ width: ["20%", "85%", "20%"] }}
+                      className="absolute left-0 top-1/2 -translate-y-1/2 h-1 w-full rounded-full bg-gradient-to-r from-blue-400 to-[#d4a853] origin-left"
+                      initial={{ scaleX: 0.2 }}
+                      animate={{ scaleX: [0.2, 0.85, 0.2] }}
                       transition={{ duration: 7, ease: "easeInOut", repeat: Infinity }}
                     />
 
@@ -370,9 +370,9 @@ export function FeatureCards() {
                     </div>
                     <div className="h-1 w-full bg-blue-950/80 rounded-full overflow-hidden">
                       <motion.div 
-                        className="h-full bg-gradient-to-r from-blue-400 via-[#d4a853] to-white"
-                        initial={{ width: "65%" }}
-                        animate={{ width: ["65%", "78%", "65%"] }}
+                        className="h-full w-full bg-gradient-to-r from-blue-400 via-[#d4a853] to-white origin-left"
+                        initial={{ scaleX: 0.65 }}
+                        animate={{ scaleX: [0.65, 0.78, 0.65] }}
                         transition={{ duration: 6, ease: "easeInOut", repeat: Infinity }}
                       />
                     </div>

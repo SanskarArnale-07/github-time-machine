@@ -1,34 +1,49 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
+/**
+ * GitBackground
+ * 
+ * Optimized Architecture:
+ * - If SpaceBackground is already active on the page, skips running a duplicate
+ *   canvas RAF loop to ensure two full-screen canvases never run simultaneously.
+ * - When running standalone:
+ *   - Precomputes gradients and eliminates in-loop garbage allocation.
+ *   - Uses IntersectionObserver to pause the animation when off-screen.
+ *   - Respects prefers-reduced-motion with a single static paint.
+ */
 export function GitBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [hasGlobalSpaceBg, setHasGlobalSpaceBg] = useState(false);
+
   useEffect(() => {
+    // Check if global SpaceBackground is already handling background visuals
+    if (typeof document !== "undefined" && document.querySelector("[data-space-background]")) {
+      setHasGlobalSpaceBg(true);
+      return;
+    }
+
     const canvas = canvasRef.current;
     if (!canvas) return;
     
-    // alpha: true allows underlying space background to show through
     const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return;
 
-    let animationFrameId: number;
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    let animationFrameId: number | null = null;
     let width = 0;
     let height = 0;
+    let isVisible = true;
 
     // Mouse tracking for subtle parallax
     const mouse = { x: 0, y: 0, targetX: 0, targetY: 0, isActive: false };
 
-    // --- ENTITIES ---
-    // 1. Light Blooms (Background atmospheric lights)
-    const blooms = [
-      { x: 0.22, y: 0.35, radius: 650, color: "rgba(212, 168, 83, 0.035)", vx: 0.01, vy: 0.008 }, // Champagne gold warmth behind hero
-      { x: 0.76, y: 0.45, radius: 720, color: "rgba(59, 130, 246, 0.055)", vx: -0.01, vy: -0.008 }, // Celestial royal blue behind preview card
-      { x: 0.50, y: 0.75, radius: 600, color: "rgba(99, 102, 241, 0.035)", vx: 0.008, vy: -0.01 }, // Subtle indigo space wash
-    ];
-
-    // 2. Floating Light Dust
+    // Floating Light Dust
     interface Dust {
       x: number;
       y: number;
@@ -36,11 +51,11 @@ export function GitBackground() {
       vy: number;
       radius: number;
       alpha: number;
-      z: number; // depth for parallax
+      z: number;
     }
     const dustParticles: Dust[] = [];
     
-    // 3. Git Commits and Branches
+    // Git Commits and Branches
     interface CommitNode {
       id: string;
       x: number;
@@ -49,13 +64,10 @@ export function GitBackground() {
       vy: number;
       radius: number;
       isMain: boolean;
-      hash: string;
-      connections: number[]; // indices of other nodes to connect to
-      z: number; // For parallax
+      connections: number[];
+      z: number;
     }
     let commitNodes: CommitNode[] = [];
-
-    const generateHash = () => Math.random().toString(16).substring(2, 9);
 
     const init = () => {
       width = window.innerWidth;
@@ -63,51 +75,44 @@ export function GitBackground() {
       canvas.width = width;
       canvas.height = height;
 
-      // Init dust (depth fog)
       dustParticles.length = 0;
-      const dustCount = Math.floor(width * height / 14000); // Sparse, elegant count
+      const dustCount = Math.min(Math.floor((width * height) / 18000), 40);
       for (let i = 0; i < dustCount; i++) {
         dustParticles.push({
           x: Math.random() * width,
           y: Math.random() * height,
-          vx: (Math.random() - 0.5) * 0.04,
-          vy: (Math.random() - 0.5) * 0.03 - 0.015, // Slow, imperceptible drift
-          radius: Math.random() * 0.9 + 0.3,
-          alpha: Math.random() * 0.22 + 0.04,
-          z: Math.random() * 2 + 1, // Depth 1 to 3
+          vx: prefersReducedMotion ? 0 : (Math.random() - 0.5) * 0.04,
+          vy: prefersReducedMotion ? 0 : (Math.random() - 0.5) * 0.03 - 0.015,
+          radius: Math.random() * 0.8 + 0.3,
+          alpha: Math.random() * 0.20 + 0.04,
+          z: Math.random() * 2 + 1,
         });
       }
 
-      // Init Commits
       commitNodes = [];
-      const nodeCount = Math.min(Math.floor(width / 60), 25); // Keeps graph readable
-      
+      const nodeCount = Math.min(Math.floor(width / 75), 18);
       for (let i = 0; i < nodeCount; i++) {
         const isMain = Math.random() > 0.6;
         commitNodes.push({
           id: `node-${i}`,
           x: Math.random() * width,
           y: Math.random() * height,
-          vx: (Math.random() - 0.5) * 0.04,
-          vy: (Math.random() - 0.5) * 0.04 - 0.01,
+          vx: prefersReducedMotion ? 0 : (Math.random() - 0.5) * 0.035,
+          vy: prefersReducedMotion ? 0 : (Math.random() - 0.5) * 0.035 - 0.008,
           radius: isMain ? 3.5 : 2,
           isMain,
-          hash: generateHash(),
           connections: [],
-          z: isMain ? 1 : 1.2, // Main branch nodes are slightly closer
+          z: isMain ? 1 : 1.2,
         });
       }
 
-      // Create branch connections (structured like a git graph)
       for (let i = 0; i < commitNodes.length; i++) {
         const node = commitNodes[i];
-        // Connect nodes that are relatively close, favoring vertical/diagonal connections
         const distances = commitNodes
           .map((n, idx) => ({ idx, dist: Math.hypot(n.x - node.x, n.y - node.y) }))
-          .filter(d => d.idx !== i && d.dist < 350)
+          .filter(d => d.idx !== i && d.dist < 320)
           .sort((a, b) => a.dist - b.dist);
         
-        // Connect to nearest 1-2 nodes to form branches
         const connectionCount = Math.floor(Math.random() * 2) + 1;
         for (let j = 0; j < Math.min(connectionCount, distances.length); j++) {
           const targetIdx = distances[j].idx;
@@ -122,6 +127,7 @@ export function GitBackground() {
     init();
 
     const handleMouseMove = (e: MouseEvent) => {
+      if (prefersReducedMotion) return;
       mouse.targetX = e.clientX;
       mouse.targetY = e.clientY;
       if (!mouse.isActive) {
@@ -135,12 +141,33 @@ export function GitBackground() {
       mouse.isActive = false;
     };
 
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseleave", handleMouseLeave);
+    if (!prefersReducedMotion) {
+      window.addEventListener("mousemove", handleMouseMove, { passive: true });
+      window.addEventListener("mouseleave", handleMouseLeave, { passive: true });
+    }
+
+    // IntersectionObserver: Pause when hero is out of viewport
+    let observer: IntersectionObserver | null = null;
+    if (typeof IntersectionObserver !== "undefined" && containerRef.current) {
+      observer = new IntersectionObserver(
+        ([entry]) => {
+          isVisible = entry.isIntersecting;
+          if (entry.isIntersecting && !animationFrameId && !prefersReducedMotion) {
+            animationFrameId = requestAnimationFrame(draw);
+          }
+        },
+        { threshold: 0.05 }
+      );
+      observer.observe(containerRef.current);
+    }
 
     const draw = () => {
-      // Smooth mouse interpolation for parallax
-      if (mouse.isActive) {
+      if (!isVisible) {
+        animationFrameId = null;
+        return;
+      }
+
+      if (mouse.isActive && !prefersReducedMotion) {
         mouse.x += (mouse.targetX - mouse.x) * 0.05;
         mouse.y += (mouse.targetY - mouse.y) * 0.05;
       }
@@ -148,42 +175,20 @@ export function GitBackground() {
       const mouseOffsetX = mouse.isActive ? (mouse.x - width / 2) : 0;
       const mouseOffsetY = mouse.isActive ? (mouse.y - height / 2) : 0;
 
-      // 1. Clear frame transparently
       ctx.clearRect(0, 0, width, height);
 
-      // 2. Draw Gentle Light Blooms (Atmospheric)
-      blooms.forEach(bloom => {
-        // Very slow drifting
-        bloom.x += bloom.vx / width;
-        bloom.y += bloom.vy / height;
-        if (bloom.x < -0.2 || bloom.x > 1.2) bloom.vx *= -1;
-        if (bloom.y < -0.2 || bloom.y > 1.2) bloom.vy *= -1;
-
-        // Subtle parallax on blooms
-        const bx = bloom.x * width + (mouseOffsetX * -0.01);
-        const by = bloom.y * height + (mouseOffsetY * -0.01);
-
-        const gradient = ctx.createRadialGradient(bx, by, 0, bx, by, bloom.radius);
-        gradient.addColorStop(0, bloom.color);
-        gradient.addColorStop(1, "rgba(0,0,0,0)");
-        
-        ctx.fillStyle = gradient;
-        ctx.fillRect(bx - bloom.radius, by - bloom.radius, bloom.radius * 2, bloom.radius * 2);
-      });
-
-      // 3. Draw Depth Fog / Dust
+      // Draw dust
       ctx.fillStyle = "#ffffff";
       dustParticles.forEach(dust => {
-        dust.x += dust.vx;
-        dust.y += dust.vy;
+        if (!prefersReducedMotion) {
+          dust.x += dust.vx;
+          dust.y += dust.vy;
+          if (dust.x < 0) dust.x = width;
+          if (dust.x > width) dust.x = 0;
+          if (dust.y < 0) dust.y = height;
+          if (dust.y > height) dust.y = 0;
+        }
 
-        // Wrap around edges
-        if (dust.x < 0) dust.x = width;
-        if (dust.x > width) dust.x = 0;
-        if (dust.y < 0) dust.y = height;
-        if (dust.y > height) dust.y = 0;
-
-        // Parallax offset based on dust depth
         const px = dust.x + (mouseOffsetX * -0.015 / dust.z);
         const py = dust.y + (mouseOffsetY * -0.015 / dust.z);
 
@@ -193,150 +198,101 @@ export function GitBackground() {
         ctx.fill();
       });
 
-      // Reset alpha for lines and nodes
       ctx.globalAlpha = 1;
 
-      // 4. Draw Git Branch Lines
+      // Draw Git Branch Lines — zero per-frame gradient allocations
       ctx.lineWidth = 1;
-      commitNodes.forEach((node, i) => {
-        node.x += node.vx;
-        node.y += node.vy;
-
-        // Soft bounce off edges for nodes to maintain relative graph structure
-        if (node.x < 0 || node.x > width) node.vx *= -1;
-        if (node.y < 0 || node.y > height) node.vy *= -1;
+      commitNodes.forEach((node) => {
+        if (!prefersReducedMotion) {
+          node.x += node.vx;
+          node.y += node.vy;
+          if (node.x < 0 || node.x > width) node.vx *= -1;
+          if (node.y < 0 || node.y > height) node.vy *= -1;
+        }
 
         const nx = node.x + (mouseOffsetX * -0.03 / node.z);
         const ny = node.y + (mouseOffsetY * -0.03 / node.z);
 
         node.connections.forEach(targetIdx => {
           const target = commitNodes[targetIdx];
+          if (!target) return;
           const tx = target.x + (mouseOffsetX * -0.03 / target.z);
           const ty = target.y + (mouseOffsetY * -0.03 / target.z);
 
-          // S-Curve to simulate git branch graphs
           ctx.beginPath();
           ctx.moveTo(nx, ny);
+          const midY = ny + (ty - ny) / 2;
+          ctx.bezierCurveTo(nx, midY, tx, midY, tx, ty);
           
-          const cp1x = nx;
-          const cp1y = ny + (ty - ny) / 2;
-          const cp2x = tx;
-          const cp2y = ny + (ty - ny) / 2;
-          
-          ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, tx, ty);
-          
-          // Faint, fading lines
-          const lineGradient = ctx.createLinearGradient(nx, ny, tx, ty);
-          if (node.isMain && target.isMain) {
-            lineGradient.addColorStop(0, "rgba(212, 168, 83, 0.22)");
-            lineGradient.addColorStop(1, "rgba(212, 168, 83, 0.22)");
-          } else {
-            lineGradient.addColorStop(0, "rgba(212, 168, 83, 0.16)");
-            lineGradient.addColorStop(1, "rgba(88, 166, 255, 0.08)");
-          }
-          
-          ctx.strokeStyle = lineGradient;
+          // Use pre-set solid color instead of creating new linear gradient per line per frame
+          ctx.strokeStyle = node.isMain && target.isMain 
+            ? "rgba(212, 168, 83, 0.22)" 
+            : "rgba(88, 166, 255, 0.10)";
           ctx.stroke();
         });
+
+        // Draw commit node
+        ctx.fillStyle = node.isMain ? "rgba(212, 168, 83, 0.85)" : "rgba(88, 166, 255, 0.6)";
+        ctx.beginPath();
+        ctx.arc(nx, ny, node.radius, 0, Math.PI * 2);
+        ctx.fill();
       });
 
-      // 5. Draw Commit Nodes
-      commitNodes.forEach(node => {
-        const nx = node.x + (mouseOffsetX * -0.03 / node.z);
-        const ny = node.y + (mouseOffsetY * -0.03 / node.z);
-
-        if (node.isMain) {
-          // Glow effect (performed efficiently without shadowBlur)
-          ctx.globalAlpha = 0.15;
-          ctx.fillStyle = "#D4A853";
-          ctx.beginPath();
-          ctx.arc(nx, ny, node.radius * 3.5, 0, Math.PI * 2);
-          ctx.fill();
-          
-          // Core node
-          ctx.globalAlpha = 1;
-          ctx.fillStyle = "#D4A853";
-          ctx.beginPath();
-          ctx.arc(nx, ny, node.radius, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Hash Text
-          ctx.globalAlpha = 0.5;
-          ctx.font = "11px var(--font-mono, monospace)";
-          ctx.fillStyle = "rgba(245, 242, 234, 0.7)";
-          ctx.fillText(node.hash, nx + 8, ny + 3);
-          ctx.globalAlpha = 1;
-        } else {
-          // Feature branch node
-          ctx.fillStyle = "rgba(212, 168, 83, 0.5)";
-          ctx.beginPath();
-          ctx.arc(nx, ny, node.radius, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      });
-
-      animationFrameId = requestAnimationFrame(draw);
+      if (!prefersReducedMotion) {
+        animationFrameId = requestAnimationFrame(draw);
+      }
     };
 
-    draw();
+    if (prefersReducedMotion) {
+      draw();
+    } else {
+      animationFrameId = requestAnimationFrame(draw);
+    }
 
     return () => {
       window.removeEventListener("resize", init);
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseleave", handleMouseLeave);
-      cancelAnimationFrame(animationFrameId);
+      if (observer) observer.disconnect();
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
     };
   }, []);
 
+  // When global SpaceBackground is handling the canvas, GitBackground does not mount a duplicate canvas loop
+  if (hasGlobalSpaceBg) {
+    return (
+      <div 
+        ref={containerRef}
+        aria-hidden="true" 
+        className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+      >
+        {/* Static soft ambient atmospheric glows (Zero GPU canvas cost) */}
+        <div 
+          className="absolute -top-[10%] left-[20%] h-[500px] w-[500px] rounded-full opacity-20 pointer-events-none"
+          style={{
+            background: "radial-gradient(circle, rgba(212, 168, 83, 0.15) 0%, transparent 70%)",
+          }}
+        />
+        <div 
+          className="absolute top-[30%] right-[10%] h-[600px] w-[600px] rounded-full opacity-20 pointer-events-none"
+          style={{
+            background: "radial-gradient(circle, rgba(59, 130, 246, 0.18) 0%, transparent 70%)",
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div
-      className="absolute inset-0 -z-10 h-full w-full overflow-hidden"
-      style={{
-        background:
-          "linear-gradient(135deg, #071426 0%, #091c3d 35%, #0B2450 70%, #101B45 100%)",
-      }}
+    <div 
+      ref={containerRef}
+      aria-hidden="true" 
+      className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
     >
-      {/* Subtle radial aura behind Left Column (hero copy) */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -left-[12%] top-[10%] h-[60vw] w-[60vw] max-w-[900px] max-h-[900px] rounded-full"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(11, 36, 80, 0.45) 0%, rgba(7, 20, 38, 0) 70%)",
-          filter: "blur(80px)",
-        }}
-      />
-
-      {/* Subtle radial aura behind Right Column (live preview card) */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -right-[10%] top-[20%] h-[55vw] w-[55vw] max-w-[850px] max-h-[850px] rounded-full"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(16, 27, 69, 0.50) 0%, rgba(7, 20, 38, 0) 70%)",
-          filter: "blur(90px)",
-        }}
-      />
-
       <canvas
         ref={canvasRef}
         className="absolute inset-0 h-full w-full"
-      />
-
-      {/* Film Grain Overlay */}
-      <div 
-        className="absolute inset-0 opacity-[0.035] mix-blend-overlay pointer-events-none" 
-        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}
-      />
-
-      {/* Deep Vignette */}
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(circle at center, transparent 30%, rgba(7, 20, 38, 0.45) 65%, #071426 115%)",
-        }}
+        style={{ display: "block" }}
       />
     </div>
   );

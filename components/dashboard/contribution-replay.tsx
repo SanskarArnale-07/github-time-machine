@@ -29,7 +29,6 @@ export function ContributionReplay({
   const maxProgress = renderContributions.length + 4;
 
   // ─── Animation clock lives entirely outside React ────────────────────────
-  // waveRef = the single source of truth for the wave column index
   const waveRef = useRef(-4);
   const rafRef = useRef<number | null>(null);
   const lastTickRef = useRef<number>(0);
@@ -37,57 +36,84 @@ export function ContributionReplay({
   const isInteractingRef = useRef(false);
 
   // ─── Cell DOM refs (indexed [weekIndex][dayIndex]) ───────────────────────
-  // We paint directly into these elements; React never re-renders them.
   const cellRefs = useRef<(HTMLDivElement | null)[][]>([]);
 
-  // Pre-allocate ref arrays when contributions change
   useEffect(() => {
     cellRefs.current = renderContributions.map((week) =>
       Array((week.days || []).length).fill(null)
     );
   }, [renderContributions]);
 
-  // ─── Core paint function — called by rAF, touches DOM directly ───────────
-  const paintFrame = useCallback(
+  // ─── High-Performance Full Paint (Used on mount, scrub, and seek) ────────
+  const fullPaint = useCallback(
     (wave: number) => {
       renderContributions.forEach((week, weekIndex) => {
-        const waveDistance = wave - weekIndex;
-        const isWave = isPlayingRef.current && waveDistance >= -1 && waveDistance <= 1;
-        const hasBloomed = waveDistance >= 0;
-        const isFading = waveDistance > 1 && waveDistance <= 5;
-
+        const hasBloomed = wave >= weekIndex;
         (week.days || []).forEach((day, dayIndex) => {
           const el = cellRefs.current[weekIndex]?.[dayIndex];
           if (!el) return;
 
-          const level = day.level;
-          const active = isWave && level > 0;
-          const cellColor = hasBloomed ? getCellColor(level) : MUTED_COLOR;
-          const glowOpacity = active
-            ? 0.7
-            : isFading && level > 0
-            ? Math.max(0.12, 0.45 - waveDistance * 0.06)
-            : 0;
-
-          el.style.backgroundColor = cellColor;
-          el.style.filter = active ? "brightness(1.25)" : "brightness(1)";
-          el.style.transform = active
-            ? "scale(1.2)"
-            : hasBloomed && level > 0
-            ? "scale(1.04)"
-            : "scale(1)";
-          el.style.boxShadow =
-            glowOpacity > 0
-              ? `0 0 ${active ? 14 : 9}px rgba(255,255,255,${glowOpacity})`
-              : "none";
-          el.style.zIndex = active ? "10" : "1";
+          el.style.backgroundColor = hasBloomed ? getCellColor(day.level) : MUTED_COLOR;
+          el.style.filter = "none";
+          el.style.transform = "scale(1)";
+          el.style.boxShadow = "none";
+          el.style.zIndex = "1";
         });
       });
     },
     [renderContributions]
   );
 
-  // ─── rAF ticker — advances wave every ~55ms without touching React ────────
+  // ─── Incremental Window Paint (Used during rAF playback) ─────────────────
+  // Instead of styling all 1,456 cells on every tick, ONLY style the active wave window
+  // (3-4 weeks = ~21-28 cells). Past cells stay static with zero DOM updates.
+  const paintIncrementalWave = useCallback(
+    (wave: number) => {
+      // 1. Reset the trailing week that just exited the active wave window
+      const exitWeek = wave - 3;
+      if (exitWeek >= 0 && exitWeek < renderContributions.length) {
+        const week = renderContributions[exitWeek];
+        (week.days || []).forEach((day, dayIndex) => {
+          const el = cellRefs.current[exitWeek]?.[dayIndex];
+          if (!el) return;
+          el.style.backgroundColor = getCellColor(day.level);
+          el.style.filter = "none";
+          el.style.transform = "scale(1)";
+          el.style.boxShadow = "none";
+          el.style.zIndex = "1";
+        });
+      }
+
+      // 2. Animate ONLY the active wave window [wave - 2, wave + 1] (~21 to 28 cells)
+      const startWeek = Math.max(0, wave - 2);
+      const endWeek = Math.min(renderContributions.length - 1, wave + 1);
+
+      for (let w = startWeek; w <= endWeek; w++) {
+        const week = renderContributions[w];
+        const waveDistance = wave - w;
+        const isWaveFront = isPlayingRef.current && (waveDistance === 0 || waveDistance === 1);
+        const hasBloomed = waveDistance >= 0;
+
+        (week.days || []).forEach((day, dayIndex) => {
+          const el = cellRefs.current[w]?.[dayIndex];
+          if (!el) return;
+
+          const level = day.level;
+          const active = isWaveFront && level > 0;
+          const cellColor = hasBloomed ? getCellColor(level) : MUTED_COLOR;
+
+          el.style.backgroundColor = cellColor;
+          el.style.filter = active ? "brightness(1.2)" : "none";
+          el.style.transform = active ? "scale(1.2)" : "scale(1)";
+          el.style.boxShadow = active ? "0 0 10px rgba(255,255,255,0.6)" : "none";
+          el.style.zIndex = active ? "10" : "1";
+        });
+      }
+    },
+    [renderContributions]
+  );
+
+  // ─── rAF ticker — advances wave every ~55ms touching only ~25 cells ───────
   const tick = useCallback(
     (timestamp: number) => {
       if (!isPlayingRef.current || isInteractingRef.current) {
@@ -99,9 +125,7 @@ export function ContributionReplay({
         if (waveRef.current < maxProgress) {
           waveRef.current += 1;
           lastTickRef.current = timestamp;
-          paintFrame(waveRef.current);
-          // Sync slider without scheduling a React re-render on every tick —
-          // we use a batched 200ms interval below instead.
+          paintIncrementalWave(waveRef.current);
         } else {
           isPlayingRef.current = false;
           setIsPlaying(false);
@@ -112,7 +136,7 @@ export function ContributionReplay({
 
       rafRef.current = requestAnimationFrame(tick);
     },
-    [maxProgress, paintFrame]
+    [maxProgress, paintIncrementalWave]
   );
 
   // ─── Sync slider thumb every 200ms so it tracks without per-frame renders ─
@@ -127,6 +151,18 @@ export function ContributionReplay({
 
   // ─── Start / stop the rAF loop when isPlaying changes ───────────────────
   useEffect(() => {
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (prefersReducedMotion) {
+      // In reduced-motion mode, show full state statically without running loop
+      fullPaint(maxProgress);
+      setIsPlaying(false);
+      isPlayingRef.current = false;
+      return;
+    }
+
     isPlayingRef.current = isPlaying;
     if (isPlaying) {
       lastTickRef.current = 0;
@@ -137,22 +173,22 @@ export function ContributionReplay({
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [isPlaying, tick]);
+  }, [isPlaying, tick, fullPaint, maxProgress]);
 
   // ─── Reset on mount ───────────────────────────────────────────────────────
   useEffect(() => {
     waveRef.current = -4;
     setSliderValue(-4);
     setIsPlaying(true);
-    paintFrame(-4);
-  }, [renderContributions, paintFrame]);
+    fullPaint(-4);
+  }, [renderContributions, fullPaint]);
 
   // ─── Slider scrub: user drags, we paint immediately at that position ──────
   const handleScrub = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = Number(e.target.value);
     waveRef.current = val;
     setSliderValue(val);
-    paintFrame(val);
+    fullPaint(val);
   };
 
   // ─── Play / Pause toggle ─────────────────────────────────────────────────
@@ -161,7 +197,7 @@ export function ContributionReplay({
       // Restart
       waveRef.current = -4;
       setSliderValue(-4);
-      paintFrame(-4);
+      fullPaint(-4);
       setIsPlaying(true);
     } else {
       setIsPlaying((p) => !p);
@@ -223,92 +259,64 @@ export function ContributionReplay({
         </div>
       </div>
 
-        {/* Right-edge fade signals horizontal scrollability on mobile */}
-        <div className="relative overflow-x-auto rounded-xl border border-white/10 bg-surface p-4 pb-5 shadow-inner [mask-image:linear-gradient(to_right,black_85%,transparent_100%)] sm:[mask-image:none]">
-          <div className="flex min-w-[760px]">
-          {/* Day labels */}
-          <div className="flex flex-col gap-[3px] pr-2 pt-5 font-mono text-[10px] text-zinc-500">
-            <div className="h-[11px]" />
-            <div className="h-[11px] leading-[11px]">Mon</div>
-            <div className="h-[11px]" />
-            <div className="h-[11px] leading-[11px]">Wed</div>
-            <div className="h-[11px]" />
-            <div className="h-[11px] leading-[11px]">Fri</div>
-            <div className="h-[11px]" />
-          </div>
-
-          <div className="flex flex-1 gap-[3px]">
-            {renderContributions.map((week, weekIndex) => (
-              <div key={weekIndex} className="relative flex flex-col gap-[3px]">
-                {/* Month labels */}
-                {weekIndex % 4 === 0 &&
-                  weekIndex < renderContributions.length &&
-                  week.days?.[0]?.date && (
-                    <div className="absolute -top-5 font-mono text-[10px] text-zinc-500 whitespace-nowrap">
-                      {new Date(week.days[0].date).toLocaleString("default", {
-                        month: "short",
-                      })}
-                    </div>
-                  )}
-
-                {(week.days || []).map((day, dayIndex) => (
-                  <div
-                    key={`${weekIndex}-${dayIndex}`}
-                    ref={(el) => {
-                      if (!cellRefs.current[weekIndex]) {
-                        cellRefs.current[weekIndex] = [];
-                      }
+      {/* Grid container with custom scrollbar styling */}
+      <div className="relative mb-6 overflow-x-auto pb-4 pt-2">
+        <div className="flex min-w-max gap-[3px] sm:gap-1">
+          {renderContributions.map((week, weekIndex) => (
+            <div key={weekIndex} className="flex flex-col gap-[3px] sm:gap-1">
+              {(week.days || []).map((_, dayIndex) => (
+                <div
+                  key={dayIndex}
+                  ref={(el) => {
+                    if (cellRefs.current[weekIndex]) {
                       cellRefs.current[weekIndex][dayIndex] = el;
-                    }}
-                    className="h-[11px] w-[11px] rounded-[2px] transition-[background-color,box-shadow,transform,filter] duration-700 ease-out sm:h-[13px] sm:w-[13px]"
-                    style={{ backgroundColor: MUTED_COLOR }}
-                    title={`${day.count} contribution${day.count === 1 ? "" : "s"} on ${day.date}`}
-                  />
-                ))}
-              </div>
-            ))}
-          </div>
+                    }
+                  }}
+                  className="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-[2px]"
+                  style={{
+                    backgroundColor: MUTED_COLOR,
+                    willChange: "transform, background-color",
+                  }}
+                />
+              ))}
+            </div>
+          ))}
         </div>
       </div>
 
-      <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-t border-white/10 pt-6">
-        <div className="flex flex-1 items-center gap-4">
+      {/* Playback Controls & Scrubber */}
+      <div className="flex flex-col gap-4 border-t border-white/10 pt-4 sm:flex-row sm:items-center">
+        <div className="flex items-center gap-3">
           <button
             onClick={handlePlayPause}
-            className="flex h-11 w-11 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors text-white focus:outline-none focus:ring-2 focus:ring-white/50"
-            aria-label={isPlaying ? "Pause replay" : sliderValue >= maxProgress ? "Restart replay" : "Play replay"}
+            className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10 text-white transition-colors hover:bg-white/20 active:scale-95"
+            aria-label={isPlaying ? "Pause replay" : "Play replay"}
           >
-            {isPlaying ? <Pause size={14} /> : sliderValue >= maxProgress ? <RotateCcw size={14} /> : <Play size={14} />}
+            {isPlaying ? (
+              <Pause className="h-4 w-4" />
+            ) : sliderValue >= maxProgress ? (
+              <RotateCcw className="h-4 w-4" />
+            ) : (
+              <Play className="h-4 w-4 fill-white" />
+            )}
           </button>
+        </div>
 
+        {/* Scrubber slider */}
+        <div className="flex flex-1 items-center gap-3">
           <input
             type="range"
-            min="-4"
+            min={-4}
             max={maxProgress}
             value={sliderValue}
             onChange={handleScrub}
-            onMouseEnter={() => { isInteractingRef.current = true; }}
-            onMouseLeave={() => { isInteractingRef.current = false; }}
-            onTouchStart={() => { isInteractingRef.current = true; }}
-            onTouchEnd={() => { isInteractingRef.current = false; }}
-            onMouseDown={() => setIsPlaying(false)}
-            aria-label="Scrub timeline"
-            className="flex-1 sm:w-48 sm:flex-initial py-3 bg-transparent cursor-pointer appearance-none outline-none focus:ring-2 focus:ring-white/50 [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/20 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:mt-[-6px] [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 sm:[&::-webkit-slider-thumb]:h-3 sm:[&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(255,255,255,0.8)] [&::-webkit-slider-thumb]:transition-transform hover:[&::-webkit-slider-thumb]:scale-125"
+            onMouseDown={() => (isInteractingRef.current = true)}
+            onMouseUp={() => (isInteractingRef.current = false)}
+            onTouchStart={() => (isInteractingRef.current = true)}
+            onTouchEnd={() => (isInteractingRef.current = false)}
+            className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-white/10 accent-white outline-none"
+            aria-label="Timeline scrubber"
           />
-        </div>
-
-        <div className="flex items-center gap-2 font-mono text-xs text-zinc-500">
-          <span>Less</span>
-          <div className="flex gap-1">
-            {[0, 1, 2, 3, 4].map((l) => (
-              <div
-                key={l}
-                className="h-[10px] w-[10px] rounded-sm"
-                style={{ backgroundColor: getCellColor(l) }}
-              />
-            ))}
-          </div>
-          <span>More</span>
         </div>
       </div>
     </div>

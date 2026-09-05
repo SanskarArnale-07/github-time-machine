@@ -186,12 +186,12 @@ export function CtaBand() {
                   className="absolute left-[11px] sm:left-[15px] top-3 bottom-3 w-[2px] bg-gradient-to-b from-blue-500/20 via-[#d4a853]/40 to-blue-400/80" 
                 />
 
-                {/* Ambient Traveling Light Packet */}
+                {/* Ambient Traveling Light Packet (GPU translateY instead of top) */}
                 <motion.div
                   aria-hidden="true"
-                  className="absolute left-[10px] sm:left-[14px] w-1 h-12 rounded-full bg-gradient-to-b from-transparent via-[#d4a853] to-transparent motion-reduce:hidden"
-                  initial={{ top: "0%", opacity: 0 }}
-                  animate={{ top: ["0%", "80%", "0%"], opacity: [0, 1, 0] }}
+                  className="absolute left-[10px] sm:left-[14px] top-3 w-1 h-12 rounded-full bg-gradient-to-b from-transparent via-[#d4a853] to-transparent motion-reduce:hidden"
+                  initial={{ y: 0, opacity: 0 }}
+                  animate={{ y: [0, 240, 0], opacity: [0, 1, 0] }}
                   transition={{ duration: 7, ease: "easeInOut", repeat: Infinity }}
                 />
 
