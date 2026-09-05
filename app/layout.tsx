@@ -23,6 +23,17 @@ export const metadata: Metadata = {
   title: "GitHub Time Machine — Replay your developer journey",
   description:
     "Turn years of commits, repos, and late-night pushes into a cinematic replay of how you became the developer you are.",
+  metadataBase: new URL("https://github-time-machine.vercel.app"),
+  openGraph: {
+    title: "GitHub Time Machine",
+    description: "A cinematic replay of your developer journey.",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "GitHub Time Machine",
+    description: "A cinematic replay of your developer journey.",
+  },
 };
 
 export default function RootLayout({

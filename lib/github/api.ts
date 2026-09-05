@@ -11,7 +11,7 @@ import {
 
 const GITHUB_API_URL = 'https://api.github.com';
 
-async function fetchFromGitHub(endpoint: string, token?: string) {
+async function fetchFromGitHub(endpoint: string, token?: string, revalidate: number = 0) {
   const headers: Record<string, string> = {
     'Accept': 'application/vnd.github.v3+json',
     'User-Agent': 'GitHub-Time-Machine'
@@ -21,10 +21,13 @@ async function fetchFromGitHub(endpoint: string, token?: string) {
     headers['Authorization'] = `token ${token}`;
   }
 
-  const response = await fetch(`${GITHUB_API_URL}${endpoint}`, {
+  const fetchOptions: RequestInit = {
     headers,
-    cache: 'no-store'
-  });
+    cache: revalidate > 0 ? 'force-cache' : 'no-store',
+    ...(revalidate > 0 ? { next: { revalidate } } : {}),
+  };
+
+  const response = await fetch(`${GITHUB_API_URL}${endpoint}`, fetchOptions);
 
   if (!response.ok) {
     // Unauthenticated requests are capped at 60/hour by GitHub — with more
@@ -45,11 +48,11 @@ async function fetchFromGitHub(endpoint: string, token?: string) {
 }
 
 export async function fetchGitHubProfile(username: string, token?: string): Promise<GitHubUserProfile> {
-  return fetchFromGitHub(`/users/${username}`, token);
+  return fetchFromGitHub(`/users/${username}`, token, 300);
 }
 
 export async function fetchUserRepositories(username: string, token?: string): Promise<GitHubRepo[]> {
-  const repos = await fetchFromGitHub(`/users/${username}/repos?per_page=100&sort=updated`, token);
+  const repos = await fetchFromGitHub(`/users/${username}/repos?per_page=100&sort=updated`, token, 300);
   return repos;
 }
 

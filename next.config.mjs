@@ -43,7 +43,19 @@ const securityHeaders = [
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Gzip/Brotli compression for all responses
+  compress: true,
+
+  // Tree-shake large icon, animation, and chart libraries — only bundle what's imported
+  experimental: {
+    optimizePackageImports: ["lucide-react", "framer-motion", "recharts"],
+  },
+
   images: {
+    // Serve AVIF first (smallest), then WebP, then original
+    formats: ["image/avif", "image/webp"],
+    // GitHub avatars rarely change — cache for 24 hours
+    minimumCacheTTL: 86400,
     remotePatterns: [
       {
         protocol: "https",
@@ -52,11 +64,22 @@ const nextConfig = {
       },
     ],
   },
+
   async headers() {
     return [
       {
         source: "/(.*)",
         headers: securityHeaders,
+      },
+      // Long-lived cache for static assets (Next.js hashes filenames)
+      {
+        source: "/_next/static/(.*)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
       },
     ];
   },

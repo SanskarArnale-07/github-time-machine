@@ -396,6 +396,27 @@ export function downloadReplaySummaryPDF(
  * - Minimal cinematic UI: Logo, Chapter badge, Repo pill, prominent Playfair Display title, date, thick glowing progress bar.
  * - Optional audio soundtrack integration (mixing warm piano directly into video stream).
  */
+const BRANCH_COLORS: Record<number, { stroke: string; glow: string; fill: string }> = {
+  0: { stroke: "#D4A853", glow: "rgba(212, 168, 83, 0.40)", fill: "#F59E0B" },    // Main trunk (GitHub Gold)
+  1: { stroke: "#38BDF8", glow: "rgba(56, 189, 248, 0.40)", fill: "#38BDF8" },    // Feature/Dev branch (Cyan)
+  "-1": { stroke: "#34D399", glow: "rgba(52, 211, 153, 0.40)", fill: "#34D399" }, // Release/Fix branch (Emerald)
+  2: { stroke: "#A855F7", glow: "rgba(168, 85, 247, 0.40)", fill: "#A855F7" },    // Architecture branch (Purple)
+  "-2": { stroke: "#F43F5E", glow: "rgba(244, 63, 94, 0.40)", fill: "#F43F5E" },  // Hotfix branch (Rose)
+  3: { stroke: "#818CF8", glow: "rgba(129, 140, 248, 0.40)", fill: "#818CF8" },    // Experimental branch (Indigo)
+  "-3": { stroke: "#FBBF24", glow: "rgba(251, 191, 36, 0.40)", fill: "#FBBF24" },  // Exploration branch (Amber)
+};
+
+function hexToRgb(hex: string): string {
+  const cleanHex = hex.replace("#", "");
+  if (cleanHex.length === 6) {
+    const r = parseInt(cleanHex.substring(0, 2), 16);
+    const g = parseInt(cleanHex.substring(2, 4), 16);
+    const b = parseInt(cleanHex.substring(4, 6), 16);
+    return `${r}, ${g}, ${b}`;
+  }
+  return "212, 168, 83";
+}
+
 export function exportReplayVideoFormat(
   title: string,
   mode: "landscape" | "vertical" | "gif",
@@ -500,9 +521,12 @@ export function exportReplayVideoFormat(
       document.body.appendChild(toast);
 
       let currentFrame = 0;
-      const updateGlobalProgress = (msg: string) => {
+      let lastReportTime = 0;
+      const updateGlobalProgress = (msg: string, force: boolean = false) => {
         text.innerText = msg;
-        if (currentFrame % 10 === 0) {
+        const now = Date.now();
+        if (force || now - lastReportTime > 150) {
+          lastReportTime = now;
           onProgress?.(msg);
         }
       };
@@ -510,14 +534,14 @@ export function exportReplayVideoFormat(
       const canvas = document.createElement("canvas");
       canvas.width = width;
       canvas.height = height;
-      const ctx = canvas.getContext("2d");
+      const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
       if (!ctx) {
         document.body.removeChild(toast);
         resolve(false);
         return;
       }
 
-      // Initialize WebCodecs and mp4-muxer
+      // Initialize WebCodecs and mp4-muxer at 60fps (ultra-fluid 60fps cinematic replay)
       const fps = 60;
       const target = new Mp4Muxer.ArrayBufferTarget();
       let muxer = new Mp4Muxer.Muxer({
@@ -531,10 +555,15 @@ export function exportReplayVideoFormat(
         firstTimestampBehavior: 'offset'
       });
 
+      // Track actual encoded frames so progress reports true hardware completion, not just canvas painting
+      let encodedFrames = 0;
       const videoEncoder = new VideoEncoder({
         output: (chunk, meta) => {
           try {
             muxer.addVideoChunk(chunk, meta);
+            encodedFrames++;
+            const pct = Math.min(99, Math.round((encodedFrames / totalFrames) * 100));
+            updateGlobalProgress(`Encoding 1080p frame ${encodedFrames} of ${totalFrames} (${pct}%)`);
           } catch (err) {
             console.error("Muxer addVideoChunk error:", err);
           }
@@ -546,15 +575,15 @@ export function exportReplayVideoFormat(
         }
       });
 
-    // 1. Intro sequence: 150 frames (2.5s @ 60fps)
-    const introFrames = 150;
-    // 2. Events: 150 frames per commit (2.5s per commit @ 60fps)
-    const framesPerEvent = 150;
+    // 1. Intro sequence: 3.2s @ 30fps (relaxed cinematic intro)
+    const introFrames = Math.round(3.2 * fps);
+    // 2. Events: 3.6s per commit @ 30fps (relaxed pacing, text stays on screen much longer)
+    const framesPerEvent = Math.round(3.6 * fps);
     
     // Determine max events based on duration preset
-    let maxEvents = 35; // Default for "full"
-    if (durationPreset === "30s") maxEvents = 10;
-    else if (durationPreset === "60s") maxEvents = 22;
+    let maxEvents = 20; // Default for "full"
+    if (durationPreset === "30s") maxEvents = 8;
+    else if (durationPreset === "60s") maxEvents = 16;
 
     // Take events sequentially
     const sampledEvents = events.length > maxEvents
@@ -562,8 +591,8 @@ export function exportReplayVideoFormat(
       : events;
       
     const eventFrames = sampledEvents.length * framesPerEvent;
-    // 3. Outro finale sequence: 180 frames (3.0s @ 60fps)
-    const outroFrames = 180;
+    // 3. Outro finale sequence: 7.5s @ 60fps (extended hold so user can view full git tree and summary text)
+    const outroFrames = Math.round(7.5 * fps);
     const totalFrames = introFrames + eventFrames + outroFrames;
 
     // --- SPATIAL GRAPH GENERATION ---
@@ -574,8 +603,26 @@ export function exportReplayVideoFormat(
     for (const sev of sampledEvents) graphEventsSet.add(sev);
     const finalGraphEvents = Array.from(graphEventsSet).sort((a,b) => a.timestamp - b.timestamp);
 
-    interface GraphNode { id: string; x: number; y: number; timestamp: number; isMilestone: boolean; lane: number; eventRef: ReplayEvent }
-    interface GraphEdge { sourceId: string; targetId: string }
+    interface GraphNode {
+      id: string;
+      x: number;
+      y: number;
+      timestamp: number;
+      isMilestone: boolean;
+      isMerge: boolean;
+      lane: number;
+      eventRef: ReplayEvent;
+      color: { stroke: string; glow: string; fill: string };
+      shortSha?: string;
+    }
+    interface GraphEdge {
+      sourceId: string;
+      targetId: string;
+      sourceNode?: GraphNode;
+      targetNode?: GraphNode;
+      color: { stroke: string; glow: string; fill: string };
+      isMerge: boolean;
+    }
 
     const laneSpacing = 120;
     const nodeSpacingY = 80;
@@ -623,19 +670,71 @@ export function exportReplayVideoFormat(
 
       const y = i * nodeSpacingY;
       const x = lane * laneSpacing;
-      const node: GraphNode = { id: ev.id, x, y, timestamp: ev.timestamp, isMilestone: sampledEvents.includes(ev), lane, eventRef: ev };
+      const nodeColor = BRANCH_COLORS[lane] || BRANCH_COLORS[0];
+      const shortSha = (ev as any).commitSha
+        ? String((ev as any).commitSha).slice(0, 7)
+        : (ev.id && ev.id.length >= 7 ? ev.id.slice(0, 7) : undefined);
+
+      const node: GraphNode = {
+        id: ev.id,
+        x,
+        y,
+        timestamp: ev.timestamp,
+        isMilestone: sampledEvents.includes(ev),
+        isMerge,
+        lane,
+        eventRef: ev,
+        color: nodeColor,
+        shortSha,
+      };
       nodes.push(node);
 
       if (i > 0) {
         const parent = lastNodeInBranch.get(sourceBranch) || lastNodeInBranch.get(0);
-        if (parent) edges.push({ sourceId: parent.id, targetId: node.id });
+        if (parent) {
+          edges.push({
+            sourceId: parent.id,
+            targetId: node.id,
+            color: nodeColor,
+            isMerge: false,
+          });
+        }
         if (isMerge) {
           const mergeParent = lastNodeInBranch.get(mergedBranch);
-          if (mergeParent) edges.push({ sourceId: mergeParent.id, targetId: node.id });
+          if (mergeParent) {
+            edges.push({
+              sourceId: mergeParent.id,
+              targetId: node.id,
+              color: BRANCH_COLORS[mergedBranch] || nodeColor,
+              isMerge: true,
+            });
+          }
         }
       }
       lastNodeInBranch.set(lane, node);
     });
+
+    // O(1) Node lookup map and pre-linked edges to eliminate millions of array scans per export
+    const nodeMap = new Map<string, GraphNode>();
+    nodes.forEach(n => nodeMap.set(n.id, n));
+
+    for (const edge of edges) {
+      edge.sourceNode = nodeMap.get(edge.sourceId);
+      edge.targetNode = nodeMap.get(edge.targetId);
+    }
+
+    const graphTotalHeight = nodes.length > 0 ? nodes[nodes.length - 1].y - nodes[0].y : 0;
+    let minX = 0;
+    let maxX = 0;
+    if (nodes.length > 0) {
+      minX = nodes[0].x;
+      maxX = nodes[0].x;
+      for (let i = 1; i < nodes.length; i++) {
+        if (nodes[i].x < minX) minX = nodes[i].x;
+        if (nodes[i].x > maxX) maxX = nodes[i].x;
+      }
+    }
+    const graphTotalWidth = Math.max(800, maxX - minX + 200);
 
     const noiseSvg = `<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>`;
     const noiseImg = new Image();
@@ -711,22 +810,14 @@ export function exportReplayVideoFormat(
       const contentX = margin;
       
       // 1. Left Column (Text)
-      // A subtle HUD "tick" animation to visually signal that the text has updated,
-      // without making it disappear or pop out of the screen.
-      // Rapid decay over the first ~5-7 frames of the event.
       const tick = Math.max(0, 1 - (eventProgress * 12)); 
       const easeTick = tick * tick;
       const globalYOffset = easeTick * 4;
-      const globalBlur = easeTick * 1.5;
       
       let y = height * 0.30 + globalYOffset;
-      
-      if (globalBlur > 0.1) {
-        ctx.filter = `blur(${globalBlur}px)`;
-      }
 
       // Chapter / Metadata
-      ctx.globalAlpha = alpha;
+      ctx.globalAlpha = alpha * (1 - easeTick * 0.2);
       const kickerY = y;
 
       ctx.fillStyle = COLOR_MUTED;
@@ -823,13 +914,10 @@ export function exportReplayVideoFormat(
           quoteY += 40;
         }
       }
-      
-      // Reset the filter so the graph doesn't blur
-      ctx.filter = "none";
 
       ctx.globalAlpha = 1;
       
-      // 2. Right Column (Git Visualization as a 2D Camera Viewport)
+      // 2. Right Column (Refined Multi-Branch GitHub Git Tree)
       if (!isVertical) {
         const rightX = width * 0.58;
         const rightW = width * 0.42;
@@ -842,14 +930,13 @@ export function exportReplayVideoFormat(
         ctx.clip();
         
         // --- CAMERA MATH ---
-        // We use the fractional continuousIndex to find exact timestamp and interpolate X/Y
         const idxBase = Math.max(0, Math.min(sampledEvents.length - 1, Math.floor(continuousIndex)));
         const frac = continuousIndex - idxBase;
         const ev1 = sampledEvents[idxBase];
         const ev2 = sampledEvents[Math.min(idxBase + 1, sampledEvents.length - 1)];
         
-        const node1 = nodes.find(n => n.id === ev1.id) || nodes[0];
-        const node2 = nodes.find(n => n.id === ev2.id) || node1;
+        const node1 = nodeMap.get(ev1.id) || nodes[0];
+        const node2 = nodeMap.get(ev2.id) || node1;
         
         let targetCamX = node1.x + (node2.x - node1.x) * frac;
         let targetCamY = node1.y + (node2.y - node1.y) * frac;
@@ -865,12 +952,9 @@ export function exportReplayVideoFormat(
           scale = 0.8 + 0.2 * easeIntro;
         } else if (currentFrame >= introFrames + eventFrames) {
           const outroProgress = (currentFrame - (introFrames + eventFrames)) / outroFrames;
-          const easeOutro = outroProgress < 0.5 ? 4 * outroProgress * outroProgress * outroProgress : 1 - Math.pow(-2 * outroProgress + 2, 3) / 2;
-          
-          const graphTotalHeight = nodes[nodes.length-1].y - nodes[0].y;
-          const minX = Math.min(...nodes.map(n => n.x));
-          const maxX = Math.max(...nodes.map(n => n.x));
-          const graphTotalWidth = Math.max(800, maxX - minX + 200);
+          // Smooth zoom-out in first 35% of outro (~2.6s), then holds perfectly stationary for ~5 seconds
+          const pZoom = Math.min(1, outroProgress / 0.35);
+          const easeOutro = 1 - Math.pow(1 - pZoom, 3);
           
           const fitScale = Math.min((rightW - 160) / graphTotalWidth, (height - 160) / graphTotalHeight, 0.5);
           
@@ -882,14 +966,10 @@ export function exportReplayVideoFormat(
         ctx.translate(centerX - targetCamX * scale, centerY - targetCamY * scale);
         ctx.scale(scale, scale);
 
-        // --- DRAW GRAPH ---
-        ctx.strokeStyle = COLOR_BORDER;
-        ctx.lineWidth = 2 / scale;
-
-        // Draw Edges (with opacity based on timestamp to reveal them over time)
+        // --- DRAW BRANCH EDGES ---
         for (const edge of edges) {
-          const n1 = nodes.find(n => n.id === edge.sourceId);
-          const n2 = nodes.find(n => n.id === edge.targetId);
+          const n1 = edge.sourceNode;
+          const n2 = edge.targetNode;
           if (!n1 || !n2) continue;
           
           let edgeProgress = 1.0;
@@ -898,77 +978,123 @@ export function exportReplayVideoFormat(
             edgeProgress = (currentTimestamp - n1.timestamp) / (n2.timestamp - n1.timestamp);
           }
 
+          const edgeColor = edge.color || BRANCH_COLORS[0];
+
           ctx.beginPath();
           ctx.moveTo(n1.x, n1.y);
           if (n1.lane === n2.lane) {
             ctx.lineTo(n2.x, n2.y);
           } else {
-            // Elegant bezier branch
-            ctx.bezierCurveTo(n1.x, n1.y + (n2.y - n1.y) * 0.4, n2.x, n2.y - (n2.y - n1.y) * 0.4, n2.x, n2.y);
+            // Elegant bezier branch curvature
+            const dy = n2.y - n1.y;
+            ctx.bezierCurveTo(n1.x, n1.y + dy * 0.45, n2.x, n2.y - dy * 0.45, n2.x, n2.y);
           }
           
+          const len = Math.hypot(n2.x - n1.x, n2.y - n1.y) * (n1.lane === n2.lane ? 1 : 1.25);
+
+          // 1. Soft atmospheric branch glow
+          ctx.strokeStyle = edgeColor.glow;
+          ctx.lineWidth = 4.5 / scale;
           if (edgeProgress < 1.0) {
-            const len = Math.sqrt(Math.pow(n2.x - n1.x, 2) + Math.pow(n2.y - n1.y, 2)) * (n1.lane === n2.lane ? 1 : 1.2);
             ctx.setLineDash([len]);
             ctx.lineDashOffset = len * (1 - edgeProgress);
           } else {
             ctx.setLineDash([]);
           }
           ctx.stroke();
+
+          // 2. Crisp core branch line
+          ctx.strokeStyle = edgeColor.stroke;
+          ctx.lineWidth = 2 / scale;
+          ctx.stroke();
           ctx.setLineDash([]);
         }
 
-        // Draw Nodes
+        // --- DRAW COMMIT NODES ---
         for (const node of nodes) {
           if (node.timestamp > ev2.timestamp && currentFrame < introFrames + eventFrames) {
             continue; // Not revealed yet
           }
           
-          // Distance from the camera target to calculate glow falloff
           const dx = node.x - targetCamX;
           const dy = node.y - targetCamY;
-          const dist = Math.sqrt(dx*dx + dy*dy);
-          const activeRadius = 150;
-          
+          const dist = Math.hypot(dx, dy);
+          const activeRadius = 160;
+          const nodeColor = node.color || BRANCH_COLORS[0];
+          const rgb = hexToRgb(nodeColor.fill);
+
           if (dist < activeRadius) {
-            // It's the active node area
+            // Active current commit node (calm, slow, majestic breathing glow)
             const intensity = 1 - (dist / activeRadius);
+            const pulse = 1 + (Math.sin(currentFrame * 0.04) * 0.5 + 0.5) * 0.12;
+            const pulseOp = 0.8 + (Math.sin(currentFrame * 0.03) * 0.5 + 0.5) * 0.2;
             
-            // Pulse continuous: scale 1 -> 1.15 -> 1, opacity breathing
-            const pulse = 1 + (Math.sin(currentFrame * 0.15) * 0.5 + 0.5) * 0.15;
-            const pulseOp = 0.7 + (Math.sin(currentFrame * 0.1) * 0.5 + 0.5) * 0.3;
-            
-            // Bloom
-            const nodeBloom = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, 100);
-            nodeBloom.addColorStop(0, `rgba(255, 230, 200, ${0.4 * intensity * pulseOp})`);
-            nodeBloom.addColorStop(1, "rgba(255, 230, 200, 0)");
+            // 1. Radiant multi-layer radial bloom (GPU-friendly, zero shadowBlur lag)
+            const bloomRadius = 110 * pulse;
+            const nodeBloom = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, bloomRadius);
+            nodeBloom.addColorStop(0, `rgba(${rgb}, ${0.45 * intensity * pulseOp})`);
+            nodeBloom.addColorStop(0.4, `rgba(${rgb}, ${0.15 * intensity * pulseOp})`);
+            nodeBloom.addColorStop(1, "rgba(0, 0, 0, 0)");
             ctx.fillStyle = nodeBloom;
             ctx.beginPath();
-            ctx.arc(node.x, node.y, 100, 0, Math.PI * 2);
+            ctx.arc(node.x, node.y, bloomRadius, 0, Math.PI * 2);
             ctx.fill();
 
-            // Core
-            ctx.fillStyle = `rgba(255, 255, 255, ${pulseOp})`;
-            ctx.shadowColor = GLOW_COLOR;
-            ctx.shadowBlur = 20 * intensity * pulse;
+            // 2. Outer pulse ripple ring
+            ctx.strokeStyle = `rgba(${rgb}, ${0.6 * intensity * pulseOp})`;
+            ctx.lineWidth = 1.5 / scale;
             ctx.beginPath();
-            ctx.arc(node.x, node.y, 7 * pulse, 0, Math.PI * 2);
-            ctx.fill();
-            
-            ctx.strokeStyle = `rgba(255, 230, 200, ${intensity * pulseOp})`;
-            ctx.lineWidth = 2 / scale;
-            ctx.beginPath();
-            ctx.arc(node.x, node.y, (14 + 4*intensity) * pulse, 0, Math.PI * 2);
+            ctx.arc(node.x, node.y, (16 + 6 * intensity) * pulse, 0, Math.PI * 2);
             ctx.stroke();
-            
-            ctx.shadowBlur = 0;
-          } else {
-            // Normal node
-            const isMilestone = node.isMilestone;
-            ctx.fillStyle = isMilestone ? "rgba(255, 255, 255, 0.7)" : "rgba(255, 255, 255, 0.3)";
+
+            // 3. Commit node body: GitHub-style crisp dark circle with color border
+            ctx.fillStyle = "#0A0A0A";
             ctx.beginPath();
-            ctx.arc(node.x, node.y, isMilestone ? 5 : 3.5, 0, Math.PI * 2);
+            ctx.arc(node.x, node.y, 8 * pulse, 0, Math.PI * 2);
             ctx.fill();
+
+            ctx.strokeStyle = nodeColor.stroke;
+            ctx.lineWidth = 2.5 / scale;
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, 8 * pulse, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // 4. Glowing inner core dot
+            ctx.fillStyle = "#FFFFFF";
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, 3.5 * pulse, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 5. If merge commit, draw concentric inner ring
+            if (node.isMerge) {
+              ctx.strokeStyle = nodeColor.stroke;
+              ctx.lineWidth = 1.2 / scale;
+              ctx.beginPath();
+              ctx.arc(node.x, node.y, 5.5 * pulse, 0, Math.PI * 2);
+              ctx.stroke();
+            }
+          } else {
+            // Normal background commits along branch lanes
+            const isMilestone = node.isMilestone;
+            
+            // Base commit dot
+            ctx.fillStyle = isMilestone ? nodeColor.stroke : "#1E293B";
+            ctx.strokeStyle = isMilestone ? "#FFFFFF" : nodeColor.stroke;
+            ctx.lineWidth = (isMilestone ? 1.8 : 1.2) / scale;
+
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, isMilestone ? 5.5 : 3.8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            if (node.isMerge) {
+              // Subtle merge indicator ring
+              ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+              ctx.lineWidth = 1 / scale;
+              ctx.beginPath();
+              ctx.arc(node.x, node.y, 6.5, 0, Math.PI * 2);
+              ctx.stroke();
+            }
           }
         }
 
@@ -978,7 +1104,12 @@ export function exportReplayVideoFormat(
       ctx.globalAlpha = 1;
     };
 
+    const textWrapCache = new Map<string, string[]>();
     function wrapText(context: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+      const cacheKey = `${text}___${maxWidth}`;
+      const cached = textWrapCache.get(cacheKey);
+      if (cached) return cached;
+
       const words = text.split(" ");
       const lines: string[] = [];
       let line = "";
@@ -992,12 +1123,21 @@ export function exportReplayVideoFormat(
         }
       }
       if (line) lines.push(line);
-      return lines.slice(0, 3);
+      const result = lines.slice(0, 3);
+      textWrapCache.set(cacheKey, result);
+      return result;
     }
 
     const renderMovie = (staticBgCanvas: HTMLCanvasElement) => {
       if (currentFrame < introFrames) {
         const introProgress = currentFrame / introFrames;
+        let introAlpha = 1.0;
+        if (introProgress < 0.15) {
+          introAlpha = introProgress / 0.15;
+        } else if (introProgress > 0.82) {
+          introAlpha = Math.max(0, (1 - introProgress) / 0.18);
+        }
+
         drawDocumentaryFrame({
           chapterLabel: "A Developer's Story",
           titleMain: title || "A Developer's Story",
@@ -1006,7 +1146,7 @@ export function exportReplayVideoFormat(
           milestoneQuote: `${events.length} commits reconstructed across the years.`,
           continuousIndex: 0,
           totalEvents: sampledEvents.length,
-          alpha: Math.min(1, Math.sin(introProgress * Math.PI)),
+          alpha: introAlpha,
           staticBgCanvas,
         });
       }
@@ -1019,16 +1159,20 @@ export function exportReplayVideoFormat(
         const frameInEvent = (currentFrame - introFrames) % framesPerEvent;
         const eventProgress = frameInEvent / framesPerEvent;
         
-        // Easing function for smooth scroll between nodes
+        // Easing function for smooth, slow, cinematic glide between nodes
         const easeProgress = eventProgress < 0.5 
           ? 4 * eventProgress * eventProgress * eventProgress 
           : 1 - Math.pow(-2 * eventProgress + 2, 3) / 2;
           
         const continuousIndex = eventIndex + easeProgress;
         
-        // Restore the cinematic fade in/out for the text block (dip to black)
-        // This ensures the text cleanly transitions between events without popping.
-        const eventAlpha = Math.min(1, Math.sin(eventProgress * Math.PI) * 1.3);
+        // Hold text at 100% full opacity for 75% of the event duration so it stays on screen and is easy to read
+        let eventAlpha = 1.0;
+        if (eventProgress < 0.12) {
+          eventAlpha = eventProgress / 0.12; // Smooth fade in
+        } else if (eventProgress > 0.86) {
+          eventAlpha = Math.max(0, (1 - eventProgress) / 0.14); // Gentle fade out into next event
+        }
 
         if (ev.type === "year_milestone") {
           drawDocumentaryFrame({
@@ -1061,6 +1205,13 @@ export function exportReplayVideoFormat(
       }
       else {
         const outroProgress = (currentFrame - (introFrames + eventFrames)) / outroFrames;
+        let outroAlpha = 1.0;
+        if (outroProgress < 0.08) {
+          outroAlpha = outroProgress / 0.08;
+        } else if (outroProgress > 0.90) {
+          outroAlpha = Math.max(0, (1 - outroProgress) / 0.10);
+        }
+
         drawDocumentaryFrame({
           chapterLabel: "Documentary Finale",
           titleMain: "From your first repository",
@@ -1070,17 +1221,10 @@ export function exportReplayVideoFormat(
           milestoneQuote: "Your GitHub history is not a graph. It is a story.",
           continuousIndex: sampledEvents.length - 1,
           totalEvents: sampledEvents.length,
-          alpha: Math.min(1, Math.sin(outroProgress * Math.PI)),
+          alpha: outroAlpha,
           staticBgCanvas,
         });
       }
-
-      currentFrame++;
-      updateGlobalProgress(
-        `Rendering 1080p frame ${currentFrame} of ${totalFrames} (${Math.round(
-          (currentFrame / totalFrames) * 100
-        )}%)`
-      );
     };
 
     // Background-tab immune yielding mechanism using Web Worker + MessageChannel.
@@ -1128,7 +1272,12 @@ export function exportReplayVideoFormat(
       flushYieldQueue();
     };
 
-    const yieldThread = (): Promise<void> => {
+    const yieldThread = (forceRest: boolean = false): Promise<void> => {
+      // If scheduler.yield is available (Chrome 129+), it explicitly yields to higher-priority user & OS tasks
+      if (typeof (window as any).scheduler?.yield === "function" && !forceRest) {
+        return (window as any).scheduler.yield();
+      }
+
       return new Promise<void>((resolve) => {
         let settled = false;
         const complete = () => {
@@ -1138,8 +1287,13 @@ export function exportReplayVideoFormat(
           }
         };
 
-        // Safety timeout to guarantee the render loop NEVER freezes
-        const safetyTimer = setTimeout(complete, 25);
+        if (forceRest) {
+          // A tiny 4ms timer gives the OS message pump and laptop CPU governor time to breathe
+          setTimeout(complete, 4);
+          return;
+        }
+
+        const safetyTimer = setTimeout(complete, 20);
 
         // Fast-path yielding with MessageChannel (instant macrotask dispatch)
         if (typeof MessageChannel !== "undefined") {
@@ -1151,22 +1305,7 @@ export function exportReplayVideoFormat(
             complete();
           };
           channel.port2.postMessage(null);
-        }
-
-        // Active worker keeps tick alive when tab is backgrounded
-        if (worker && workerActive) {
-          yieldQueue.push(() => {
-            clearTimeout(safetyTimer);
-            complete();
-          });
-          try {
-            worker.postMessage('tick');
-          } catch {
-            workerActive = false;
-            clearTimeout(safetyTimer);
-            complete();
-          }
-        } else if (typeof MessageChannel === "undefined") {
+        } else {
           setTimeout(() => {
             clearTimeout(safetyTimer);
             complete();
@@ -1177,26 +1316,31 @@ export function exportReplayVideoFormat(
 
     // Asynchronous rendering loop for WebCodecs
     const runExport = async () => {
-      // 1. Configure VideoEncoder with best supported codec
+      // 1. Configure VideoEncoder with best supported codec, preferring hardware acceleration
       const candidateCodecs = [
-        'avc1.42E033', // Constrained Baseline Level 5.1 (standard for 1080p60)
+        'avc1.42E033', // Constrained Baseline Level 5.1 (standard for 1080p)
         'avc1.4d002a', // Main Level 4.2
         'avc1.64002a', // High Level 4.2
         'avc1.42E028', // Baseline Level 4.0
       ];
 
+      const targetBitrate = 6000000; // 6.0 Mbps: crisp 1080p 60fps quality, minimal GPU strain
       let selectedCodec = 'avc1.42E033';
+      let useHardware: HardwareAcceleration = 'prefer-hardware';
+
       for (const candidate of candidateCodecs) {
         try {
           const support = await VideoEncoder.isConfigSupported({
             codec: candidate,
             width,
             height,
-            bitrate: 8000000,
+            bitrate: targetBitrate,
             framerate: fps,
+            hardwareAcceleration: 'prefer-hardware',
           });
           if (support && support.supported) {
             selectedCodec = candidate;
+            useHardware = support.config?.hardwareAcceleration || 'prefer-hardware';
             break;
           }
         } catch {
@@ -1208,8 +1352,9 @@ export function exportReplayVideoFormat(
         codec: selectedCodec,
         width: width,
         height: height,
-        bitrate: 8000000,
+        bitrate: targetBitrate,
         framerate: fps,
+        hardwareAcceleration: useHardware,
       });
 
       // 2. Wait for noise texture to load with safety timeout
@@ -1224,7 +1369,7 @@ export function exportReplayVideoFormat(
       const staticBgCanvas = document.createElement("canvas");
       staticBgCanvas.width = width;
       staticBgCanvas.height = height;
-      const bgCtx = staticBgCanvas.getContext("2d")!;
+      const bgCtx = staticBgCanvas.getContext("2d", { alpha: false })!;
       
       bgCtx.fillStyle = COLOR_BG;
       bgCtx.fillRect(0, 0, width, height);
@@ -1276,44 +1421,73 @@ export function exportReplayVideoFormat(
           return;
         }
 
+        // Strict backpressure: wait while encoder queue has pending work (bounded to prevent lockups)
+        let queueWait = 0;
+        while (videoEncoder.encodeQueueSize > 10 && queueWait < 25 && !isAborted) {
+          queueWait++;
+          await yieldThread(true);
+        }
+
         renderMovie(staticBgCanvas);
         
         const frame = new VideoFrame(canvas, {
-          timestamp: ((currentFrame - 1) * 1000000) / fps,
+          timestamp: (currentFrame * 1000000) / fps,
         });
 
-        // Throttle encoding if the queue gets too large (with bounded waiting)
-        let queueWait = 0;
-        while (videoEncoder.encodeQueueSize > 20 && queueWait < 40 && !isAborted) {
-          queueWait++;
-          await yieldThread();
-        }
-
-        videoEncoder.encode(frame, { keyFrame: (currentFrame - 1) % 60 === 0 });
+        videoEncoder.encode(frame, { keyFrame: currentFrame % (fps * 2) === 0 });
         frame.close();
+        currentFrame++;
 
-        // Yield to the browser's event loop every 4 frames to keep UI silky smooth and allow encoding callbacks
-        if (currentFrame % 4 === 0) {
-          await yieldThread();
+        // Cooperative yield on every frame so laptop UI and mouse stay 100% fluid
+        // Every 6 frames, take a 4ms breather to keep CPU thermals and fans low
+        if (currentFrame % 6 === 0) {
+          await yieldThread(true);
+        } else {
+          await yieldThread(false);
         }
       }
 
-      await videoEncoder.flush();
-      muxer.finalize();
+      updateGlobalProgress("Finalizing video encoding...", true);
+
+      // Flush videoEncoder with safety race so a hardware driver stall never freezes the export
+      try {
+        await Promise.race([
+          videoEncoder.flush(),
+          new Promise<void>((_, reject) => setTimeout(() => reject(new Error("Flush timeout")), 10000)),
+        ]);
+      } catch (flushErr) {
+        console.warn("VideoEncoder flush notice:", flushErr);
+      }
+
+      updateGlobalProgress("Packaging MP4 video...", true);
+      await yieldThread();
+      
+      try {
+        muxer.finalize();
+      } catch (muxErr) {
+        console.warn("Muxer finalize notice:", muxErr);
+      }
+
       const buffer = target.buffer;
       
       spinner.style.display = "none";
       cancelBtn.style.display = "none";
       text.innerText = "Export Complete! Downloading...";
       text.style.color = "#4ade80"; // Success green
+      updateGlobalProgress("Export Complete! Downloading...", true);
 
       const blob = new Blob([buffer], { type: "video/mp4" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = `github-time-machine-${mode}-documentary.mp4`;
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
+      
+      setTimeout(() => {
+        if (document.body.contains(a)) document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 2000);
 
       setTimeout(() => {
         if (document.body.contains(toast)) {

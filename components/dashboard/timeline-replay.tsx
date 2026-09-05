@@ -39,12 +39,7 @@ import {
 import { useReplayEngine } from "@/lib/github/replay-engine";
 import { ambientSoundtrack } from "@/lib/audio/ambient-soundtrack";
 import { Button } from "@/components/ui/button";
-import {
-  copyShareableReplayLink,
-  downloadReplaySummaryPDF,
-  exportReplayVideoFormat,
-  generateSocialThumbnailImage,
-} from "@/lib/github/export-utils";
+// export-utils is large (59 KB) and only needed on user action — loaded on demand
 
 interface TimelineReplayProps {
   commits: GitHubCommit[];
@@ -247,6 +242,7 @@ export function TimelineReplay({
 
 
   const handleCopyLink = async () => {
+    const { copyShareableReplayLink } = await import("@/lib/github/export-utils");
     const res = await copyShareableReplayLink(username, engine.currentIndex);
     if (res.success) {
       setCopiedLink(true);
@@ -254,12 +250,14 @@ export function TimelineReplay({
     }
   };
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
+    const { downloadReplaySummaryPDF } = await import("@/lib/github/export-utils");
     downloadReplaySummaryPDF(profile, engine.chapters, commits, repos);
   };
 
   const handleExportThumbnail = async () => {
     setExportStatus("Generating social preview image...");
+    const { generateSocialThumbnailImage } = await import("@/lib/github/export-utils");
     await generateSocialThumbnailImage(
       username,
       commits.length,
@@ -279,8 +277,9 @@ export function TimelineReplay({
   ) => {
     setExportingType(format);
     setExportStatus(
-      `Rendering 1080p 30fps documentary ${withAudio ? "with soundtrack" : "(no audio)"}...`
+      `Rendering 1080p 60fps documentary ${withAudio ? "with soundtrack" : "(no audio)"}...`
     );
+    const { exportReplayVideoFormat } = await import("@/lib/github/export-utils");
     await exportReplayVideoFormat(
       `${username}'s Developer Replay`,
       format,
@@ -498,7 +497,7 @@ export function TimelineReplay({
               Export 1080p Cinematic Documentary
             </span>
             <p className="font-sans text-xs text-muted">
-              Renders the entire replay at 1080p 30fps with 80% card frame, true 1x pacing, and intro/outro.
+              Renders the entire replay at 1080p 60fps with 80% card frame, true 1x pacing, and intro/outro.
             </p>
           </div>
 

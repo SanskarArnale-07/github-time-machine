@@ -193,7 +193,7 @@ export const ArchiveBackground = memo(function ArchiveBackground() {
       />
 
       {/* Keyframe animations for subtle ambient timeline drift */}
-      <style jsx global>{`
+      <style>{`
         @keyframes archiveTimelinePulse {
           0% {
             transform: translateX(-100%);

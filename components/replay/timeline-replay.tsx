@@ -33,11 +33,7 @@ import type {
 } from "@/lib/github/types";
 import { useReplayEngine } from "@/lib/github/replay-engine";
 import { ambientSoundtrack } from "@/lib/audio/ambient-soundtrack";
-import {
-  copyShareableReplayLink,
-  downloadReplaySummaryPDF,
-  exportReplayVideoFormat,
-} from "@/lib/github/export-utils";
+// export-utils is large (59 KB) and only needed on user action — loaded on demand
 import { Button } from "@/components/ui/button";
 import { ReplayBackground } from "@/components/replay/replay-background";
 import { SpaceTheme } from "@/components/space-background";
@@ -317,7 +313,8 @@ export function TimelineReplay({ commits, repos = [], profile = null, contributi
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isExportOpen]);
 
-  const handleExportPDF = useCallback(() => {
+  const handleExportPDF = useCallback(async () => {
+    const { downloadReplaySummaryPDF } = await import("@/lib/github/export-utils");
     downloadReplaySummaryPDF(profile, engine.chapters, commits, repos, contributions);
     setIsExportOpen(false);
   }, [profile, engine.chapters, commits, repos, contributions]);
@@ -327,18 +324,18 @@ export function TimelineReplay({ commits, repos = [], profile = null, contributi
     setExportProgress("Initializing...");
     
     // Fire and forget - runs in background with its own global toast
-    exportReplayVideoFormat(
-      `${username}'s Developer Documentary`,
-      "landscape",
-      engine.events,
-      engine.chapters,
-      (msg) => setExportProgress(msg),
-      soundEnabled
-    ).finally(() => {
-      // This state update might happen after unmount if they leave the page,
-      // but React handles that fine now.
-      setIsExporting(false);
-      setExportProgress(null);
+    import("@/lib/github/export-utils").then(({ exportReplayVideoFormat }) => {
+      exportReplayVideoFormat(
+        `${username}'s Developer Documentary`,
+        "landscape",
+        engine.events,
+        engine.chapters,
+        (msg) => setExportProgress(msg),
+        soundEnabled
+      ).finally(() => {
+        setIsExporting(false);
+        setExportProgress(null);
+      });
     });
     
     // Immediately close the export modal so they aren't trapped
@@ -535,6 +532,7 @@ export function TimelineReplay({ commits, repos = [], profile = null, contributi
   }, [soundEnabled]);
 
   const copyReplayLink = useCallback(async () => {
+    const { copyShareableReplayLink } = await import("@/lib/github/export-utils");
     const result = await copyShareableReplayLink(username, engine.currentIndex);
     if (result.success) {
       setCopiedLink(true);

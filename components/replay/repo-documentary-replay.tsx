@@ -26,11 +26,7 @@ import {
 import type { GitHubCommit, GitHubRepo, ReplayEvent } from "@/lib/github/types";
 import { useRepoDocumentaryEngine } from "@/lib/github/replay-engine";
 import { ambientSoundtrack } from "@/lib/audio/ambient-soundtrack";
-import {
-  copyRepoDocumentaryLink,
-  downloadRepoDocumentaryPDF,
-  exportRepoDocumentaryVideo,
-} from "@/lib/github/export-utils";
+// export-utils is large (59 KB) and only needed on user action — loaded on demand
 import { Button } from "@/components/ui/button";
 import { ReplayBackground } from "@/components/replay/replay-background";
 
@@ -332,12 +328,14 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
   }, [isExportOpen]);
 
   const handleCopyLink = useCallback(async () => {
+    const { copyRepoDocumentaryLink } = await import("@/lib/github/export-utils");
     const result = await copyRepoDocumentaryLink(repo.full_name, engine.currentIndex);
     setLinkCopied(result.success);
     setTimeout(() => setLinkCopied(false), 2000);
   }, [repo.full_name, engine.currentIndex]);
 
-  const handleExportPDF = useCallback(() => {
+  const handleExportPDF = useCallback(async () => {
+    const { downloadRepoDocumentaryPDF } = await import("@/lib/github/export-utils");
     downloadRepoDocumentaryPDF(repo, engine.events, engine.chapters);
     setIsExportOpen(false);
   }, [repo, engine.events, engine.chapters]);
@@ -346,16 +344,18 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
     setIsExporting(true);
     setExportProgress("Initializing...");
 
-    exportRepoDocumentaryVideo(
-      repo,
-      engine.events,
-      engine.chapters,
-      (msg) => setExportProgress(msg),
-      soundEnabled,
-      exportDuration
-    ).finally(() => {
-      setIsExporting(false);
-      setExportProgress(null);
+    import("@/lib/github/export-utils").then(({ exportRepoDocumentaryVideo }) => {
+      exportRepoDocumentaryVideo(
+        repo,
+        engine.events,
+        engine.chapters,
+        (msg) => setExportProgress(msg),
+        soundEnabled,
+        exportDuration
+      ).finally(() => {
+        setIsExporting(false);
+        setExportProgress(null);
+      });
     });
 
     setIsExportOpen(false);

@@ -116,7 +116,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(payload, {
       headers: {
-        "Cache-Control": "private, no-cache, no-store, must-revalidate",
+        // Match the in-memory TTL so the browser can serve this from its own
+        // cache during the same session without a round-trip to the server.
+        "Cache-Control": "private, max-age=600, stale-while-revalidate=1200",
       },
     });
   } catch (error: any) {
