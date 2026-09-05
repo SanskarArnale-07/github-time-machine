@@ -7,30 +7,68 @@ import {
 } from "./types";
 
 export function cleanCommitMessage(msg: string): string {
-  if (!msg) return "the codebase";
-  
-  // Take only the first line
-  let cleaned = msg.split("\n")[0];
-  
-  // Handle merge commits
-  if (cleaned.startsWith("Merge ")) {
-    return "merging branches";
+  if (!msg) return "Update codebase";
+
+  // ── Step 1: Take only the subject line ────────────────────────────────
+  let s = msg.split(/\r?\n/)[0].trim();
+
+  // ── Step 2: Handle special commit types ───────────────────────────────
+  if (/^Merge (pull request|branch|remote)/i.test(s)) return "Merge branches";
+  if (/^Revert "/i.test(s)) return "Revert previous change";
+  if (/^(Initial commit|Init repo?|First commit)/i.test(s)) return "Initial commit";
+  if (/^(WIP|wip)[:\s]/i.test(s)) return s.replace(/^(WIP|wip)[:\s]+/i, "WIP: ");
+
+  // ── Step 3: Strip conventional commit prefix (feat(scope): …) ─────────
+  s = s.replace(/^(feat|fix|chore|docs|style|refactor|perf|test|build|ci|revert|env)(\([^)]*\))?!?:\s*/i, "");
+
+  // ── Step 4: Strip trailing noise ──────────────────────────────────────
+  s = s
+    .replace(/\s*\(#\d+\)\s*$/, "")          // (#123) PR refs
+    .replace(/\s*\[#\d+\]\s*$/, "")          // [#123]
+    .replace(/\s*\(closes?\s+#\d+\)/i, "")   // (closes #42)
+    .replace(/\s*--\s+\S+$/, "")             // -- author suffix
+    .trim();
+
+  // ── Step 5: Semantic condensing ───────────────────────────────────────
+  // Drop long "for <detailed reason>" / "to <reason>" tails
+  s = s
+    .replace(/\s+for\s+(the\s+)?[A-Za-z].{20,}$/i, "")  // "for Difference Between Examples and Explanation"
+    .replace(/\s+in\s+order\s+to\s+.+$/i, "")
+    .replace(/\s+so\s+that\s+.+$/i, "")
+    .trim();
+
+  // Drop filler file extensions when preceded by a meaningful name
+  // "Added README.md file" → "Add README.md"
+  s = s.replace(/\s+file(s)?\b/gi, (_, pl) => pl ? " files" : "");
+
+  // Shorten "and improve/update/clean/fix X" tails when already long enough
+  // "Update components and improve performance" → "Update components"
+  if (s.length > 40) {
+    s = s.replace(/\s+(and|&)\s+(improve|update|clean|fix|refactor|add|remove|handle|resolve)\b.+$/i, "");
+    s = s.trim();
   }
-  
-  // Remove conventional commit prefixes (e.g., "feat(ui): ", "fix: ")
-  cleaned = cleaned.replace(/^(feat|fix|chore|docs|style|refactor|perf|test|build|ci|env)(\([^)]+\))?:\s*/i, "");
-  
-  // Remove trailing issue numbers like (#123)
-  cleaned = cleaned.replace(/\s*\(#\d+\)\s*$/, "");
-  
-  // Trim and truncate
-  cleaned = cleaned.trim();
-  if (cleaned.length > 45) {
-    cleaned = cleaned.substring(0, 45) + "...";
+
+  // Collapse path-heavy messages: keep the last meaningful segment
+  // "apps/dashboard/components/Button.tsx: add prop" → "Add prop to Button"
+  const pathMatch = s.match(/^[a-z0-9/_.-]+\/([A-Za-z0-9_-]+)(?:\.[a-z]+)?[:\s]+(.+)$/);
+  if (pathMatch) {
+    s = `${pathMatch[2]} in ${pathMatch[1]}`;
   }
-  
-  return cleaned || "the codebase";
+
+  // ── Step 6: Capitalise first letter ───────────────────────────────────
+  s = s.charAt(0).toUpperCase() + s.slice(1);
+
+  // ── Step 7: Last-resort word-boundary trim (avoids "...") ─────────────
+  const LIMIT = 52;
+  if (s.length > LIMIT) {
+    // Cut at the last word boundary before the limit
+    const cut = s.lastIndexOf(" ", LIMIT);
+    s = cut > 20 ? s.slice(0, cut) : s.slice(0, LIMIT);
+  }
+
+  return s || "Update codebase";
 }
+
 
 const LANGUAGE_COLORS: Record<string, string> = {
   TypeScript: "#3178c6",

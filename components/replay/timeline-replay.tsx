@@ -169,14 +169,19 @@ function ReplayMilestoneCard({
         ? cleanCommitMessage(event.commit.message)
         : event?.title || event?.commit?.repoName || event?.repoName || "A meaningful step forward";
   
-  let description = event?.description ||
+  let description: string | undefined;
+
+  if (isMonthSummary && event?.monthlySummary) {
+    description = event.monthlySummary.whatChangedNarrative;
+  } else if (isRepository) {
+    description = event?.description || "A new repository entered the archive.";
+  } else {
+    // Commits, year milestones, and other events: show cinematic narrative
+    description =
+      event?.description ||
       event?.impactDescription ||
       (isCommit ? event?.title : undefined) ||
       "Another line in the story takes shape.";
-      
-  if (isRepository) description = event?.description || "A new repository entered the archive.";
-  if (isMonthSummary && event?.monthlySummary) {
-    description = event.monthlySummary.whatChangedNarrative;
   }
 
   return (
@@ -185,7 +190,7 @@ function ReplayMilestoneCard({
       initial="initial" animate="animate" exit="exit"
     >
       {/* Top Metadata */}
-      <motion.div 
+      <motion.div
         variants={{
           initial: { opacity: 0, y: 10 },
           animate: { opacity: 1, y: 0, transition: { duration: 0.8 } },
@@ -201,7 +206,7 @@ function ReplayMilestoneCard({
 
       {/* Center Narrative */}
       <div className="max-w-5xl">
-        <motion.h2 
+        <motion.h2
           variants={{
             initial: { opacity: 0, y: 10 },
             animate: { opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.15 } },
@@ -212,20 +217,22 @@ function ReplayMilestoneCard({
         >
           {title}
         </motion.h2>
-        <motion.p 
-          variants={{
-            initial: { opacity: 0, y: 10 },
-            animate: { opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.3 } },
-            exit: { opacity: 0, transition: { duration: 0.3 } }
-          }}
-          className="mx-auto mt-6 max-w-3xl text-xl sm:text-2xl font-light leading-relaxed text-zinc-300 drop-shadow-lg text-balance"
-        >
-          {description}
-        </motion.p>
+        {description && (
+          <motion.p
+            variants={{
+              initial: { opacity: 0, y: 10 },
+              animate: { opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.3 } },
+              exit: { opacity: 0, transition: { duration: 0.3 } }
+            }}
+            className="mx-auto mt-6 max-w-3xl text-xl sm:text-2xl font-light leading-relaxed text-zinc-300 drop-shadow-lg text-balance"
+          >
+            {description}
+          </motion.p>
+        )}
       </div>
 
       {/* Bottom Stats / Documentary Footer */}
-      <motion.div 
+      <motion.div
         variants={{
           initial: { opacity: 0, y: 10 },
           animate: { opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.45 } },

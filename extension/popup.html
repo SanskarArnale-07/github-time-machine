@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GitHub Time Machine</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="popup">
+
+      <!-- Header -->
+      <header class="popup-header">
+        <div class="logo">
+          <span class="logo-icon">⏳</span>
+          <div class="logo-text">
+            <span class="logo-title">GitHub Time Machine</span>
+            <span class="logo-tagline">Replay your work. Remember your journey.</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Profile detected state -->
+      <main id="state-profile" class="state hidden">
+        <div class="profile-card">
+          <div class="profile-avatar-wrap">
+            <img id="profile-avatar" class="profile-avatar" src="" alt="" />
+            <div class="profile-avatar-ring"></div>
+          </div>
+          <div class="profile-info">
+            <span id="profile-name" class="profile-name"></span>
+            <span id="profile-username" class="profile-username"></span>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="btn-replay" class="btn btn-primary">
+            <span class="btn-icon">▶</span>
+            <span>Replay History</span>
+          </button>
+
+          <div class="btn-group">
+            <button id="btn-open-app" class="btn btn-secondary">
+              Open Time Machine
+            </button>
+            <button id="btn-new-tab" class="btn btn-secondary">
+              New Tab
+            </button>
+          </div>
+        </div>
+      </main>
+
+      <!-- No profile state -->
+      <main id="state-empty" class="state hidden">
+        <div class="empty-state">
+          <div class="empty-icon">👤</div>
+          <p class="empty-text">
+            Visit a GitHub profile to start a replay.
+          </p>
+          <button id="btn-open-app-empty" class="btn btn-secondary btn-full">
+            Open Time Machine
+          </button>
+        </div>
+      </main>
+
+      <!-- Loading state -->
+      <main id="state-loading" class="state">
+        <div class="loading-state">
+          <div class="loading-ring"></div>
+          <span class="loading-text">Detecting profile…</span>
+        </div>
+      </main>
+
+      <!-- Footer / Settings toggle -->
+      <footer class="popup-footer">
+        <button id="btn-settings-toggle" class="footer-link" aria-expanded="false">
+          ⚙ Settings
+        </button>
+      </footer>
+
+      <!-- Settings panel (inline, toggled) -->
+      <div id="settings-panel" class="settings-panel hidden">
+        <label class="settings-label" for="input-base-url">Time Machine URL</label>
+        <input
+          id="input-base-url"
+          class="settings-input"
+          type="url"
+          placeholder="https://github-time-machine.vercel.app"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <div class="settings-actions">
+          <button id="btn-settings-save" class="btn btn-primary btn-sm">Save</button>
+          <button id="btn-settings-cancel" class="btn btn-ghost btn-sm">Cancel</button>
+        </div>
+        <p class="settings-hint">
+          Override to use a local dev server. Leave blank to reset to the
+          production URL.
+        </p>
+      </div>
+
+    </div>
+    <script src="popup.js"></script>
+  </body>
+</html>

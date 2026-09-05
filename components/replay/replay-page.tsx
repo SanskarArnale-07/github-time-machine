@@ -15,6 +15,8 @@ interface ReplayPageProps {
   initialEmail?: string;
   initialProfile: GitHubUserProfile | null;
   repoFilter?: string; // e.g. "owner/repo"
+  /** When set, fetch from the public API (extension-launched replay for any GitHub user). */
+  publicUsername?: string;
 }
 
 export function ReplayPage({
@@ -23,6 +25,7 @@ export function ReplayPage({
   initialEmail: _initialEmail,
   initialProfile,
   repoFilter,
+  publicUsername,
 }: ReplayPageProps) {
   const [profile, setProfile] = useState<GitHubUserProfile | null>(initialProfile);
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
@@ -64,8 +67,16 @@ export function ReplayPage({
     setError(null);
 
     try {
-      const response = await fetch("/api/github/commits");
-      if (!response.ok) throw new Error(`Failed to load data (${response.status})`);
+      // Public extension-launched replay uses the public API; authenticated replay uses the private one.
+      const endpoint = publicUsername
+        ? `/api/github/public/${encodeURIComponent(publicUsername)}`
+        : "/api/github/commits";
+
+      const response = await fetch(endpoint);
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.error || `Failed to load data (${response.status})`);
+      }
 
       const data = await response.json();
       applyReplayData(data);
@@ -82,7 +93,7 @@ export function ReplayPage({
     } finally {
       setIsLoading(false);
     }
-  }, [applyReplayData, cacheKey]);
+  }, [applyReplayData, cacheKey, publicUsername]);
 
   // Resolve cache and network fallback together so a warm cache never triggers
   // a redundant request or causes a second layout pass.

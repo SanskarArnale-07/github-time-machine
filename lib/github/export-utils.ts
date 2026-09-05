@@ -611,8 +611,9 @@ export function exportReplayVideoFormat(
       totalEvents: number;
       alpha: number;
       eventProgress?: number;
+      staticBgCanvas?: HTMLCanvasElement;
     }) => {
-      const { chapterLabel, badgeText, titleMain, titleAccent, dateLabel, milestoneLabel, milestoneQuote, continuousIndex, totalEvents, alpha, eventProgress = 1.0 } = opts;
+      const { chapterLabel, badgeText, titleMain, titleAccent, dateLabel, milestoneLabel, milestoneQuote, continuousIndex, totalEvents, alpha, eventProgress = 1.0, staticBgCanvas } = opts;
 
       // Compute staggered animation states
       const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
@@ -623,30 +624,12 @@ export function exportReplayVideoFormat(
       const pMilestone = Math.min(1, Math.max(0, (eventProgress - 0.08) / 0.12));
 
       ctx.globalAlpha = 1;
-      ctx.fillStyle = COLOR_BG;
-      ctx.fillRect(0, 0, width, height);
-
-      // Noise pass simulation using soft gradients to add atmosphere
-      const bgGlow = ctx.createRadialGradient(width / 2, height / 2, 0, width / 2, height / 2, width);
-      bgGlow.addColorStop(0, "rgba(255, 240, 220, 0.03)");
-      bgGlow.addColorStop(1, "rgba(0, 0, 0, 0)");
-      ctx.fillStyle = bgGlow;
-      ctx.fillRect(0, 0, width, height);
-
-      // Ambient Frame Texture (Noise & Vignette)
-      if (noiseImg.complete) {
-        ctx.globalAlpha = 0.04;
-        ctx.globalCompositeOperation = "overlay";
-        ctx.drawImage(noiseImg, 0, 0, width, height);
-        ctx.globalCompositeOperation = "source-over";
+      if (staticBgCanvas) {
+        ctx.drawImage(staticBgCanvas, 0, 0);
+      } else {
+        ctx.fillStyle = COLOR_BG;
+        ctx.fillRect(0, 0, width, height);
       }
-
-      ctx.globalAlpha = 1;
-      const vignette = ctx.createRadialGradient(width/2, height/2, height*0.4, width/2, height/2, width*0.7);
-      vignette.addColorStop(0, "rgba(0,0,0,0)");
-      vignette.addColorStop(1, "rgba(5,5,5,0.85)");
-      ctx.fillStyle = vignette;
-      ctx.fillRect(0, 0, width, height);
 
       const margin = 80;
 
@@ -805,16 +788,6 @@ export function exportReplayVideoFormat(
         ctx.rect(rightX, 0, rightW, height);
         ctx.clip();
         
-        // Cinematic Lighting Bloom in background
-        const bgBloom2 = ctx.createRadialGradient(
-          rightX + rightW * 0.4, centerY, 0,
-          rightX + rightW * 0.4, centerY, height * 0.7
-        );
-        bgBloom2.addColorStop(0, "rgba(255, 230, 200, 0.05)");
-        bgBloom2.addColorStop(1, "rgba(0, 0, 0, 0)");
-        ctx.fillStyle = bgBloom2;
-        ctx.fillRect(rightX, 0, rightW, height);
-
         // --- CAMERA MATH ---
         // We use the fractional continuousIndex to find exact timestamp and interpolate X/Y
         const idxBase = Math.max(0, Math.min(sampledEvents.length - 1, Math.floor(continuousIndex)));
@@ -894,7 +867,7 @@ export function exportReplayVideoFormat(
 
         // Draw Nodes
         for (const node of nodes) {
-          if (node.timestamp > currentTimestamp && currentFrame < introFrames + eventFrames) {
+          if (node.timestamp > ev2.timestamp && currentFrame < introFrames + eventFrames) {
             continue; // Not revealed yet
           }
           
@@ -969,7 +942,7 @@ export function exportReplayVideoFormat(
       return lines.slice(0, 3);
     }
 
-    const renderMovie = () => {
+    const renderMovie = (staticBgCanvas: HTMLCanvasElement) => {
       if (currentFrame < introFrames) {
         const introProgress = currentFrame / introFrames;
         drawDocumentaryFrame({
@@ -981,6 +954,7 @@ export function exportReplayVideoFormat(
           continuousIndex: 0,
           totalEvents: sampledEvents.length,
           alpha: Math.min(1, Math.sin(introProgress * Math.PI)),
+          staticBgCanvas,
         });
       }
       else if (currentFrame < introFrames + eventFrames) {
@@ -1013,6 +987,7 @@ export function exportReplayVideoFormat(
             totalEvents: sampledEvents.length,
             alpha: eventAlpha,
             eventProgress,
+            staticBgCanvas,
           });
         } else {
           const chapterName = ev.chapterName || "The Developer Journey";
@@ -1027,6 +1002,7 @@ export function exportReplayVideoFormat(
             totalEvents: sampledEvents.length,
             alpha: eventAlpha,
             eventProgress,
+            staticBgCanvas,
           });
         }
       }
@@ -1042,6 +1018,7 @@ export function exportReplayVideoFormat(
           continuousIndex: sampledEvents.length - 1,
           totalEvents: sampledEvents.length,
           alpha: Math.min(1, Math.sin(outroProgress * Math.PI)),
+          staticBgCanvas,
         });
       }
 
@@ -1053,10 +1030,83 @@ export function exportReplayVideoFormat(
       );
     };
 
+    // Background-tab immune yielding mechanism using a Web Worker.
+    // setTimeout is heavily throttled when the tab is inactive, which would pause the render.
+    const workerCode = `self.onmessage = function() { self.postMessage('tick'); }`;
+    const workerBlob = new Blob([workerCode], { type: 'application/javascript' });
+    const workerUrl = URL.createObjectURL(workerBlob);
+    const worker = new Worker(workerUrl);
+    
+    let yieldResolver: (() => void) | null = null;
+    worker.onmessage = () => {
+      if (yieldResolver) {
+        yieldResolver();
+        yieldResolver = null;
+      }
+    };
+    const yieldThread = () => new Promise<void>(resolve => {
+      yieldResolver = resolve;
+      worker.postMessage('tick');
+    });
+
     // Asynchronous rendering loop for WebCodecs
     const runExport = async () => {
+      // 1. Wait for noise texture to load
+      await new Promise(r => {
+        if (noiseImg.complete) r(null);
+        else noiseImg.onload = r;
+      });
+
+      // 2. Pre-render the completely static background to save massive CPU time (overlay blending)
+      const staticBgCanvas = document.createElement("canvas");
+      staticBgCanvas.width = width;
+      staticBgCanvas.height = height;
+      const bgCtx = staticBgCanvas.getContext("2d")!;
+      
+      bgCtx.fillStyle = COLOR_BG;
+      bgCtx.fillRect(0, 0, width, height);
+
+      const bgGlow = bgCtx.createRadialGradient(width / 2, height / 2, 0, width / 2, height / 2, width);
+      bgGlow.addColorStop(0, "rgba(255, 240, 220, 0.03)");
+      bgGlow.addColorStop(1, "rgba(0, 0, 0, 0)");
+      bgCtx.fillStyle = bgGlow;
+      bgCtx.fillRect(0, 0, width, height);
+
+      bgCtx.globalAlpha = 0.04;
+      bgCtx.globalCompositeOperation = "overlay";
+      bgCtx.drawImage(noiseImg, 0, 0, width, height);
+      bgCtx.globalCompositeOperation = "source-over";
+
+      bgCtx.globalAlpha = 1;
+      const vignette = bgCtx.createRadialGradient(width/2, height/2, height*0.4, width/2, height/2, width*0.7);
+      vignette.addColorStop(0, "rgba(0,0,0,0)");
+      vignette.addColorStop(1, "rgba(5,5,5,0.85)");
+      bgCtx.fillStyle = vignette;
+      bgCtx.fillRect(0, 0, width, height);
+
+      if (!isVertical) {
+        const rightX = width * 0.58;
+        const rightW = width * 0.42;
+        const centerY = height / 2;
+        
+        bgCtx.save();
+        bgCtx.beginPath();
+        bgCtx.rect(rightX, 0, rightW, height);
+        bgCtx.clip();
+        
+        const bgBloom2 = bgCtx.createRadialGradient(
+          rightX + rightW * 0.4, centerY, 0,
+          rightX + rightW * 0.4, centerY, height * 0.7
+        );
+        bgBloom2.addColorStop(0, "rgba(255, 230, 200, 0.05)");
+        bgBloom2.addColorStop(1, "rgba(0, 0, 0, 0)");
+        bgCtx.fillStyle = bgBloom2;
+        bgCtx.fillRect(rightX, 0, rightW, height);
+        bgCtx.restore();
+      }
+
       while (currentFrame < totalFrames) {
-        renderMovie();
+        renderMovie(staticBgCanvas);
         
         const frame = new VideoFrame(canvas, {
           timestamp: ((currentFrame - 1) * 1000000) / fps,
@@ -1064,7 +1114,7 @@ export function exportReplayVideoFormat(
 
         // Throttle encoding if the queue gets too large
         while (videoEncoder.encodeQueueSize > 15) {
-          await new Promise(r => setTimeout(r, 5));
+          await yieldThread();
         }
 
         videoEncoder.encode(frame, { keyFrame: (currentFrame - 1) % 60 === 0 });
@@ -1072,7 +1122,7 @@ export function exportReplayVideoFormat(
 
         // Yield to the browser's event loop every few frames to prevent UI freezing
         if (currentFrame % 5 === 0) {
-          await new Promise(r => setTimeout(r, 0));
+          await yieldThread();
         }
       }
 
@@ -1098,6 +1148,9 @@ export function exportReplayVideoFormat(
         }
       }, 3000);
       
+      worker.terminate();
+      URL.revokeObjectURL(workerUrl);
+      
       onProgress?.("Cinematic documentary export completed!");
       resolve(true);
     };
@@ -1105,6 +1158,8 @@ export function exportReplayVideoFormat(
     runExport().catch((err) => {
       console.error("Video export run error:", err);
       if (document.body.contains(toast)) document.body.removeChild(toast);
+      worker.terminate();
+      URL.revokeObjectURL(workerUrl);
       resolve(false);
     });
     } catch (err) {
