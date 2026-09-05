@@ -32,13 +32,14 @@ export const ReplayBackground = memo(function ReplayBackground({
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute inset-0 -z-10 h-full w-full select-none overflow-hidden"
+      className="pointer-events-none absolute inset-0 z-0 h-full w-full select-none overflow-hidden"
     >
       <SpaceBackground 
         theme={effectiveTheme} 
         variant="absolute" 
         starMultiplier={0.4}
         isPaused={isPaused}
+        className="z-0"
       />
     </div>
   );

@@ -411,6 +411,14 @@ export function exportReplayVideoFormat(
       return;
     }
 
+    if (typeof VideoEncoder === "undefined" || typeof VideoFrame === "undefined") {
+      console.error("WebCodecs VideoEncoder is not supported in this browser.");
+      onProgress?.("Video export requires WebCodecs support. Please use Google Chrome or Microsoft Edge.");
+      alert("Video export requires WebCodecs support. Please use a modern Chromium-based browser such as Google Chrome or Microsoft Edge.");
+      resolve(false);
+      return;
+    }
+
     try {
       const isVertical = mode === "vertical";
       const width = isVertical ? 1080 : 1920;
@@ -418,6 +426,8 @@ export function exportReplayVideoFormat(
 
       onProgress?.(`Initializing 1080p 60fps Cinematic Video Engine...`);
       
+      let isAborted = false;
+
       // Create global floating progress toast so user can leave the screen
       const toast = document.createElement("div");
       toast.style.position = "fixed";
@@ -456,8 +466,37 @@ export function exportReplayVideoFormat(
       const text = document.createElement("span");
       text.innerText = "Initializing export...";
       
+      const cancelBtn = document.createElement("button");
+      cancelBtn.innerText = "Cancel";
+      cancelBtn.style.marginLeft = "auto";
+      cancelBtn.style.background = "rgba(255,255,255,0.12)";
+      cancelBtn.style.border = "1px solid rgba(255,255,255,0.15)";
+      cancelBtn.style.borderRadius = "4px";
+      cancelBtn.style.padding = "4px 10px";
+      cancelBtn.style.color = "#ccc";
+      cancelBtn.style.fontSize = "11px";
+      cancelBtn.style.cursor = "pointer";
+      cancelBtn.style.fontFamily = "inherit";
+      cancelBtn.onmouseenter = () => {
+        cancelBtn.style.background = "rgba(239, 68, 68, 0.4)";
+        cancelBtn.style.color = "#fff";
+      };
+      cancelBtn.onmouseleave = () => {
+        cancelBtn.style.background = "rgba(255,255,255,0.12)";
+        cancelBtn.style.color = "#ccc";
+      };
+      cancelBtn.onclick = () => {
+        isAborted = true;
+        text.innerText = "Export cancelled.";
+        text.style.color = "#f87171";
+        setTimeout(() => {
+          if (document.body.contains(toast)) document.body.removeChild(toast);
+        }, 1200);
+      };
+
       toast.appendChild(spinner);
       toast.appendChild(text);
+      toast.appendChild(cancelBtn);
       document.body.appendChild(toast);
 
       let currentFrame = 0;
@@ -480,8 +519,9 @@ export function exportReplayVideoFormat(
 
       // Initialize WebCodecs and mp4-muxer
       const fps = 60;
+      const target = new Mp4Muxer.ArrayBufferTarget();
       let muxer = new Mp4Muxer.Muxer({
-        target: new Mp4Muxer.ArrayBufferTarget(),
+        target,
         video: {
           codec: 'avc',
           width: width,
@@ -492,20 +532,18 @@ export function exportReplayVideoFormat(
       });
 
       const videoEncoder = new VideoEncoder({
-        output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+        output: (chunk, meta) => {
+          try {
+            muxer.addVideoChunk(chunk, meta);
+          } catch (err) {
+            console.error("Muxer addVideoChunk error:", err);
+          }
+        },
         error: (e) => {
           console.error("VideoEncoder error:", e);
           if (document.body.contains(toast)) document.body.removeChild(toast);
           resolve(false);
         }
-      });
-
-      videoEncoder.configure({
-        codec: 'avc1.42E028',
-        width: width,
-        height: height,
-        bitrate: 8000000,
-        framerate: fps,
       });
 
     // 1. Intro sequence: 150 frames (2.5s @ 60fps)
@@ -1045,34 +1083,144 @@ export function exportReplayVideoFormat(
       );
     };
 
-    // Background-tab immune yielding mechanism using a Web Worker.
-    // setTimeout is heavily throttled when the tab is inactive, which would pause the render.
-    const workerCode = `self.onmessage = function() { self.postMessage('tick'); }`;
-    const workerBlob = new Blob([workerCode], { type: 'application/javascript' });
-    const workerUrl = URL.createObjectURL(workerBlob);
-    const worker = new Worker(workerUrl);
-    
-    let yieldResolver: (() => void) | null = null;
-    worker.onmessage = () => {
-      if (yieldResolver) {
-        yieldResolver();
-        yieldResolver = null;
+    // Background-tab immune yielding mechanism using Web Worker + MessageChannel.
+    let worker: Worker | null = null;
+    let workerUrl: string | null = null;
+    let workerActive = false;
+
+    try {
+      const workerCode = `self.onmessage = function() { self.postMessage('tick'); };`;
+      const workerBlob = new Blob([workerCode], { type: 'application/javascript' });
+      workerUrl = URL.createObjectURL(workerBlob);
+      worker = new Worker(workerUrl);
+      worker.onmessage = () => {
+        flushYieldQueue();
+      };
+      worker.onerror = () => {
+        workerActive = false;
+        flushYieldQueue();
+      };
+      workerActive = true;
+    } catch (e) {
+      console.warn("Export worker unavailable, using standard task scheduling:", e);
+      workerActive = false;
+    }
+
+    let yieldQueue: Array<() => void> = [];
+    const flushYieldQueue = () => {
+      if (yieldQueue.length === 0) return;
+      const queue = yieldQueue;
+      yieldQueue = [];
+      for (let i = 0; i < queue.length; i++) {
+        queue[i]();
       }
     };
-    const yieldThread = () => new Promise<void>(resolve => {
-      yieldResolver = resolve;
-      worker.postMessage('tick');
-    });
+
+    const cleanupWorker = () => {
+      if (worker) {
+        try { worker.terminate(); } catch {}
+        worker = null;
+      }
+      if (workerUrl) {
+        try { URL.revokeObjectURL(workerUrl); } catch {}
+        workerUrl = null;
+      }
+      flushYieldQueue();
+    };
+
+    const yieldThread = (): Promise<void> => {
+      return new Promise<void>((resolve) => {
+        let settled = false;
+        const complete = () => {
+          if (!settled) {
+            settled = true;
+            resolve();
+          }
+        };
+
+        // Safety timeout to guarantee the render loop NEVER freezes
+        const safetyTimer = setTimeout(complete, 25);
+
+        // Fast-path yielding with MessageChannel (instant macrotask dispatch)
+        if (typeof MessageChannel !== "undefined") {
+          const channel = new MessageChannel();
+          channel.port1.onmessage = () => {
+            channel.port1.close();
+            channel.port2.close();
+            clearTimeout(safetyTimer);
+            complete();
+          };
+          channel.port2.postMessage(null);
+        }
+
+        // Active worker keeps tick alive when tab is backgrounded
+        if (worker && workerActive) {
+          yieldQueue.push(() => {
+            clearTimeout(safetyTimer);
+            complete();
+          });
+          try {
+            worker.postMessage('tick');
+          } catch {
+            workerActive = false;
+            clearTimeout(safetyTimer);
+            complete();
+          }
+        } else if (typeof MessageChannel === "undefined") {
+          setTimeout(() => {
+            clearTimeout(safetyTimer);
+            complete();
+          }, 0);
+        }
+      });
+    };
 
     // Asynchronous rendering loop for WebCodecs
     const runExport = async () => {
-      // 1. Wait for noise texture to load
-      await new Promise(r => {
-        if (noiseImg.complete) r(null);
-        else noiseImg.onload = r;
+      // 1. Configure VideoEncoder with best supported codec
+      const candidateCodecs = [
+        'avc1.42E033', // Constrained Baseline Level 5.1 (standard for 1080p60)
+        'avc1.4d002a', // Main Level 4.2
+        'avc1.64002a', // High Level 4.2
+        'avc1.42E028', // Baseline Level 4.0
+      ];
+
+      let selectedCodec = 'avc1.42E033';
+      for (const candidate of candidateCodecs) {
+        try {
+          const support = await VideoEncoder.isConfigSupported({
+            codec: candidate,
+            width,
+            height,
+            bitrate: 8000000,
+            framerate: fps,
+          });
+          if (support && support.supported) {
+            selectedCodec = candidate;
+            break;
+          }
+        } catch {
+          // try next candidate
+        }
+      }
+
+      videoEncoder.configure({
+        codec: selectedCodec,
+        width: width,
+        height: height,
+        bitrate: 8000000,
+        framerate: fps,
       });
 
-      // 2. Pre-render the completely static background to save massive CPU time (overlay blending)
+      // 2. Wait for noise texture to load with safety timeout
+      await new Promise<void>((r) => {
+        if (noiseImg.complete) return r();
+        const timer = setTimeout(r, 1000);
+        noiseImg.onload = () => { clearTimeout(timer); r(); };
+        noiseImg.onerror = () => { clearTimeout(timer); r(); };
+      });
+
+      // 3. Pre-render the completely static background to save massive CPU time (overlay blending)
       const staticBgCanvas = document.createElement("canvas");
       staticBgCanvas.width = width;
       staticBgCanvas.height = height;
@@ -1121,31 +1269,41 @@ export function exportReplayVideoFormat(
       }
 
       while (currentFrame < totalFrames) {
+        if (isAborted) {
+          try { videoEncoder.close(); } catch {}
+          cleanupWorker();
+          resolve(false);
+          return;
+        }
+
         renderMovie(staticBgCanvas);
         
         const frame = new VideoFrame(canvas, {
           timestamp: ((currentFrame - 1) * 1000000) / fps,
         });
 
-        // Throttle encoding if the queue gets too large
-        while (videoEncoder.encodeQueueSize > 15) {
+        // Throttle encoding if the queue gets too large (with bounded waiting)
+        let queueWait = 0;
+        while (videoEncoder.encodeQueueSize > 20 && queueWait < 40 && !isAborted) {
+          queueWait++;
           await yieldThread();
         }
 
         videoEncoder.encode(frame, { keyFrame: (currentFrame - 1) % 60 === 0 });
         frame.close();
 
-        // Yield to the browser's event loop every few frames to prevent UI freezing
-        if (currentFrame % 5 === 0) {
+        // Yield to the browser's event loop every 4 frames to keep UI silky smooth and allow encoding callbacks
+        if (currentFrame % 4 === 0) {
           await yieldThread();
         }
       }
 
       await videoEncoder.flush();
       muxer.finalize();
-      const buffer = muxer.target.buffer;
+      const buffer = target.buffer;
       
       spinner.style.display = "none";
+      cancelBtn.style.display = "none";
       text.innerText = "Export Complete! Downloading...";
       text.style.color = "#4ade80"; // Success green
 
@@ -1163,8 +1321,7 @@ export function exportReplayVideoFormat(
         }
       }, 3000);
       
-      worker.terminate();
-      URL.revokeObjectURL(workerUrl);
+      cleanupWorker();
       
       onProgress?.("Cinematic documentary export completed!");
       resolve(true);
@@ -1173,8 +1330,7 @@ export function exportReplayVideoFormat(
     runExport().catch((err) => {
       console.error("Video export run error:", err);
       if (document.body.contains(toast)) document.body.removeChild(toast);
-      worker.terminate();
-      URL.revokeObjectURL(workerUrl);
+      cleanupWorker();
       resolve(false);
     });
     } catch (err) {

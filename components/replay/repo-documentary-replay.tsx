@@ -567,6 +567,7 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
     <div
       ref={theaterRef}
       className={`relative flex h-full w-full flex-col overflow-hidden bg-[#04060a] selection:bg-white/20 ${!isHUDVisible && isFullscreen ? "cursor-none" : ""}`}
+      style={{ isolation: "isolate" }}
       onMouseMove={handleMouseMove}
     >
       <ReplayBackground

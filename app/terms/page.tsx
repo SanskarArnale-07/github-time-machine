@@ -11,9 +11,9 @@ export const metadata = {
 
 export default function TermsPage() {
   return (
-    <div className="relative min-h-screen bg-[#071426] text-zinc-300 selection:bg-white/20 selection:text-white">
+    <div className="relative min-h-screen bg-[#071426] text-zinc-300 selection:bg-white/20 selection:text-white" style={{ isolation: "isolate" }}>
       {/* Global Space Atmosphere */}
-      <SpaceBackground variant="fixed" theme="default" />
+      <SpaceBackground variant="fixed" theme="default" className="z-0" />
 
       {/* Header */}
       <header className="relative z-20 border-b border-blue-400/10 px-6 py-5">

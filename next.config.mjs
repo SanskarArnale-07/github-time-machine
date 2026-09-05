@@ -32,6 +32,8 @@ const securityHeaders = [
       "img-src 'self' blob: data: https://avatars.githubusercontent.com",
       "font-src 'self' data:",
       "connect-src 'self' https://*.supabase.co https://api.github.com",
+      "worker-src 'self' blob:",
+      "child-src 'self' blob:",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",

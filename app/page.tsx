@@ -24,9 +24,9 @@ export default async function Home({
   }
 
   return (
-    <main className="relative min-h-screen bg-[#071426]">
+    <main className="relative min-h-screen bg-[#071426] overflow-x-hidden" style={{ isolation: "isolate" }}>
       {/* Global cinematic deep-space background with merged git-graph (single unified canvas) */}
-      <SpaceBackground variant="fixed" theme="default" showGitGraph={true} />
+      <SpaceBackground variant="fixed" theme="default" showGitGraph={true} className="z-0" />
 
       <div className="relative z-10">
         <Navbar />

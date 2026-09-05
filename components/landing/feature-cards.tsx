@@ -88,22 +88,22 @@ export function FeatureCards() {
                 </div>
 
                 <div className="grid grid-cols-3 gap-2 text-center">
-                  <div className="bg-[#091124]/80 border border-blue-400/15 rounded-xl p-2.5 transition-colors group-hover:border-blue-400/30">
+                  <div className="bg-[#091124]/50 backdrop-blur-sm border border-blue-400/15 rounded-xl p-2.5 transition-colors group-hover:border-blue-400/30">
                     <div className="font-sans text-lg font-bold text-white tracking-tight">233</div>
                     <div className="font-mono text-[9px] text-zinc-400 uppercase tracking-wider mt-0.5">Commits</div>
                   </div>
-                  <div className="bg-[#091124]/80 border border-blue-400/15 rounded-xl p-2.5 transition-colors group-hover:border-blue-400/30">
+                  <div className="bg-[#091124]/50 backdrop-blur-sm border border-blue-400/15 rounded-xl p-2.5 transition-colors group-hover:border-blue-400/30">
                     <div className="font-sans text-lg font-bold text-white tracking-tight">6</div>
                     <div className="font-mono text-[9px] text-zinc-400 uppercase tracking-wider mt-0.5">Repos</div>
                   </div>
-                  <div className="bg-[#091124]/80 border border-[#d4a853]/20 rounded-xl p-2.5 transition-colors group-hover:border-[#d4a853]/40">
+                  <div className="bg-[#091124]/50 backdrop-blur-sm border border-[#d4a853]/20 rounded-xl p-2.5 transition-colors group-hover:border-[#d4a853]/40">
                     <div className="font-sans text-lg font-bold text-[#d4a853] tracking-tight">17d</div>
                     <div className="font-mono text-[9px] text-[#d4a853]/80 uppercase tracking-wider mt-0.5">Streak</div>
                   </div>
                 </div>
 
                 {/* Horizontal Timeline Preview */}
-                <div className="bg-[#091124]/60 border border-blue-400/10 rounded-2xl p-3.5 space-y-2">
+                <div className="bg-[#091124]/40 backdrop-blur-sm border border-blue-400/10 rounded-2xl p-3.5 space-y-2">
                   <div className="flex justify-between items-center text-[9px] font-mono text-zinc-400 tracking-wider">
                     <span className="text-zinc-400">FIRST COMMIT</span>
                     <span className="text-[#d4a853] font-semibold flex items-center gap-1">
@@ -202,7 +202,7 @@ export function FeatureCards() {
                 </div>
 
                 {/* Insight 1: Most Active Language + Distribution Bar */}
-                <div className="bg-[#091124]/80 border border-blue-400/15 rounded-xl p-3 space-y-2 transition-colors group-hover:border-blue-400/30">
+                <div className="bg-[#091124]/50 backdrop-blur-sm border border-blue-400/15 rounded-xl p-3 space-y-2 transition-colors group-hover:border-blue-400/30">
                   <div className="flex justify-between items-center text-xs">
                     <span className="font-mono text-[10px] text-zinc-400 uppercase tracking-wider">Most Active Language</span>
                     <span className="font-sans font-semibold text-white">Python <span className="font-mono text-zinc-400 text-[11px]">(58%)</span></span>
@@ -225,7 +225,7 @@ export function FeatureCards() {
                 {/* Insight 2 & 3: Peak Activity & Sparkline + Longest Streak & Top Repo */}
                 <div className="grid grid-cols-2 gap-2">
                   {/* Peak Activity Sparkline */}
-                  <div className="bg-[#091124]/80 border border-blue-400/15 rounded-xl p-2.5 flex flex-col justify-between transition-colors group-hover:border-blue-400/30">
+                  <div className="bg-[#091124]/50 backdrop-blur-sm border border-blue-400/15 rounded-xl p-2.5 flex flex-col justify-between transition-colors group-hover:border-blue-400/30">
                     <div>
                       <div className="font-mono text-[9px] text-zinc-400 uppercase tracking-wider">Peak Activity</div>
                       <div className="font-sans text-sm font-bold text-white mt-0.5">August</div>
@@ -258,7 +258,7 @@ export function FeatureCards() {
                   </div>
 
                   {/* Longest Streak & Top Repo */}
-                  <div className="bg-[#091124]/80 border border-blue-400/15 rounded-xl p-2.5 flex flex-col justify-between transition-colors group-hover:border-blue-400/30">
+                  <div className="bg-[#091124]/50 backdrop-blur-sm border border-blue-400/15 rounded-xl p-2.5 flex flex-col justify-between transition-colors group-hover:border-blue-400/30">
                     <div>
                       <div className="flex items-center justify-between">
                         <span className="font-mono text-[9px] text-zinc-400 uppercase tracking-wider">Longest Streak</span>
@@ -331,7 +331,7 @@ export function FeatureCards() {
                 </div>
 
                 {/* Documentary Film Card Canvas */}
-                <div className="bg-[#091124]/90 border border-blue-400/20 rounded-2xl p-3.5 space-y-3 relative overflow-hidden transition-all group-hover:border-blue-400/35 shadow-inner">
+                <div className="bg-[#091124]/50 backdrop-blur-sm border border-blue-400/20 rounded-2xl p-3.5 space-y-3 relative overflow-hidden transition-all group-hover:border-blue-400/35 shadow-inner">
                   {/* Subtle top edge glow */}
                   <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d4a853]/30 to-transparent" />
 

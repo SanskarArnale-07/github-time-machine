@@ -7,7 +7,7 @@ export function CinematicBackground() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-black"
+      className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-transparent"
     >
       {/* 1. Subtle GitHub-style grid pattern */}
       <div 

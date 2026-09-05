@@ -163,6 +163,12 @@ export const SpaceBackground = memo(function SpaceBackground({
     dpr: 1,
   });
 
+  const isPausedRef = useRef<boolean>(isPaused);
+  isPausedRef.current = isPaused;
+
+  const loopRef = useRef<((time: number) => void) | null>(null);
+  const drawStaticRef = useRef<(() => void) | null>(null);
+
   const [hasMounted, setHasMounted] = useState(false);
   const config = useMemo(() => THEME_CONFIGS[theme] || THEME_CONFIGS.default, [theme]);
   const effectiveStarMultiplier = starMultiplier ?? config.starMultiplier;
@@ -198,6 +204,122 @@ export const SpaceBackground = memo(function SpaceBackground({
       if (r < 0.80) return STAR_COLORS[1];
       if (r < 0.95) return STAR_COLORS[2];
       return STAR_COLORS[3];
+    };
+
+    const drawFrame = (time: number, delta: number, animate: boolean) => {
+      const { width: w, height: h, dpr } = dimensionsRef.current;
+      if (w === 0 || h === 0) return;
+
+      if (animate && !prefersReducedMotion) {
+        mouseCurrentRef.current.x += (mouseTargetRef.current.x - mouseCurrentRef.current.x) * 0.035;
+        mouseCurrentRef.current.y += (mouseTargetRef.current.y - mouseCurrentRef.current.y) * 0.035;
+      }
+
+      ctx.save();
+      ctx.scale(dpr, dpr);
+      ctx.clearRect(0, 0, w, h);
+
+      const stars = starsRef.current;
+      const speedMultiplier = delta / 16.666;
+
+      // Draw stars
+      for (let i = 0; i < stars.length; i++) {
+        const star = stars[i];
+
+        if (animate && !prefersReducedMotion) {
+          star.twinklePhase += star.twinkleSpeed * speedMultiplier;
+          const twinkle = Math.sin(star.twinklePhase);
+          const alphaScale = star.tier === 3 ? 0.70 + 0.30 * twinkle : 0.80 + 0.20 * twinkle;
+          star.currentAlpha = Math.max(0.04, Math.min(1, star.baseAlpha * alphaScale));
+
+          star.x += star.speedX * speedMultiplier;
+          star.y += star.speedY * speedMultiplier;
+
+          const pad = 24;
+          if (star.x < -pad) star.x = w + pad;
+          if (star.x > w + pad) star.x = -pad;
+          if (star.y < -pad) star.y = h + pad;
+          if (star.y > h + pad) star.y = -pad;
+        }
+
+        let px = 0;
+        let py = 0;
+        if (!prefersReducedMotion) {
+          if (star.tier === 1) {
+            px = mouseCurrentRef.current.x * 4;
+            py = mouseCurrentRef.current.y * 4;
+          } else if (star.tier === 2) {
+            px = mouseCurrentRef.current.x * 9;
+            py = mouseCurrentRef.current.y * 9;
+          } else {
+            px = mouseCurrentRef.current.x * 16;
+            py = mouseCurrentRef.current.y * 16;
+          }
+        }
+
+        const drawX = star.x + px;
+        const drawY = star.y + py;
+
+        if (star.tier === 3) {
+          const haloRadius = star.radius * 3.0;
+          const halo = ctx.createRadialGradient(drawX, drawY, 0, drawX, drawY, haloRadius);
+          halo.addColorStop(0, `rgba(${star.color}, ${star.currentAlpha * config.haloBrightness})`);
+          halo.addColorStop(0.5, `rgba(${star.color}, ${star.currentAlpha * (config.haloBrightness * 0.3)})`);
+          halo.addColorStop(1, `rgba(${star.color}, 0)`);
+
+          ctx.fillStyle = halo;
+          ctx.beginPath();
+          ctx.arc(drawX, drawY, haloRadius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.fillStyle = `rgba(${star.color}, ${star.currentAlpha})`;
+        ctx.beginPath();
+        ctx.arc(drawX, drawY, star.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Draw optional merged Git branch lines & nodes (Zero per-frame allocation)
+      if (showGitGraph && gitNodesRef.current.length > 0) {
+        const nodes = gitNodesRef.current;
+        ctx.lineWidth = 1;
+
+        for (let i = 0; i < nodes.length; i++) {
+          const node = nodes[i];
+          if (animate && !prefersReducedMotion) {
+            node.x += node.vx * speedMultiplier;
+            node.y += node.vy * speedMultiplier;
+            if (node.x < 0 || node.x > w) node.vx *= -1;
+            if (node.y < 0 || node.y > h) node.vy *= -1;
+          }
+
+          // Pre-defined solid stroke to prevent createLinearGradient allocation in loop
+          ctx.strokeStyle = node.isMain ? "rgba(212, 168, 83, 0.20)" : "rgba(88, 166, 255, 0.10)";
+
+          for (let j = 0; j < node.connections.length; j++) {
+            const target = nodes[node.connections[j]];
+            if (!target) continue;
+
+            ctx.beginPath();
+            ctx.moveTo(node.x, node.y);
+            const midY = node.y + (target.y - node.y) / 2;
+            ctx.bezierCurveTo(node.x, midY, target.x, midY, target.x, target.y);
+            ctx.stroke();
+          }
+
+          // Commit node
+          ctx.fillStyle = node.isMain ? "rgba(212, 168, 83, 0.75)" : "rgba(88, 166, 255, 0.50)";
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      ctx.restore();
+    };
+
+    drawStaticRef.current = () => {
+      drawFrame(performance.now(), 16, false);
     };
 
     const initStars = (w: number, h: number) => {
@@ -282,6 +404,9 @@ export const SpaceBackground = memo(function SpaceBackground({
         }
         gitNodesRef.current = nodes;
       }
+
+      // Paint initial frame immediately so stars are never blank on initial load
+      drawFrame(performance.now(), 16, false);
     };
 
     const handleResize = () => {
@@ -321,9 +446,9 @@ export const SpaceBackground = memo(function SpaceBackground({
     let isTabVisible = !document.hidden;
     const handleVisibilityChange = () => {
       isTabVisible = !document.hidden;
-      if (isTabVisible && !isPaused && isVisibleRef.current) {
+      if (isTabVisible && !isPausedRef.current && isVisibleRef.current) {
         lastTimeRef.current = performance.now();
-        if (!animationFrameRef.current) {
+        if (!animationFrameRef.current && !prefersReducedMotion) {
           animationFrameRef.current = requestAnimationFrame(render);
         }
       }
@@ -336,7 +461,7 @@ export const SpaceBackground = memo(function SpaceBackground({
       observer = new IntersectionObserver(
         ([entry]) => {
           isVisibleRef.current = entry.isIntersecting;
-          if (entry.isIntersecting && isTabVisible && !isPaused && !animationFrameRef.current) {
+          if (entry.isIntersecting && isTabVisible && !isPausedRef.current && !animationFrameRef.current && !prefersReducedMotion) {
             lastTimeRef.current = performance.now();
             animationFrameRef.current = requestAnimationFrame(render);
           }
@@ -347,7 +472,7 @@ export const SpaceBackground = memo(function SpaceBackground({
     }
 
     const render = (time: number) => {
-      if (!isTabVisible || isPaused || !isVisibleRef.current) {
+      if (!isTabVisible || isPausedRef.current || !isVisibleRef.current) {
         animationFrameRef.current = null;
         return;
       }
@@ -356,129 +481,23 @@ export const SpaceBackground = memo(function SpaceBackground({
       const delta = Math.min(time - lastTimeRef.current, 64);
       lastTimeRef.current = time;
 
-      const { width: w, height: h, dpr } = dimensionsRef.current;
-      if (w === 0 || h === 0) {
+      drawFrame(time, delta, true);
+
+      if (!prefersReducedMotion && !isPausedRef.current) {
         animationFrameRef.current = requestAnimationFrame(render);
-        return;
-      }
-
-      if (!prefersReducedMotion) {
-        mouseCurrentRef.current.x += (mouseTargetRef.current.x - mouseCurrentRef.current.x) * 0.035;
-        mouseCurrentRef.current.y += (mouseTargetRef.current.y - mouseCurrentRef.current.y) * 0.035;
-      }
-
-      ctx.save();
-      ctx.scale(dpr, dpr);
-      ctx.clearRect(0, 0, w, h);
-
-      const stars = starsRef.current;
-      const speedMultiplier = delta / 16.666;
-
-      // Draw stars
-      for (let i = 0; i < stars.length; i++) {
-        const star = stars[i];
-
-        if (!prefersReducedMotion) {
-          star.twinklePhase += star.twinkleSpeed * speedMultiplier;
-          const twinkle = Math.sin(star.twinklePhase);
-          const alphaScale = star.tier === 3 ? 0.70 + 0.30 * twinkle : 0.80 + 0.20 * twinkle;
-          star.currentAlpha = Math.max(0.04, Math.min(1, star.baseAlpha * alphaScale));
-
-          star.x += star.speedX * speedMultiplier;
-          star.y += star.speedY * speedMultiplier;
-
-          const pad = 24;
-          if (star.x < -pad) star.x = w + pad;
-          if (star.x > w + pad) star.x = -pad;
-          if (star.y < -pad) star.y = h + pad;
-          if (star.y > h + pad) star.y = -pad;
-        }
-
-        let px = 0;
-        let py = 0;
-        if (!prefersReducedMotion) {
-          if (star.tier === 1) {
-            px = mouseCurrentRef.current.x * 4;
-            py = mouseCurrentRef.current.y * 4;
-          } else if (star.tier === 2) {
-            px = mouseCurrentRef.current.x * 9;
-            py = mouseCurrentRef.current.y * 9;
-          } else {
-            px = mouseCurrentRef.current.x * 16;
-            py = mouseCurrentRef.current.y * 16;
-          }
-        }
-
-        const drawX = star.x + px;
-        const drawY = star.y + py;
-
-        if (star.tier === 3) {
-          const haloRadius = star.radius * 3.0;
-          const halo = ctx.createRadialGradient(drawX, drawY, 0, drawX, drawY, haloRadius);
-          halo.addColorStop(0, `rgba(${star.color}, ${star.currentAlpha * config.haloBrightness})`);
-          halo.addColorStop(0.5, `rgba(${star.color}, ${star.currentAlpha * (config.haloBrightness * 0.3)})`);
-          halo.addColorStop(1, `rgba(${star.color}, 0)`);
-
-          ctx.fillStyle = halo;
-          ctx.beginPath();
-          ctx.arc(drawX, drawY, haloRadius, 0, Math.PI * 2);
-          ctx.fill();
-        }
-
-        ctx.fillStyle = `rgba(${star.color}, ${star.currentAlpha})`;
-        ctx.beginPath();
-        ctx.arc(drawX, drawY, star.radius, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // Draw optional merged Git branch lines & nodes (Zero per-frame allocation)
-      if (showGitGraph && gitNodesRef.current.length > 0) {
-        const nodes = gitNodesRef.current;
-        ctx.lineWidth = 1;
-
-        for (let i = 0; i < nodes.length; i++) {
-          const node = nodes[i];
-          if (!prefersReducedMotion) {
-            node.x += node.vx * speedMultiplier;
-            node.y += node.vy * speedMultiplier;
-            if (node.x < 0 || node.x > w) node.vx *= -1;
-            if (node.y < 0 || node.y > h) node.vy *= -1;
-          }
-
-          // Pre-defined solid stroke to prevent createLinearGradient allocation in loop
-          ctx.strokeStyle = node.isMain ? "rgba(212, 168, 83, 0.20)" : "rgba(88, 166, 255, 0.10)";
-
-          for (let j = 0; j < node.connections.length; j++) {
-            const target = nodes[node.connections[j]];
-            if (!target) continue;
-
-            ctx.beginPath();
-            ctx.moveTo(node.x, node.y);
-            const midY = node.y + (target.y - node.y) / 2;
-            ctx.bezierCurveTo(node.x, midY, target.x, midY, target.x, target.y);
-            ctx.stroke();
-          }
-
-          // Commit node
-          ctx.fillStyle = node.isMain ? "rgba(212, 168, 83, 0.75)" : "rgba(88, 166, 255, 0.50)";
-          ctx.beginPath();
-          ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-
-      ctx.restore();
-
-      if (!prefersReducedMotion) {
-        animationFrameRef.current = requestAnimationFrame(render);
+      } else {
+        animationFrameRef.current = null;
       }
     };
 
-    // If reduced motion is requested, render once statically and do NOT loop
-    if (prefersReducedMotion) {
-      render(performance.now());
-    } else if (!isPaused) {
+    loopRef.current = render;
+
+    // Start loop if active, or render static frame immediately
+    if (!prefersReducedMotion && !isPausedRef.current) {
+      lastTimeRef.current = performance.now();
       animationFrameRef.current = requestAnimationFrame(render);
+    } else {
+      drawFrame(performance.now(), 16, false);
     }
 
     return () => {
@@ -490,8 +509,37 @@ export const SpaceBackground = memo(function SpaceBackground({
         cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;
       }
+      loopRef.current = null;
+      drawStaticRef.current = null;
     };
-  }, [hasMounted, showStars, config, effectiveStarMultiplier, isPaused, showGitGraph]);
+  }, [hasMounted, showStars, config, effectiveStarMultiplier, showGitGraph]);
+
+  // Handle play/pause toggles cleanly without rebuilding the starfield
+  useEffect(() => {
+    isPausedRef.current = isPaused;
+    if (!hasMounted || !showStars) return;
+
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (prefersReducedMotion) return;
+
+    if (!isPaused && isVisibleRef.current && !document.hidden) {
+      if (!animationFrameRef.current && loopRef.current) {
+        lastTimeRef.current = performance.now();
+        animationFrameRef.current = requestAnimationFrame(loopRef.current);
+      }
+    } else if (isPaused) {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+      if (drawStaticRef.current) {
+        drawStaticRef.current();
+      }
+    }
+  }, [isPaused, hasMounted, showStars]);
 
   const positionClass = variant === "fixed" ? "fixed inset-0" : "absolute inset-0";
 
@@ -500,7 +548,7 @@ export const SpaceBackground = memo(function SpaceBackground({
       ref={containerRef}
       data-space-background="true"
       aria-hidden="true"
-      className={`pointer-events-none ${positionClass} -z-10 h-full w-full select-none overflow-hidden bg-[#071426] ${className}`}
+      className={`pointer-events-none ${positionClass} z-0 h-full w-full select-none overflow-hidden bg-[#071426] ${className}`}
       style={{ isolation: "isolate" }}
     >
       {/* ── 1. Base Cosmic Navy / Indigo Foundation ───────────────────────── */}
