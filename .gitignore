@@ -1,7 +1,11 @@
 node_modules
 .next
 out
-.env*.local
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
 .DS_Store
 *.tsbuildinfo
 next-env.d.ts

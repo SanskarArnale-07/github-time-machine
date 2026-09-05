@@ -1,24 +1,17 @@
 import type { Metadata } from "next";
-import { Inter, Space_Grotesk, Space_Mono } from "next/font/google";
+import { Space_Grotesk, Space_Mono } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-});
-
-// Clean geometric sans for titles and commit messages — pairs naturally with
-// Space Mono below (same foundry, matched proportions) instead of feeling
-// like two unrelated fonts stitched together.
+// Space Grotesk: Modern geometric grotesque applied consistently as the primary
+// typographic voice across body copy, labels, metrics, and cinematic display titles.
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
-  variable: "--font-display",
+  variable: "--font-space-grotesk",
   display: "swap",
 });
 
-// Mono for metadata: dates, commit hashes, diff stats.
+// Complementary monospace fallback for raw source code diffs
 const spaceMono = Space_Mono({
   subsets: ["latin"],
   weight: ["400", "700"],
@@ -38,9 +31,14 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`dark ${inter.variable} ${spaceGrotesk.variable} ${spaceMono.variable}`}
+      className={`dark ${spaceGrotesk.variable} ${spaceMono.variable}`}
+      style={{
+        ["--font-display" as any]: "var(--font-space-grotesk)",
+        ["--font-sans" as any]: "var(--font-space-grotesk)",
+        ["--font-inter" as any]: "var(--font-space-grotesk)",
+      }}
     >
-      <body className={inter.className}>{children}</body>
+      <body className={`${spaceGrotesk.className} font-sans`}>{children}</body>
     </html>
   );
 }

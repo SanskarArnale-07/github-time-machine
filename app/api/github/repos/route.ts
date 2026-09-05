@@ -1,11 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { fetchUserRepositories } from "@/lib/github/api";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limiter";
+
+const ALLOWED_SORTS = new Set(["updated", "stars", "created"]);
 
 export async function GET(request: NextRequest) {
   try {
+    const clientIp = getClientIp(request.headers);
+    const rateLimit = checkRateLimit(clientIp, 30, 5 * 60 * 1000);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Too many requests. Please wait a few minutes." },
+        { status: 429, headers: { "Retry-After": String(rateLimit.resetInSeconds) } }
+      );
+    }
+
     const url = new URL(request.url);
-    const sortParam = url.searchParams.get("sort") || "updated";
+    const rawSort = url.searchParams.get("sort") || "updated";
+    const sortParam = ALLOWED_SORTS.has(rawSort) ? rawSort : "updated";
 
     const supabase = await createClient();
     const {
@@ -47,10 +60,17 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json(repos);
-  } catch (error: any) {
-    console.error("Error in /api/github/repos:", error);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "";
+    if (message.includes("403") || message.includes("rate limit")) {
+      return NextResponse.json(
+        { error: "GitHub API rate limit reached. Please try again shortly." },
+        { status: 429, headers: { "Retry-After": "60" } }
+      );
+    }
+    console.error("Error in /api/github/repos:", message);
     return NextResponse.json(
-      { error: error.message || "Internal Server Error" },
+      { error: "Failed to retrieve repositories." },
       { status: 500 }
     );
   }

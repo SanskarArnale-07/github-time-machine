@@ -40,6 +40,7 @@ import {
 } from "@/lib/github/export-utils";
 import { Button } from "@/components/ui/button";
 import { ReplayBackground } from "@/components/replay/replay-background";
+import { SpaceTheme } from "@/components/space-background";
 import { cleanCommitMessage } from "@/lib/github/story-generator";
 
 // ─── Theme Colors ─────────────────────────────────────────────────────────────
@@ -91,7 +92,7 @@ function ReplayMilestoneCard({
             animate: { opacity: 1, y: 0, transition: { duration: 0.8 } },
             exit: { opacity: 0, transition: { duration: 0.3 } }
           }}
-          className="font-mono text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500"
+          className="font-mono text-xs font-semibold uppercase tracking-wider text-zinc-400"
         >
           Documentary finale
         </motion.span>
@@ -101,7 +102,7 @@ function ReplayMilestoneCard({
             animate: { opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.15 } },
             exit: { opacity: 0, transition: { duration: 0.5, delay: 0.2 } }
           }}
-          className="mt-4 font-display font-semibold tracking-tight text-4xl sm:text-5xl md:text-6xl drop-shadow-2xl"
+          className="mt-4 font-display font-bold tracking-tight text-4xl sm:text-5xl md:text-6xl drop-shadow-2xl"
           style={{ color: IVORY_DARK }}
         >
           This is how a developer is built.
@@ -115,24 +116,24 @@ function ReplayMilestoneCard({
           className="mt-12 grid grid-cols-2 md:grid-cols-5 gap-6 text-left max-w-4xl mx-auto border-t border-white/10 pt-8"
         >
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] uppercase tracking-widest text-zinc-500">Contributions</span>
-            <span className="font-mono text-2xl text-white">{commitsReplayed}</span>
+            <span className="text-[11px] uppercase tracking-wider text-zinc-400 font-medium">Contributions</span>
+            <span className="font-mono text-2xl font-bold text-white">{commitsReplayed}</span>
           </div>
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] uppercase tracking-widest text-zinc-500">Repositories</span>
-            <span className="font-mono text-2xl text-white">{repoCount}</span>
+            <span className="text-[11px] uppercase tracking-wider text-zinc-400 font-medium">Repositories</span>
+            <span className="font-mono text-2xl font-bold text-white">{repoCount}</span>
           </div>
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] uppercase tracking-widest text-zinc-500">Active Years</span>
-            <span className="font-mono text-2xl text-white">{yearsSpan}</span>
+            <span className="text-[11px] uppercase tracking-wider text-zinc-400 font-medium">Active Years</span>
+            <span className="font-mono text-2xl font-bold text-white">{yearsSpan}</span>
           </div>
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] uppercase tracking-widest text-zinc-500">Primary Language</span>
-            <span className="font-mono text-xl text-white pt-1 truncate">{topLanguage || "N/A"}</span>
+            <span className="text-[11px] uppercase tracking-wider text-zinc-400 font-medium">Primary Language</span>
+            <span className="font-mono text-xl font-bold text-white pt-1 truncate">{topLanguage || "N/A"}</span>
           </div>
           <div className="flex flex-col gap-1 col-span-2 md:col-span-1">
-            <span className="text-[10px] uppercase tracking-widest text-zinc-500">Most Active</span>
-            <span className="font-mono text-xl text-white pt-1">{mostActiveMonth || "Unknown"}</span>
+            <span className="text-[11px] uppercase tracking-wider text-zinc-400 font-medium">Most Active</span>
+            <span className="font-mono text-xl font-bold text-white pt-1">{mostActiveMonth || "Unknown"}</span>
           </div>
         </motion.div>
         
@@ -198,10 +199,10 @@ function ReplayMilestoneCard({
         }}
         className="flex flex-col items-center gap-3 mb-8"
       >
-        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+        <span className="font-mono text-xs uppercase tracking-wider text-zinc-400 font-semibold">
           Chapter {chapterIndex + 1}
         </span>
-        <span className="font-mono text-sm tracking-widest text-zinc-400">{formattedDate}</span>
+        <span className="font-mono text-sm tracking-wide text-zinc-300 font-medium">{formattedDate}</span>
       </motion.div>
 
       {/* Center Narrative */}
@@ -212,7 +213,7 @@ function ReplayMilestoneCard({
             animate: { opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.15 } },
             exit: { opacity: 0, transition: { duration: 0.5, delay: 0.2 } }
           }}
-          className="font-display font-semibold tracking-tight text-4xl leading-tight sm:text-5xl md:text-6xl lg:text-7xl drop-shadow-2xl"
+          className="font-display font-bold tracking-tight text-4xl leading-tight sm:text-5xl md:text-6xl lg:text-7xl drop-shadow-2xl"
           style={{ color: IVORY_DARK }}
         >
           {title}
@@ -224,7 +225,7 @@ function ReplayMilestoneCard({
               animate: { opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.3 } },
               exit: { opacity: 0, transition: { duration: 0.3 } }
             }}
-            className="mx-auto mt-6 max-w-3xl text-xl sm:text-2xl font-light leading-relaxed text-zinc-300 drop-shadow-lg text-balance"
+            className="mx-auto mt-6 max-w-3xl text-xl sm:text-2xl font-normal leading-relaxed text-zinc-300 drop-shadow-lg text-balance"
           >
             {description}
           </motion.p>
@@ -582,6 +583,58 @@ export function TimelineReplay({ commits, repos = [], profile = null, contributi
   const mostActiveMonth = engine.events.filter(e => e.type === "month_summary").sort((a,b) => (b.monthlySummary?.totalCommits || 0) - (a.monthlySummary?.totalCommits || 0))[0]?.monthName || 
     (commits.length > 0 ? new Date(commits[0].date).toLocaleString("default", { month: "short" }) : "N/A");
 
+  // Derive subtle space theme variation from the current chapter / event
+  const currentEvent = engine.currentEvent;
+  const currentChapter = engine.currentChapter;
+  const currentTitle = (currentEvent?.title || "").toLowerCase();
+  const currentMsg = (currentEvent?.commit?.message || "").toLowerCase();
+
+  let spaceTheme: SpaceTheme = "default";
+  if (isFinal || currentEvent?.type === "year_milestone" || currentEvent?.type === "month_summary") {
+    spaceTheme = "milestone";
+  } else if (currentEvent?.type === "major_streak" || (currentEvent?.streakCount && currentEvent.streakCount > 5)) {
+    spaceTheme = "streak";
+  } else if (currentEvent?.type === "repo_created" || chapterIndex === 0) {
+    spaceTheme = "beginning";
+  } else if (
+    currentTitle.includes("perf") ||
+    currentTitle.includes("optimiz") ||
+    currentTitle.includes("speed") ||
+    currentTitle.includes("fast") ||
+    currentTitle.includes("cache") ||
+    currentMsg.includes("perf") ||
+    currentMsg.includes("optimiz")
+  ) {
+    spaceTheme = "performance";
+  } else if (
+    currentTitle.includes("refactor") ||
+    currentTitle.includes("clean") ||
+    currentTitle.includes("simplify") ||
+    currentTitle.includes("rewrite") ||
+    currentMsg.includes("refactor")
+  ) {
+    spaceTheme = "refactor";
+  } else if (
+    currentTitle.includes("architect") ||
+    currentTitle.includes("initial") ||
+    currentTitle.includes("core") ||
+    currentTitle.includes("schema") ||
+    currentChapter?.name.toLowerCase().includes("foundation") ||
+    currentChapter?.name.toLowerCase().includes("architecture")
+  ) {
+    spaceTheme = "architecture";
+  }
+
+  const chapterGlowMap: Record<SpaceTheme, string> = {
+    default: "radial-gradient(ellipse 65% 55% at 50% 50%, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.065) 35%, rgba(56, 189, 248, 0.02) 65%, transparent 78%)",
+    architecture: "radial-gradient(ellipse 65% 55% at 50% 50%, rgba(79, 70, 229, 0.14) 0%, rgba(109, 40, 217, 0.08) 35%, rgba(30, 27, 75, 0.03) 65%, transparent 78%)",
+    performance: "radial-gradient(ellipse 65% 55% at 50% 50%, rgba(6, 182, 212, 0.13) 0%, rgba(59, 130, 246, 0.07) 35%, rgba(14, 116, 144, 0.025) 65%, transparent 78%)",
+    beginning: "radial-gradient(ellipse 65% 55% at 50% 50%, rgba(129, 140, 248, 0.15) 0%, rgba(168, 85, 247, 0.08) 35%, rgba(99, 102, 241, 0.03) 65%, transparent 78%)",
+    refactor: "radial-gradient(ellipse 65% 55% at 50% 50%, rgba(139, 92, 246, 0.11) 0%, rgba(76, 29, 149, 0.06) 35%, rgba(55, 48, 163, 0.02) 65%, transparent 78%)",
+    milestone: "radial-gradient(ellipse 65% 55% at 50% 50%, rgba(147, 51, 234, 0.16) 0%, rgba(59, 130, 246, 0.09) 35%, rgba(216, 180, 254, 0.03) 65%, transparent 78%)",
+    streak: "radial-gradient(ellipse 65% 55% at 50% 50%, rgba(56, 189, 248, 0.14) 0%, rgba(99, 102, 241, 0.075) 35%, rgba(14, 165, 233, 0.025) 65%, transparent 78%)",
+  };
+
   return (
     <div ref={theaterRef} className="replay-theater" onMouseMove={handleMouseMove}>
       {/* Persistent Chapter HUD */}
@@ -609,6 +662,7 @@ export function TimelineReplay({ commits, repos = [], profile = null, contributi
 
       <div className="replay-fullscreen-background">
         <ReplayBackground
+          theme={spaceTheme}
           progress={engine.progress}
           chapterIndex={chapterIndex}
           isFinal={isFinal}
@@ -784,10 +838,9 @@ export function TimelineReplay({ commits, repos = [], profile = null, contributi
                 opacity: { duration: 7, repeat: Infinity, ease: "easeInOut" },
                 scale: { duration: 9, repeat: Infinity, ease: "easeInOut" },
               }}
-              className="h-[520px] w-[750px] sm:h-[640px] sm:w-[900px] md:h-[750px] md:w-[1100px] rounded-full"
+              className="h-[520px] w-[750px] sm:h-[640px] sm:w-[900px] md:h-[750px] md:w-[1100px] rounded-full transition-all duration-1000"
               style={{
-                background:
-                  "radial-gradient(ellipse 65% 55% at 50% 50%, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.065) 35%, rgba(56, 189, 248, 0.02) 65%, transparent 78%)",
+                background: chapterGlowMap[spaceTheme],
                 filter: "blur(65px)",
               }}
             />

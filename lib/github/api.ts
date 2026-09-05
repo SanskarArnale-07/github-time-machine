@@ -55,17 +55,14 @@ export async function fetchUserRepositories(username: string, token?: string): P
 
 export async function fetchRepoCommits(owner: string, repo: string, token?: string): Promise<GitHubCommit[]> {
   try {
-    // Paginate through commit history instead of only reading the first page.
-    // A single `?per_page=30` request silently dropped every commit beyond
-    // the 30 most recent per repo — the actual cause of undercounted totals
-    // vs. the real GitHub contribution count. Cap at 10 pages (1,000 commits
-    // per repo) to keep this bounded for very large repos.
-    const MAX_PAGES = 10;
+    // Paginate through commit history with a reasonable ceiling (max 3 pages = 300 commits per repo)
+    // to prevent API exhaustion while capturing rich documentary history.
+    const MAX_PAGES = 3;
     const allRawCommits: any[] = [];
 
     for (let page = 1; page <= MAX_PAGES; page++) {
       const rawCommits = await fetchFromGitHub(
-        `/repos/${owner}/${repo}/commits?per_page=100&page=${page}`,
+        `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/commits?per_page=100&page=${page}`,
         token
       );
       if (!Array.isArray(rawCommits) || rawCommits.length === 0) break;
@@ -74,27 +71,28 @@ export async function fetchRepoCommits(owner: string, repo: string, token?: stri
     }
 
     return allRawCommits.map((c: any) => {
-      const dateStr = c.commit.author.date;
+      const dateStr = c.commit?.author?.date || c.commit?.committer?.date || new Date().toISOString();
       const date = new Date(dateStr);
+      const sha = c.sha || "";
       return {
-        sha: c.sha,
-        shortSha: c.sha.substring(0, 7),
-        message: c.commit.message,
-        authorName: c.commit.author.name,
-        authorLogin: c.author?.login || c.commit.author.name,
+        sha,
+        shortSha: sha.substring(0, 7),
+        message: c.commit?.message || "",
+        authorName: c.commit?.author?.name || "Unknown",
+        authorLogin: c.author?.login || c.commit?.author?.name || "Unknown",
         authorAvatar: c.author?.avatar_url || null,
         date: dateStr,
         repoName: repo,
         repoFullName: `${owner}/${repo}`,
         repoUrl: `https://github.com/${owner}/${repo}`,
-        htmlUrl: c.html_url,
+        htmlUrl: c.html_url || `https://github.com/${owner}/${repo}/commit/${sha}`,
         year: date.getFullYear(),
         month: date.getMonth(),
         monthName: date.toLocaleString('default', { month: 'short' })
       };
     });
   } catch (error) {
-    console.error(`Failed to fetch commits for ${owner}/${repo}:`, error);
+    console.error(`Failed to fetch commits for ${owner}/${repo}`);
     return [];
   }
 }
@@ -104,23 +102,33 @@ export async function fetchAllUserCommitHistory(username: string, token?: string
     const repos = await fetchUserRepositories(username, token);
     
     // Sort repos by pushed_at or updated_at to get most active ones.
-    // Capped at 60 (not the full repo list) purely to bound the number of
-    // parallel commit-fetch requests — raised from 15, which was dropping
-    // commits from any repo outside the 15 most recently *updated*, causing
-    // the total to undercount vs. the real GitHub contribution count.
+    // Capped at 15 most active repositories to bound total API queries and prevent
+    // rate-limit exhaustion while providing extensive timeline depth.
     const activeRepos = [...repos].sort((a, b) => {
       return new Date(b.pushed_at || b.updated_at).getTime() - new Date(a.pushed_at || a.updated_at).getTime();
-    }).slice(0, 60);
+    }).slice(0, 15);
 
-    const commitsPromises = activeRepos.map(repo => fetchRepoCommits(repo.full_name.split('/')[0], repo.name, token));
-    const allCommitsArrays = await Promise.all(commitsPromises);
+    // Fetch repository commits in controlled batches of 3 to avoid triggering
+    // secondary rate limits or excessive concurrent requests.
+    const allCommitsArrays: GitHubCommit[][] = [];
+    const BATCH_SIZE = 3;
+    for (let i = 0; i < activeRepos.length; i += BATCH_SIZE) {
+      const batch = activeRepos.slice(i, i + BATCH_SIZE);
+      const batchResults = await Promise.all(
+        batch.map(repo => {
+          const owner = repo.full_name ? repo.full_name.split('/')[0] : username;
+          return fetchRepoCommits(owner, repo.name, token);
+        })
+      );
+      allCommitsArrays.push(...batchResults);
+    }
     
     let commits = allCommitsArrays.flat();
     
     // Deduplicate by SHA
     const seen = new Set<string>();
     commits = commits.filter(c => {
-      if (seen.has(c.sha)) return false;
+      if (!c.sha || seen.has(c.sha)) return false;
       seen.add(c.sha);
       return true;
     });
@@ -131,11 +139,9 @@ export async function fetchAllUserCommitHistory(username: string, token?: string
     // Sort descending by date
     commits.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    // We removed generateFallbackCommits so it doesn't inject fake data
-
     return { repos, commits };
   } catch (error) {
-    console.error("Failed to fetch history:", error);
+    console.error("Failed to fetch history for user:", username);
     return { repos: [], commits: [] };
   }
 }

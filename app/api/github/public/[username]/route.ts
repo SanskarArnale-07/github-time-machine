@@ -7,10 +7,14 @@ import {
   calculateAnalytics,
   fetchGitHubContributionsGraphQL,
 } from "@/lib/github/api";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limiter";
 
-// In-memory cache — same TTL as the authenticated endpoint
+// In-memory cache — 10 minutes TTL
 const cacheMap = new Map<string, { data: unknown; expiresAt: number }>();
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+// Track refresh burst timestamps to prevent cache-busting DoS attacks
+const refreshTracker = new Map<string, number>();
 
 // Validate GitHub username format: 1–39 alphanumeric / hyphens, no leading/trailing hyphens
 const VALID_USERNAME = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$/;
@@ -20,30 +24,60 @@ export async function GET(
   { params }: { params: Promise<{ username: string }> }
 ) {
   try {
+    const clientIp = getClientIp(request.headers);
+
+    // 1. IP Rate Limiting: Max 20 queries per 5 minutes per IP
+    const rateLimit = checkRateLimit(clientIp, 20, 5 * 60 * 1000);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Too many requests. Please wait a few minutes before trying again." },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(rateLimit.resetInSeconds),
+            "X-RateLimit-Limit": "20",
+            "X-RateLimit-Remaining": "0",
+          },
+        }
+      );
+    }
+
     const { username } = await params;
 
     if (!username || !VALID_USERNAME.test(username)) {
-      return NextResponse.json({ error: "Invalid GitHub username." }, { status: 400 });
+      return NextResponse.json({ error: "Invalid GitHub username format." }, { status: 400 });
     }
 
     const url = new URL(request.url);
-    const forceRefresh = url.searchParams.get("refresh") === "true";
+    const requestedRefresh = url.searchParams.get("refresh") === "true";
 
     const cacheKey = `public-${username.toLowerCase()}`;
     const cached = cacheMap.get(cacheKey);
     const now = Date.now();
 
+    // 2. Cache-busting defense: allow refresh at most once every 3 minutes per user/IP
+    let forceRefresh = false;
+    if (requestedRefresh) {
+      const lastRefresh = refreshTracker.get(`${clientIp}-${cacheKey}`) || 0;
+      if (now - lastRefresh > 3 * 60 * 1000) {
+        forceRefresh = true;
+        refreshTracker.set(`${clientIp}-${cacheKey}`, now);
+      }
+    }
+
     if (!forceRefresh && cached && cached.expiresAt > now) {
       return NextResponse.json(cached.data, {
-        headers: { "Cache-Control": "public, s-maxage=600, stale-while-revalidate=1200" },
+        headers: {
+          "Cache-Control": "public, s-maxage=600, stale-while-revalidate=1200",
+          "X-RateLimit-Remaining": String(rateLimit.remaining),
+        },
       });
     }
 
-    // Use a server-side GitHub PAT (read-only) if available — raises rate limit
-    // from 60 req/hr to 5,000 req/hr. Falls back to unauthenticated gracefully.
+    // Server-side GitHub token (never exposed to browser)
     const token: string | undefined = process.env.GITHUB_TOKEN ?? undefined;
 
-    // Validate the username actually exists before kicking off the heavier fetch
+    // Validate the username exists before making heavier multi-repo requests
     let profile;
     try {
       profile = await fetchGitHubProfile(username, token);
@@ -82,20 +116,26 @@ export async function GET(
     cacheMap.set(cacheKey, { data: payload, expiresAt: now + CACHE_TTL_MS });
 
     return NextResponse.json(payload, {
-      headers: { "Cache-Control": "public, s-maxage=600, stale-while-revalidate=1200" },
+      headers: {
+        "Cache-Control": "public, s-maxage=600, stale-while-revalidate=1200",
+        "X-RateLimit-Remaining": String(rateLimit.remaining),
+      },
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Internal Server Error";
+    const message = error instanceof Error ? error.message : "";
 
-    // Surface GitHub rate-limit errors with a friendly status
-    if (message.includes("403")) {
+    // Surface rate limits safely without leaking internals
+    if (message.includes("403") || message.includes("rate limit")) {
       return NextResponse.json(
-        { error: "GitHub API rate limit reached. Please try again shortly." },
-        { status: 429 }
+        { error: "GitHub API rate limit reached. Please try again in a few minutes." },
+        { status: 429, headers: { "Retry-After": "60" } }
       );
     }
 
-    console.error("Error in /api/github/public/[username]:", message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("Error fetching public GitHub replay timeline:", message);
+    return NextResponse.json(
+      { error: "An unexpected error occurred while loading GitHub history." },
+      { status: 500 }
+    );
   }
 }

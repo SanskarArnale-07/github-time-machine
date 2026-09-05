@@ -214,7 +214,7 @@ export function DashboardContent({
                 <GitCommitHorizontal className="h-8 w-8 text-brass-light animate-pulse" />
               </div>
 
-              <h2 className="mt-6 font-display text-2xl text-ivory sm:text-3xl sm:text-4xl">
+              <h2 className="mt-6 font-display text-2xl text-ivory sm:text-3xl">
                 Begin your developer documentary
               </h2>
 
@@ -306,15 +306,19 @@ export function DashboardContent({
 
           {/* Cinematic Movie Title Card Hero */}
           <div className="relative z-10 mt-1 mb-2">
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-surface p-4 sm:p-5 lg:p-6 shadow-[0_0_40px_rgba(0,0,0,0.8)]">
-              <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent" />
+            {/* Very soft ambient observatory glow behind the card */}
+            <div className="pointer-events-none absolute -inset-1.5 rounded-3xl bg-gradient-to-r from-blue-600/[0.09] via-indigo-600/[0.06] to-transparent blur-xl" />
+            <div className="relative overflow-hidden rounded-2xl border border-white/[0.12] bg-[#0B0F17]/85 backdrop-blur-md p-4 sm:p-5 lg:p-6 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.85),0_0_24px_-4px_rgba(30,58,138,0.18)]">
+              {/* Subtle top border highlight */}
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent pointer-events-none" />
               <div className="relative z-10 flex flex-col items-start justify-center">
                 <div className="max-w-4xl pb-1">
-                  <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400 mb-2">Current Chapter</p>
-                  <h2 className="font-display text-2xl sm:text-4xl md:text-6xl font-semibold text-white tracking-tighter leading-tight drop-shadow-2xl mb-4">
+                  <p className="font-mono text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-2">Current Chapter</p>
+                  <h2 className="font-display text-2xl sm:text-4xl md:text-6xl font-bold text-white tracking-tight leading-tight drop-shadow-2xl mb-4">
                     The {analytics?.mostActiveYear || new Date().getFullYear()} Chapter
                   </h2>
-                  <p className="font-display text-base md:text-lg text-zinc-400 leading-relaxed border-l-2 border-white/20 pl-5 max-w-3xl">
+                  <p className="font-sans text-base md:text-lg font-normal text-zinc-300 leading-relaxed border-l-2 border-white/20 pl-5 max-w-3xl">
                     {commits.length < 50
                       ? `${commits.length} commits in${analytics?.insights?.mostFrequentlyUsedLanguage ? ` ${analytics.insights.mostFrequentlyUsedLanguage}` : ""}${analytics?.insights?.fastestRepoGrowth ? `, starting with ${analytics.insights.fastestRepoGrowth}` : ""}. Every documentary starts with a single commit — this is yours.`
                       : `${analytics?.insights?.fastestRepoGrowth ? `${analytics.insights.fastestRepoGrowth} took the most of your attention this year — ` : ""}${commits.length} commits across ${repos.length} repositories${analytics?.insights?.mostFrequentlyUsedLanguage ? `, mostly in ${analytics.insights.mostFrequentlyUsedLanguage}` : ""}${analytics && analytics.longestStreak > 0 ? `, with a ${analytics.longestStreak}-day streak at your peak` : ""}. Keep the momentum going.`}

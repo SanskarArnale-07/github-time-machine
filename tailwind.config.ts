@@ -49,9 +49,35 @@ const config: Config = {
         },
       },
       fontFamily: {
-        display: ["var(--font-display)", "var(--font-inter)", "system-ui", "sans-serif"],
-        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
-        mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "Menlo", "Consolas", "monospace"],
+        display: [
+          "var(--font-space-grotesk)",
+          "Space Grotesk",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Segoe UI",
+          "Roboto",
+          "system-ui",
+          "sans-serif",
+        ],
+        sans: [
+          "var(--font-space-grotesk)",
+          "Space Grotesk",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Segoe UI",
+          "Roboto",
+          "system-ui",
+          "sans-serif",
+        ],
+        mono: [
+          "var(--font-space-grotesk)",
+          "var(--font-mono)",
+          "ui-monospace",
+          "SFMono-Regular",
+          "Menlo",
+          "Consolas",
+          "monospace",
+        ],
       },
       keyframes: {
         "scan-line": {

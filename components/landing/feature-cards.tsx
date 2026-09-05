@@ -27,7 +27,7 @@ const features = [
 
 export function FeatureCards() {
   return (
-    <section id="features-section" className="relative py-20 lg:py-24 bg-[#0A0A0A] px-6 border-t border-white/5 overflow-hidden">
+    <section id="features-section" className="relative py-20 lg:py-24 bg-transparent px-6 overflow-hidden">
       <div className="relative z-10 max-w-6xl mx-auto">
         
         {/* Section Hero Copy */}
@@ -60,9 +60,15 @@ export function FeatureCards() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-60px" }}
               transition={{ duration: 0.5, delay: idx * 0.1 }}
-              className="bg-[#111111]/80 backdrop-blur-sm border border-white/5 hover:border-[#d4a853]/30 p-8 sm:p-10 rounded-3xl transition-all duration-300 group shadow-2xl"
+              className="bg-[#0d172e]/65 backdrop-blur-xl border border-blue-400/15 hover:border-blue-400/35 hover:shadow-[0_0_40px_rgba(59,130,246,0.14)] p-8 sm:p-10 rounded-3xl transition-all duration-300 group shadow-[0_16px_40px_rgba(2,6,23,0.45)] relative overflow-hidden"
             >
-              <div className="mb-6 inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-[#d4a853]/10 text-[#d4a853] group-hover:bg-[#d4a853]/20 transition-colors">
+              {/* Subtle top edge glow on card */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-300/25 to-transparent"
+              />
+
+              <div className="mb-6 inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-[#d4a853]/10 border border-[#d4a853]/20 text-[#d4a853] group-hover:bg-[#d4a853]/20 transition-all shadow-[0_0_15px_rgba(212,168,83,0.1)]">
                 <feature.icon className="w-5 h-5" />
               </div>
 
@@ -70,7 +76,7 @@ export function FeatureCards() {
                 {feature.title}
               </h3>
 
-              <p className="font-sans text-sm sm:text-base text-zinc-500 leading-relaxed">
+              <p className="font-sans text-sm sm:text-base text-zinc-400 leading-relaxed">
                 {feature.description}
               </p>
             </motion.div>

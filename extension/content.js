@@ -26,13 +26,43 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 /** Production deployment URL — single constant, matches popup.js. */
 const PRODUCTION_URL = "https://github-time-machine-sage.vercel.app";
 
+/**
+ * Validates candidate base URL before using it for window.open.
+ * Only allows localhost development (http://localhost:3000) or authorized HTTPS production.
+ */
+function validateBaseUrl(urlInput) {
+  if (!urlInput) return PRODUCTION_URL;
+  try {
+    const parsed = new URL(urlInput.trim());
+    if (parsed.username || parsed.password) return PRODUCTION_URL;
+    if (parsed.search || parsed.hash) return PRODUCTION_URL;
+
+    const hostname = parsed.hostname.toLowerCase();
+    const protocol = parsed.protocol.toLowerCase();
+    const port = parsed.port;
+
+    const isLocalDev =
+      (hostname === "localhost" || hostname === "127.0.0.1") &&
+      (port === "3000" || port === "") &&
+      protocol === "http:";
+
+    const isProdOrigin =
+      protocol === "https:" &&
+      (hostname === "github-time-machine-sage.vercel.app" ||
+        (hostname.endsWith(".vercel.app") && hostname.startsWith("github-time-machine")));
+
+    if (isLocalDev || isProdOrigin) {
+      return `${parsed.protocol}//${parsed.host}`;
+    }
+  } catch {}
+  return PRODUCTION_URL;
+}
+
 function getBaseUrl() {
-  // Reads the same chrome.storage.local key the popup settings panel writes.
-  // Falls back to the production URL when no dev override is stored.
   return new Promise((resolve) => {
     try {
       chrome.storage.local.get(["gtmBaseUrl"], (result) => {
-        resolve(result.gtmBaseUrl || PRODUCTION_URL);
+        resolve(validateBaseUrl(result.gtmBaseUrl));
       });
     } catch {
       resolve(PRODUCTION_URL);

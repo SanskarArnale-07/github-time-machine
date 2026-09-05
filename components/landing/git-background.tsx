@@ -9,8 +9,8 @@ export function GitBackground() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
-    // alpha: false optimizes rendering since we draw an opaque background
-    const ctx = canvas.getContext("2d", { alpha: false });
+    // alpha: true allows underlying space background to show through
+    const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return;
 
     let animationFrameId: number;
@@ -23,8 +23,9 @@ export function GitBackground() {
     // --- ENTITIES ---
     // 1. Light Blooms (Background atmospheric lights)
     const blooms = [
-      { x: 0.25, y: 0.4, radius: 600, color: "rgba(245, 158, 11, 0.04)", vx: 0.015, vy: 0.01 }, // Amber behind hero
-      { x: 0.75, y: 0.6, radius: 600, color: "rgba(59, 130, 246, 0.04)", vx: -0.015, vy: -0.01 }, // Cool blue behind content
+      { x: 0.22, y: 0.35, radius: 650, color: "rgba(212, 168, 83, 0.035)", vx: 0.01, vy: 0.008 }, // Champagne gold warmth behind hero
+      { x: 0.76, y: 0.45, radius: 720, color: "rgba(59, 130, 246, 0.055)", vx: -0.01, vy: -0.008 }, // Celestial royal blue behind preview card
+      { x: 0.50, y: 0.75, radius: 600, color: "rgba(99, 102, 241, 0.035)", vx: 0.008, vy: -0.01 }, // Subtle indigo space wash
     ];
 
     // 2. Floating Light Dust
@@ -64,15 +65,15 @@ export function GitBackground() {
 
       // Init dust (depth fog)
       dustParticles.length = 0;
-      const dustCount = Math.floor(width * height / 12000); // Responsive count
+      const dustCount = Math.floor(width * height / 14000); // Sparse, elegant count
       for (let i = 0; i < dustCount; i++) {
         dustParticles.push({
           x: Math.random() * width,
           y: Math.random() * height,
-          vx: (Math.random() - 0.5) * 0.1,
-          vy: (Math.random() - 0.5) * 0.1 - 0.05, // Slight upward drift
-          radius: Math.random() * 1.2 + 0.3,
-          alpha: Math.random() * 0.3 + 0.05,
+          vx: (Math.random() - 0.5) * 0.04,
+          vy: (Math.random() - 0.5) * 0.03 - 0.015, // Slow, imperceptible drift
+          radius: Math.random() * 0.9 + 0.3,
+          alpha: Math.random() * 0.22 + 0.04,
           z: Math.random() * 2 + 1, // Depth 1 to 3
         });
       }
@@ -147,15 +148,8 @@ export function GitBackground() {
       const mouseOffsetX = mouse.isActive ? (mouse.x - width / 2) : 0;
       const mouseOffsetY = mouse.isActive ? (mouse.y - height / 2) : 0;
 
-      // 1. Draw Background (Deep navy radial gradient)
-      const bgGradient = ctx.createRadialGradient(
-        width / 2, height / 2, 0,
-        width / 2, height / 2, Math.max(width, height)
-      );
-      bgGradient.addColorStop(0, "#0b1a2e");
-      bgGradient.addColorStop(1, "#07111f");
-      ctx.fillStyle = bgGradient;
-      ctx.fillRect(0, 0, width, height);
+      // 1. Clear frame transparently
+      ctx.clearRect(0, 0, width, height);
 
       // 2. Draw Gentle Light Blooms (Atmospheric)
       blooms.forEach(bloom => {
@@ -234,11 +228,11 @@ export function GitBackground() {
           // Faint, fading lines
           const lineGradient = ctx.createLinearGradient(nx, ny, tx, ty);
           if (node.isMain && target.isMain) {
-            lineGradient.addColorStop(0, "rgba(212, 168, 83, 0.2)");
-            lineGradient.addColorStop(1, "rgba(212, 168, 83, 0.2)");
+            lineGradient.addColorStop(0, "rgba(212, 168, 83, 0.22)");
+            lineGradient.addColorStop(1, "rgba(212, 168, 83, 0.22)");
           } else {
-            lineGradient.addColorStop(0, "rgba(212, 168, 83, 0.15)");
-            lineGradient.addColorStop(1, "rgba(161, 161, 170, 0.05)");
+            lineGradient.addColorStop(0, "rgba(212, 168, 83, 0.16)");
+            lineGradient.addColorStop(1, "rgba(88, 166, 255, 0.08)");
           }
           
           ctx.strokeStyle = lineGradient;
@@ -295,18 +289,55 @@ export function GitBackground() {
   }, []);
 
   return (
-    <div className="absolute inset-0 -z-10 h-full w-full bg-[#07111f]">
+    <div
+      className="absolute inset-0 -z-10 h-full w-full overflow-hidden"
+      style={{
+        background:
+          "linear-gradient(135deg, #071426 0%, #091c3d 35%, #0B2450 70%, #101B45 100%)",
+      }}
+    >
+      {/* Subtle radial aura behind Left Column (hero copy) */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -left-[12%] top-[10%] h-[60vw] w-[60vw] max-w-[900px] max-h-[900px] rounded-full"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(11, 36, 80, 0.45) 0%, rgba(7, 20, 38, 0) 70%)",
+          filter: "blur(80px)",
+        }}
+      />
+
+      {/* Subtle radial aura behind Right Column (live preview card) */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-[10%] top-[20%] h-[55vw] w-[55vw] max-w-[850px] max-h-[850px] rounded-full"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(16, 27, 69, 0.50) 0%, rgba(7, 20, 38, 0) 70%)",
+          filter: "blur(90px)",
+        }}
+      />
+
       <canvas
         ref={canvasRef}
         className="absolute inset-0 h-full w-full"
       />
+
       {/* Film Grain Overlay */}
       <div 
-        className="absolute inset-0 opacity-[0.04] mix-blend-overlay pointer-events-none" 
+        className="absolute inset-0 opacity-[0.035] mix-blend-overlay pointer-events-none" 
         style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}
       />
+
       {/* Deep Vignette */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_20%,#07111f_120%)] opacity-90 pointer-events-none" />
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(circle at center, transparent 30%, rgba(7, 20, 38, 0.45) 65%, #071426 115%)",
+        }}
+      />
     </div>
   );
 }

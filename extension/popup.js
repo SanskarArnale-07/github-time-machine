@@ -15,23 +15,84 @@ const PRODUCTION_URL = "https://github-time-machine-sage.vercel.app";
 
 // ─── Utilities ────────────────────────────────────────────────────────────
 
+/**
+ * Strictly validates and normalizes a candidate base URL.
+ * Only permits:
+ * 1. Empty/null -> reverts to default PRODUCTION_URL
+ * 2. Local development: http://localhost:3000 or http://127.0.0.1:3000
+ * 3. Production HTTPS origin: https://github-time-machine-sage.vercel.app or authorized *.vercel.app
+ */
+function validateBaseUrl(urlInput) {
+  const trimmed = (urlInput || "").trim().replace(/\/$/, "");
+  if (!trimmed) {
+    return { valid: true, normalized: PRODUCTION_URL };
+  }
+
+  let parsed;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return { valid: false, error: "Invalid URL format. Must include protocol (e.g. https://)." };
+  }
+
+  // Reject credentials in URL: user:pass@host
+  if (parsed.username || parsed.password) {
+    return { valid: false, error: "URLs containing user credentials are not allowed." };
+  }
+
+  // Reject query strings or hash fragments
+  if (parsed.search || parsed.hash) {
+    return { valid: false, error: "Base URL cannot include query parameters or fragments." };
+  }
+
+  const protocol = parsed.protocol.toLowerCase();
+  const hostname = parsed.hostname.toLowerCase();
+  const port = parsed.port;
+
+  // Local development origin check
+  const isLocalDev =
+    (hostname === "localhost" || hostname === "127.0.0.1") &&
+    (port === "3000" || port === "") &&
+    protocol === "http:";
+
+  // Production origin check (HTTPS required)
+  const isProdOrigin =
+    protocol === "https:" &&
+    (hostname === "github-time-machine-sage.vercel.app" ||
+      (hostname.endsWith(".vercel.app") && hostname.startsWith("github-time-machine")));
+
+  if (!isLocalDev && !isProdOrigin) {
+    return {
+      valid: false,
+      error: "Only https://github-time-machine-sage.vercel.app or http://localhost:3000 are permitted.",
+    };
+  }
+
+  return { valid: true, normalized: `${parsed.protocol}//${parsed.host}` };
+}
+
 async function getBaseUrl() {
   return new Promise((resolve) => {
-    // chrome.storage.local is device-local — the dev override never syncs
-    // to other browser profiles or leaks into production.
     chrome.storage.local.get(["gtmBaseUrl"], (result) => {
-      resolve(result.gtmBaseUrl || PRODUCTION_URL);
+      const stored = result.gtmBaseUrl;
+      const validation = validateBaseUrl(stored);
+      resolve(validation.valid ? validation.normalized : PRODUCTION_URL);
     });
   });
 }
 
 async function setBaseUrl(url) {
-  return new Promise((resolve) => {
-    if (!url || url === PRODUCTION_URL) {
+  return new Promise((resolve, reject) => {
+    const validation = validateBaseUrl(url);
+    if (!validation.valid) {
+      return reject(new Error(validation.error || "Invalid URL"));
+    }
+
+    if (!url || validation.normalized === PRODUCTION_URL) {
       // Clear the override — fall back to production
       chrome.storage.local.remove("gtmBaseUrl", resolve);
     } else {
-      chrome.storage.local.set({ gtmBaseUrl: url }, resolve);
+      chrome.storage.local.set({ gtmBaseUrl: validation.normalized }, resolve);
     }
   });
 }
@@ -182,23 +243,53 @@ function initSettings() {
   });
 
   saveBtn.addEventListener("click", async () => {
-    const val = input.value.trim().replace(/\/$/, ""); // strip trailing slash
-    // Empty input → restore production default (clears the local override)
-    await setBaseUrl(val || PRODUCTION_URL);
-    // Show confirmation
-    const actionsEl = saveBtn.closest(".settings-actions");
-    const confirm = document.createElement("span");
-    confirm.className = "save-confirmation";
-    confirm.textContent = "✓ Saved";
-    actionsEl.appendChild(confirm);
-    setTimeout(() => {
-      confirm.remove();
-      panel.classList.add("hidden");
-      toggle.setAttribute("aria-expanded", "false");
-    }, 1200);
+    // Clear any previous error/success indicators
+    const existingError = panel.querySelector(".settings-error");
+    if (existingError) existingError.remove();
+    const existingConfirm = panel.querySelector(".save-confirmation");
+    if (existingConfirm) existingConfirm.remove();
+
+    const validation = validateBaseUrl(input.value);
+    if (!validation.valid) {
+      const errEl = document.createElement("div");
+      errEl.className = "settings-error";
+      errEl.style.color = "#f87171";
+      errEl.style.fontSize = "11px";
+      errEl.style.marginTop = "6px";
+      errEl.style.lineHeight = "1.3";
+      errEl.textContent = validation.error || "Invalid URL";
+      input.insertAdjacentElement("afterend", errEl);
+      return;
+    }
+
+    try {
+      await setBaseUrl(validation.normalized);
+      input.value = validation.normalized;
+      // Show confirmation
+      const actionsEl = saveBtn.closest(".settings-actions");
+      const confirm = document.createElement("span");
+      confirm.className = "save-confirmation";
+      confirm.textContent = "✓ Saved";
+      actionsEl.appendChild(confirm);
+      setTimeout(() => {
+        confirm.remove();
+        panel.classList.add("hidden");
+        toggle.setAttribute("aria-expanded", "false");
+      }, 1200);
+    } catch (err) {
+      const errEl = document.createElement("div");
+      errEl.className = "settings-error";
+      errEl.style.color = "#f87171";
+      errEl.style.fontSize = "11px";
+      errEl.style.marginTop = "6px";
+      errEl.textContent = err.message || "Failed to save";
+      input.insertAdjacentElement("afterend", errEl);
+    }
   });
 
   cancelBtn.addEventListener("click", () => {
+    const existingError = panel.querySelector(".settings-error");
+    if (existingError) existingError.remove();
     panel.classList.add("hidden");
     toggle.setAttribute("aria-expanded", "false");
   });

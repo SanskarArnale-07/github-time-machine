@@ -31,6 +31,6 @@
       "all_frames": false
     }
   ],
-  "permissions": ["storage", "tabs"],
+  "permissions": ["storage", "activeTab"],
   "host_permissions": ["https://github.com/*"]
 }

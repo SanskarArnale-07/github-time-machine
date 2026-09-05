@@ -142,6 +142,20 @@ export async function generateSocialThumbnailImage(
 }
 
 /**
+ * Safely escapes untrusted strings for insertion into HTML.
+ * Converts special HTML characters to their corresponding entity equivalents.
+ */
+function escapeHtml(str: string | null | undefined): string {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+/**
  * Triggers a printable PDF documentary report.
  */
 export function downloadReplaySummaryPDF(
@@ -159,8 +173,9 @@ export function downloadReplaySummaryPDF(
     return;
   }
 
-  const username = profile?.name || profile?.login || "Developer";
-  const repoCount = repos.length;
+  const rawUsername = profile?.name || profile?.login || "Developer";
+  const username = escapeHtml(rawUsername);
+  const repoCount = Number(repos.length) || 0;
   
   let commitCount = commits.length;
   if (contributions && contributions.length > 0) {
@@ -183,12 +198,12 @@ export function downloadReplaySummaryPDF(
       (ch, idx) => `
       <div class="chapter-card">
         <div class="chapter-header">
-          <h3>Chapter ${idx + 1}: ${ch.name}</h3>
-          <span>${ch.subtitle}</span>
+          <h3>Chapter ${idx + 1}: ${escapeHtml(ch.name)}</h3>
+          <span>${escapeHtml(ch.subtitle)}</span>
         </div>
-        <p class="chapter-narrative">${ch.narrative}</p>
+        <p class="chapter-narrative">${escapeHtml(ch.narrative)}</p>
         <div class="chapter-footer">
-          ${ch.totalCommits} commits · Highlights: ${ch.highlightRepos.join(", ") || "Core Architecture"}
+          ${Number(ch.totalCommits) || 0} commits · Highlights: ${escapeHtml(ch.highlightRepos.join(", ") || "Core Architecture")}
         </div>
       </div>
     `
@@ -1210,38 +1225,52 @@ export function downloadRepoDocumentaryPDF(
     return;
   }
 
-  const repoName = repo.name;
-  const language = repo.language || "Code";
-  const stars = repo.stargazers_count || 0;
-  const forks = repo.forks_count || 0;
+  const rawRepoName = repo.name || "Repository";
+  const repoName = escapeHtml(rawRepoName);
+  const language = escapeHtml(repo.language || "Code");
+  const repoDescription = escapeHtml(
+    repo.description || `The complete story of ${rawRepoName}, told through its milestones.`
+  );
+  const stars = Number(repo.stargazers_count) || 0;
+  const forks = Number(repo.forks_count) || 0;
   const commitCount = events.length;
-  const createdDate = new Date(repo.created_at).toLocaleDateString("en-US", {
+  const createdDate = escapeHtml(new Date(repo.created_at).toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",
     year: "numeric",
-  });
-  const lastPush = new Date(repo.pushed_at).toLocaleDateString("en-US", {
+  }));
+  const lastPush = escapeHtml(new Date(repo.pushed_at).toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",
     year: "numeric",
-  });
+  }));
 
   const scenesHtml = events
     .map(
-      (ev, idx) => `
-      <div class="scene-card">
-        <div class="scene-number">Scene ${idx + 1}</div>
-        <div class="scene-header">
-          <h3>${ev.title}</h3>
-          <span class="scene-date">${new Date(ev.date).toLocaleDateString("en-US", { month: "long", year: "numeric" })}</span>
+      (ev, idx) => {
+        const title = escapeHtml(ev.title);
+        const date = escapeHtml(new Date(ev.date).toLocaleDateString("en-US", { month: "long", year: "numeric" }));
+        const description = escapeHtml(ev.description || "");
+        const badge = escapeHtml(ev.impactBadge || "Milestone");
+        const commitMsg = ev.commit?.message
+          ? escapeHtml(ev.commit.message.split("\n")[0].slice(0, 80))
+          : "";
+
+        return `
+        <div class="scene-card">
+          <div class="scene-number">Scene ${idx + 1}</div>
+          <div class="scene-header">
+            <h3>${title}</h3>
+            <span class="scene-date">${date}</span>
+          </div>
+          <p class="scene-narrative">${description}</p>
+          <div class="scene-meta">
+            <div class="scene-badge">${badge}</div>
+            ${commitMsg ? `<div class="scene-commit">"${commitMsg}"</div>` : ""}
+          </div>
         </div>
-        <p class="scene-narrative">${ev.description || ""}</p>
-        <div class="scene-meta">
-          <div class="scene-badge">${ev.impactBadge || "Milestone"}</div>
-          ${ev.commit?.message ? `<div class="scene-commit">"${ev.commit.message.split("\\n")[0].slice(0, 80)}"</div>` : ""}
-        </div>
-      </div>
-    `
+      `;
+      }
     )
     .join("");
 
@@ -1253,8 +1282,8 @@ export function downloadRepoDocumentaryPDF(
           <div class="chapter-item">
             <span class="chapter-num">${i + 1}</span>
             <div>
-              <strong>${ch.name}</strong>
-              <span class="chapter-sub">${ch.subtitle}</span>
+              <strong>${escapeHtml(ch.name)}</strong>
+              <span class="chapter-sub">${escapeHtml(ch.subtitle)}</span>
             </div>
           </div>
         `).join("")}
@@ -1480,7 +1509,7 @@ export function downloadRepoDocumentaryPDF(
         <div class="doc-header">
           <span class="label">GitHub Time Machine · Repository Documentary</span>
           <h1>${repoName}</h1>
-          <p class="subtitle">${repo.description || `The complete story of ${repoName}, told through its milestones.`}</p>
+          <p class="subtitle">${repoDescription}</p>
         </div>
 
         <div class="stats-row">

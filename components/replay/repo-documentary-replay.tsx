@@ -548,6 +548,21 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
   // Visible commit count for detail strip (use visibleCommits from engine)
   const visibleCommitCount = Math.max(1, engine.visibleCommits?.length ?? engine.currentIndex + 1);
 
+  // Compute dynamic space theme for repo documentary scene
+  const currentTitle = (engine.currentEvent?.title || "").toLowerCase();
+  let spaceTheme: "default" | "architecture" | "performance" | "beginning" | "refactor" | "milestone" | "streak" = "default";
+  if (isFinal) {
+    spaceTheme = "milestone";
+  } else if (sceneIndex === 1) {
+    spaceTheme = "beginning";
+  } else if (currentTitle.includes("perf") || currentTitle.includes("optimiz") || currentTitle.includes("speed")) {
+    spaceTheme = "performance";
+  } else if (currentTitle.includes("refactor") || currentTitle.includes("clean") || currentTitle.includes("rewrite")) {
+    spaceTheme = "refactor";
+  } else if (currentTitle.includes("architect") || currentTitle.includes("foundation") || currentTitle.includes("core")) {
+    spaceTheme = "architecture";
+  }
+
   return (
     <div
       ref={theaterRef}
@@ -555,6 +570,7 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
       onMouseMove={handleMouseMove}
     >
       <ReplayBackground
+        theme={spaceTheme}
         progress={engine.progress}
         isFinal={isFinal}
         sceneIndex={sceneIndex}

@@ -8,21 +8,67 @@ import { createClient } from "@/lib/supabase/server";
  * the one-time `code` for a session (stored in cookies by the server
  * client), then send the user on to /dashboard.
  */
+// Allowed relative paths for post-login redirect to prevent open redirects
+function getSafeRedirectUrl(nextParam: string | null, origin: string): string {
+  if (!nextParam) {
+    return `${origin}/dashboard`;
+  }
+
+  // Must start with exactly one '/' and not contain backslashes, double slashes, @ authority, or embedded schemes
+  if (
+    !nextParam.startsWith("/") ||
+    nextParam.startsWith("//") ||
+    nextParam.includes("\\") ||
+    nextParam.includes("@") ||
+    nextParam.includes(":")
+  ) {
+    return `${origin}/dashboard`;
+  }
+
+  try {
+    const parsed = new URL(nextParam, origin);
+    if (parsed.origin !== origin) {
+      return `${origin}/dashboard`;
+    }
+
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return `${origin}/dashboard`;
+    }
+
+    // Only allow verified internal application routes
+    const allowedPrefixes = ["/dashboard", "/replay", "/repo", "/terms", "/privacy"];
+    const isAllowedPath =
+      parsed.pathname === "/" ||
+      allowedPrefixes.some(
+        (prefix) => parsed.pathname === prefix || parsed.pathname.startsWith(`${prefix}/`)
+      );
+
+    if (!isAllowedPath) {
+      return `${origin}/dashboard`;
+    }
+
+    return `${origin}${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return `${origin}/dashboard`;
+  }
+}
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
+  const rawNext = searchParams.get("next");
+  const redirectTarget = getSafeRedirectUrl(rawNext, origin);
 
   if (code) {
     const supabase = await createClient();
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
-      console.error("Auth error in callback:", error);
+      console.error("Auth error in callback:", error.message || "Exchange failed");
     }
 
     if (!error) {
-      const response = NextResponse.redirect(`${origin}${next}`);
+      const response = NextResponse.redirect(redirectTarget);
 
       // IMPORTANT: Supabase only includes `provider_token` in THIS one-time
       // exchange response. It is never re-issued on subsequent session

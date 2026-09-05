@@ -8,15 +8,35 @@ import {
   calculateAnalytics,
   fetchGitHubContributionsGraphQL,
 } from "@/lib/github/api";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limiter";
 
 // In-memory short-duration cache for rapid responses
 const cacheMap = new Map<string, { data: any; expiresAt: number }>();
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes cache
 
+// Track refresh burst timestamps to prevent cache-busting DoS
+const refreshTracker = new Map<string, number>();
+
 export async function GET(request: NextRequest) {
   try {
+    const clientIp = getClientIp(request.headers);
+    const rateLimit = checkRateLimit(clientIp, 25, 5 * 60 * 1000);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Too many requests. Please wait a few minutes." },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(rateLimit.resetInSeconds),
+            "X-RateLimit-Limit": "25",
+            "X-RateLimit-Remaining": "0",
+          },
+        }
+      );
+    }
+
     const url = new URL(request.url);
-    const forceRefresh = url.searchParams.get("refresh") === "true";
+    const requestedRefresh = url.searchParams.get("refresh") === "true";
 
     const supabase = await createClient();
     const {
@@ -39,10 +59,21 @@ export async function GET(request: NextRequest) {
     const cached = cacheMap.get(cacheKey);
     const now = Date.now();
 
+    // Cache-busting defense: allow refresh at most once every 2 minutes
+    let forceRefresh = false;
+    if (requestedRefresh) {
+      const lastRefresh = refreshTracker.get(`${clientIp}-${cacheKey}`) || 0;
+      if (now - lastRefresh > 2 * 60 * 1000) {
+        forceRefresh = true;
+        refreshTracker.set(`${clientIp}-${cacheKey}`, now);
+      }
+    }
+
     if (!forceRefresh && cached && cached.expiresAt > now) {
       return NextResponse.json(cached.data, {
         headers: {
           "Cache-Control": "private, s-maxage=600, stale-while-revalidate=1200",
+          "X-RateLimit-Remaining": String(rateLimit.remaining),
         },
       });
     }
@@ -89,9 +120,16 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error("Error in /api/github/commits:", error);
+    const message = error instanceof Error ? error.message : "";
+    if (message.includes("403") || message.includes("rate limit")) {
+      return NextResponse.json(
+        { error: "GitHub API rate limit reached. Please try again shortly." },
+        { status: 429, headers: { "Retry-After": "60" } }
+      );
+    }
+    console.error("Error in /api/github/commits:", message);
     return NextResponse.json(
-      { error: error.message || "Internal Server Error" },
+      { error: "Failed to retrieve authenticated commit history." },
       { status: 500 }
     );
   }

@@ -101,8 +101,8 @@ export function TimelineView({
     <div className="space-y-6">
       <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
         <div className="mb-2 md:mb-0">
-          <h2 className="font-sans tracking-tight text-3xl font-semibold text-white">Developer Journal</h2>
-          <p className="mt-0 text-sm sm:text-base text-zinc-400 max-w-xl leading-relaxed">
+          <h2 className="font-display tracking-tight text-3xl font-bold text-white">Developer Journal</h2>
+          <p className="mt-1 text-sm sm:text-base text-zinc-400 max-w-xl leading-relaxed font-normal">
             {totalCommits} entries across time. Merge commits are hidden and repetitive updates are grouped for a focused narrative.
           </p>
         </div>

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { LogoutButton } from "@/components/dashboard/logout-button";
 import { DashboardContent } from "@/components/dashboard/dashboard-content";
 import { fetchGitHubProfile } from "@/lib/github/api";
+import { ArchiveBackground } from "@/components/dashboard/archive-background";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -38,9 +39,10 @@ export default async function DashboardPage() {
   }
 
   return (
-    <main className="relative flex min-h-screen flex-col bg-[#0B0A09]">
+    <main className="relative flex min-h-screen flex-col bg-[#06080D]">
+      <ArchiveBackground />
       {/* Top navigation with frosted glassmorphism */}
-      <header className="sticky top-0 z-30 border-b border-white/10 bg-[#0B0A09]/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-30 border-b border-white/[0.08] bg-[#06080D]/80 backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-3.5 sm:px-8">
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-[#1A1714]">
