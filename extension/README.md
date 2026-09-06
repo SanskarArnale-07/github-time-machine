@@ -42,9 +42,17 @@ The extension is now active.
 
 ### 3. Try it
 
+#### Profile pages
 1. Visit any GitHub profile: `github.com/torvalds`
 2. The **⏪ Replay this GitHub** button appears near the contribution graph
 3. Click it — the replay opens at `http://localhost:3000/replay/torvalds`
+
+#### Repository pages
+1. Visit any public GitHub repository: `github.com/facebook/react`
+2. A sleek, translucent Time Machine companion icon appears in the bottom-right corner
+3. Hover to reveal the tooltip: **"Replay this repository"**
+4. Click it — the repository documentary opens at `http://localhost:3000/repo/facebook/react/documentary`
+5. Click **✕** to dismiss the recommendation. Cooldown logic in `chrome.storage.local` ensures the icon only appears occasionally (e.g. once every few hours) and respects dismissals.
 
 ---
 

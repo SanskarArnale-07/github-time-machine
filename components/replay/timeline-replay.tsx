@@ -202,15 +202,23 @@ function ReplayMilestoneCard({
       </motion.div>
 
       {/* Center Narrative */}
-      <div className="max-w-5xl">
+      <div className="w-full max-w-4xl mx-auto px-4">
         <motion.h2
           variants={{
             initial: { opacity: 0, y: 10 },
             animate: { opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.15 } },
             exit: { opacity: 0, transition: { duration: 0.5, delay: 0.2 } }
           }}
-          className="font-display font-bold tracking-tight text-4xl leading-tight sm:text-5xl md:text-6xl lg:text-7xl drop-shadow-2xl"
-          style={{ color: IVORY_DARK }}
+          className="font-display font-bold tracking-tight leading-tight drop-shadow-2xl text-balance mx-auto"
+          style={{
+            color: IVORY_DARK,
+            fontSize: "clamp(2rem, 3.2vw + 0.5rem, 4rem)",
+            lineHeight: 1.1,
+            letterSpacing: "-0.02em",
+            maxWidth: "min(100%, 780px)",
+            wordBreak: "break-word",
+            overflowWrap: "break-word",
+          }}
         >
           {title}
         </motion.h2>
@@ -221,7 +229,7 @@ function ReplayMilestoneCard({
               animate: { opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.3 } },
               exit: { opacity: 0, transition: { duration: 0.3 } }
             }}
-            className="mx-auto mt-6 max-w-3xl text-xl sm:text-2xl font-normal leading-relaxed text-zinc-300 drop-shadow-lg text-balance"
+            className="mx-auto mt-6 max-w-2xl text-base sm:text-xl font-normal leading-relaxed text-zinc-300 drop-shadow-lg text-balance"
           >
             {description}
           </motion.p>

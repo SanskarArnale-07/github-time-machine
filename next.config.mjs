@@ -48,7 +48,7 @@ const nextConfig = {
 
   // Tree-shake large icon, animation, and chart libraries — only bundle what's imported
   experimental: {
-    optimizePackageImports: ["lucide-react", "framer-motion", "recharts"],
+    optimizePackageImports: ["framer-motion", "recharts"],
   },
 
   images: {

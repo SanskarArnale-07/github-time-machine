@@ -2,15 +2,15 @@
 
 > **Your coding journey as a film.**
 
-GitHub Time Machine transforms a developer’s GitHub history into a cinematic documentary experience. Instead of scrolling through commits and repositories, you replay your journey through chapters, milestones, streaks, and moments of growth.
+GitHub Time Machine transforms a developer's GitHub history into a cinematic documentary experience. Instead of scrolling through commits and repositories, you replay your journey through chapters, milestones, streaks, and moments of growth.
 
-A repository isn’t just code—it’s a story.
+A repository isn't just code — it's a story.
 
 ---
 
 ## The Idea
 
-Developers often forget how far they’ve come.
+Developers often forget how far they've come.
 
 This project reconstructs your GitHub history as a narrative timeline, turning years of repositories, commits, and late-night coding sessions into a beautifully composed documentary.
 
@@ -18,55 +18,89 @@ Think of it as **Spotify Wrapped + GitHub + a cinematic replay system**.
 
 ---
 
-## Staus
-
-Active Development
-
-The core replay engine is currently being refined with a focus on cinematic transitions, chapter pacing, playback controls, repository-based storytelling, and a full-screen documentary experience.
-
----
-
 ## Features
 
-### Cinematic Replay
+### Cinematic Timeline Replay
 
-- Full-screen documentary playback
-- Chapter-based storytelling
-- Smooth fade transitions
-- Film-inspired typography and pacing
-- Ambient soundtrack support
+- Full-screen documentary playback of your entire GitHub career
+- Chapter-based storytelling with milestone events, streaks, and repository origins
+- Scene-by-scene progression with smooth fade and scale transitions
+- Scrubable progress bar with commit-level hover previews
+- Keyboard navigation (Space, Arrow keys, R to restart, F for fullscreen)
+- Ambient soundtrack with three evolving cinematic themes
+
+### Repository Documentary
+
+- Per-repository cinematic documentary mode (`/repo/[owner]/[repo]/documentary`)
+- Dedicated replay view per repository (`/repo/[owner]/[repo]/replay`)
+- Scene arc showing the full lifecycle of a single repository
+- Milestone card with highlighted commit, language, and activity metadata
+- Final scene "fin." moment with gold cinematography
 
 ### Repository Archive
 
-- Browse repositories as documentary chapters
-- Language filtering
-- Searchable archive
-- Timeline navigation
+- Browse all repositories as documentary chapters
+- Search by name, description, or commit message
+- Filter by programming language
+- Sort by stars, last updated, or creation date
+- One-click launch into timeline replay or documentary mode
 
-### Narrative Timeline
+### Analytics Suite
 
-- Milestone-based progression
-- Repository origin moments
-- Streak highlights
-- Evolution of your development journey
+- **Overview** — total commits, repositories, streaks, languages
+- **Activity** — commit cadence, time-of-day distribution, weekday patterns
+- **Languages** — language breakdown across all repositories
+- **Milestones** — first commit, biggest breakthroughs, longest streaks
+- Developer Insights & Consistency Score
 
-### Analytics
+### Heatmap Bloom
 
-- Contribution heatmaps
-- Coding consistency
-- Repository activity
-- Growth insights
+- Contribution heatmap with animated bloom visualization
+- Week-by-week activity grid across your full history
+
+### Export
+
+- **Copy shareable link** — URL to current documentary scene
+- **Export PDF** — printable documentary report
+- **Export video** — 1080p cinematic MP4 rendered via Canvas API (30s, 60s, or full)
+- **Social thumbnail** — 1200×630 preview card image
+
+### Browser Extension
+
+- Chrome extension companion (`/extension`)
+- Popup with quick replay access
+- GitHub page content script integration
 
 ---
 
 ## Tech Stack
 
-- **Next.js**
-- **React**
-- **TypeScript**
-- **Tailwind CSS**
-- **Framer Motion**
-- **GitHub API**
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 14 (App Router) |
+| Language | TypeScript |
+| Styling | Tailwind CSS |
+| Animation | Framer Motion |
+| Auth & Backend | Supabase (GitHub OAuth) |
+| Data | GitHub REST API |
+| Video Export | Canvas API + mp4-muxer |
+| Audio | Web Audio API |
+
+---
+
+## Routes
+
+```
+/                          Landing page
+/dashboard                 Main dashboard (Timeline, Repos, Heatmap, Analytics)
+/replay/[username]         Full-career cinematic replay
+/repo/[owner]/[repo]       Repository overview
+/repo/[owner]/[repo]/replay        Repository replay
+/repo/[owner]/[repo]/documentary   Repository documentary
+/auth/callback             GitHub OAuth callback
+/privacy                   Privacy policy
+/terms                     Terms of service
+```
 
 ---
 
@@ -74,28 +108,34 @@ The core replay engine is currently being refined with a focus on cinematic tran
 
 ```text
 app/
+  api/github/          GitHub data API routes (commits, repos, public)
+  auth/                OAuth callback
+  dashboard/           Main dashboard page
+  replay/[username]/   Career replay page
+  repo/[owner]/[repo]/ Per-repo pages (overview, replay, documentary)
+  globals.css
+  layout.tsx
+
 components/
-  replay/
-  dashboard/
-  timeline/
-  repositories/
+  cinematic/           Loading overlay, cinematic background
+  dashboard/           Dashboard tabs (analytics, timeline, heatmap, repos, compare)
+  landing/             Hero, feature cards, navbar, CTA, footer
+  replay/              Replay engine UI, documentary player, timeline player
+  space-background.tsx Shared animated deep-space canvas
+
 lib/
-styles/
+  audio/               Ambient soundtrack system
+  github/
+    api.ts             GitHub API fetching & data shaping
+    documentary-engine.ts   Per-repo scene builder
+    export-utils.ts    PDF, video, thumbnail, shareable link export
+    milestone-engine.ts     Career milestone detection
+    replay-engine.ts   Full-career event engine & React hook
+    story-generator.ts Chapter titles, narrative generation
+    types.ts           Shared TypeScript types
+
+extension/             Chrome browser extension
 ```
-
----
-
-## Current Focus
-
-The replay engine is the heart of the project.
-
-Current improvements include:
-
-- refined chapter transitions
-- smoother fade sequencing
-- playback controls
-- repository-based narrative events
-- cinematic pacing
 
 ---
 
@@ -105,21 +145,9 @@ The goal is not to build another GitHub analytics dashboard.
 
 The goal is to build something that makes a developer pause and think:
 
-> _“I actually built all of this.”_
+> _"I actually built all of this."_
 
 GitHub Time Machine is designed to feel like watching the documentary of your own career.
-
----
-
-## Roadmap
-
-- GitHub OAuth
-- Real repository synchronization
-- AI-generated chapter titles
-- Personalized documentary narration
-- Exportable video documentaries
-- Shareable developer stories
-- Multi-year replay mode
 
 ---
 
@@ -135,4 +163,4 @@ This project turns one into the other.
 
 ---
 
-**Built for developers who forget how far they’ve come.**
+**Built for developers who forget how far they've come.**

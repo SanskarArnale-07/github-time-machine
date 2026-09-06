@@ -629,7 +629,8 @@ export function useRepoDocumentaryEngine(
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState<1 | 2 | 5>(1);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const elapsedSecondsRef = useRef(0);
+  const playbackStartTimeRef = useRef<number | null>(null);
 
   const getEventDuration = (event: ReplayEvent | null, spd: 1 | 2 | 5, isFinal: boolean) => {
     if (!event) return 2000 / spd;
@@ -639,7 +640,6 @@ export function useRepoDocumentaryEngine(
     if (isFinal) baseDuration = 7500;
     return baseDuration / spd;
   };
-
 
   const animFrameRef = useRef<number | null>(null);
   const lastAdvanceTimeRef = useRef<number | null>(null);
@@ -656,15 +656,9 @@ export function useRepoDocumentaryEngine(
   const total = events.length;
 
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
     if (isPlaying) {
-      interval = setInterval(() => {
-        setElapsedSeconds((prev) => prev + 1);
-      }, 1000);
+      playbackStartTimeRef.current = Date.now() - elapsedSecondsRef.current * 1000;
     }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
   }, [isPlaying]);
 
   useEffect(() => {
@@ -715,25 +709,25 @@ export function useRepoDocumentaryEngine(
   }, [isPlaying, total]);
 
   const play = useCallback(() => {
-    if (currentIndex >= total - 1) {
+    if (currentIndexRef.current >= total - 1) {
       setCurrentIndex(0);
     }
     setIsPlaying(true);
-  }, [currentIndex, total]);
+  }, [total]);
 
   const pause = useCallback(() => {
     setIsPlaying(false);
   }, []);
 
   const togglePlay = useCallback(() => {
-    if (isPlaying) pause();
-    else play();
-  }, [isPlaying, pause, play]);
+    setIsPlaying((prev) => !prev);
+  }, []);
 
   const replay = useCallback(() => {
     setIsPlaying(false);
     setCurrentIndex(0);
-    setElapsedSeconds(0);
+    elapsedSecondsRef.current = 0;
+    playbackStartTimeRef.current = null;
     setTimeout(() => setIsPlaying(true), 50);
   }, []);
 
@@ -879,10 +873,13 @@ export function useRepoDocumentaryEngine(
       : 1;
   }, [events, currentEvent]);
 
-  const formattedMinutes = Math.floor(elapsedSeconds / 60)
+  const currentElapsed = playbackStartTimeRef.current
+    ? Math.floor((Date.now() - playbackStartTimeRef.current) / 1000)
+    : elapsedSecondsRef.current;
+  const formattedMinutes = Math.floor(currentElapsed / 60)
     .toString()
     .padStart(2, "0");
-  const formattedSecs = (elapsedSeconds % 60).toString().padStart(2, "0");
+  const formattedSecs = (currentElapsed % 60).toString().padStart(2, "0");
   const formattedDuration = `${formattedMinutes}:${formattedSecs}`;
 
   const stats: ReplayStats = {
@@ -891,7 +888,7 @@ export function useRepoDocumentaryEngine(
     currentStreak: currentEvent?.streakCount || 1,
     commitsReplayed: visibleCommits.length,
     remainingEvents: Math.max(0, total - (currentIndex + 1)),
-    elapsedSeconds,
+    elapsedSeconds: currentElapsed,
     formattedDuration,
   };
 

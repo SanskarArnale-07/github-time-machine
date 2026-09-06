@@ -40,6 +40,23 @@ const NON_PROFILE_SEGMENTS = new Set([
   "github",
 ]);
 
+// Sub-paths on a user profile that are NOT repositories (e.g., github.com/username/repositories)
+const NON_REPO_SEGMENTS = new Set([
+  "followers",
+  "following",
+  "repositories",
+  "projects",
+  "packages",
+  "stars",
+  "sponsoring",
+  "sponsors",
+  "achievements",
+  "tab",
+]);
+
+const GITHUB_USERNAME_RE = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$/;
+const GITHUB_REPO_RE = /^[a-zA-Z0-9._-]{1,100}$/;
+
 /**
  * Attempts to extract a valid GitHub profile username from a URL string.
  * Returns the username string on success, or null if the URL is not a profile page.
@@ -66,7 +83,6 @@ function extractUsername(urlStr) {
   if (NON_PROFILE_SEGMENTS.has(segment.toLowerCase())) return null;
 
   // GitHub usernames: 1–39 chars, alphanumeric + hyphens, no leading/trailing hyphen
-  const GITHUB_USERNAME_RE = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$/;
   if (!GITHUB_USERNAME_RE.test(segment)) return null;
 
   return segment;
@@ -80,18 +96,66 @@ function detectGitHubUsername() {
 }
 
 /**
- * Listens for GitHub SPA navigation (pushState / popstate) and calls
- * `callback(username | null)` whenever the detected username changes.
+ * Attempts to extract a valid GitHub repository { owner, repo } from a URL string.
+ * Returns { owner, repo } on success, or null if the URL is not a repository page.
+ */
+function extractRepo(urlStr) {
+  let url;
+  try {
+    url = new URL(urlStr);
+  } catch {
+    return null;
+  }
+
+  if (url.hostname !== "github.com") return null;
+
+  // Trim leading slash and split
+  const parts = url.pathname.replace(/^\//, "").split("/").filter(Boolean);
+
+  // Must have at least two segments for a repository page (/owner/repo/...)
+  if (parts.length < 2) return null;
+
+  const owner = parts[0];
+  let repo = parts[1];
+
+  // Strip optional trailing .git
+  if (repo.endsWith(".git")) {
+    repo = repo.slice(0, -4);
+  }
+
+  // Reject known non-profile / non-repo paths
+  if (NON_PROFILE_SEGMENTS.has(owner.toLowerCase())) return null;
+  if (NON_REPO_SEGMENTS.has(repo.toLowerCase())) return null;
+
+  // Validate owner and repo against safe GitHub naming rules
+  if (!GITHUB_USERNAME_RE.test(owner)) return null;
+  if (!GITHUB_REPO_RE.test(repo)) return null;
+  if (repo === "." || repo === "..") return null;
+
+  return { owner, repo };
+}
+
+/**
+ * Returns the GitHub { owner, repo } visible on the current page, or null.
+ */
+function detectGitHubRepo() {
+  return extractRepo(window.location.href);
+}
+
+/**
+ * Listens for GitHub SPA navigation (pushState / popstate / turbo) and calls
+ * `callback(username | null)` whenever navigation occurs.
  * Returns a cleanup function.
  */
 function listenForNavigation(callback) {
-  let lastUsername = detectGitHubUsername();
+  let lastUrl = window.location.href;
 
   function check() {
-    const current = detectGitHubUsername();
-    if (current !== lastUsername) {
-      lastUsername = current;
-      callback(current);
+    const currentUrl = window.location.href;
+    if (currentUrl !== lastUrl) {
+      lastUrl = currentUrl;
+      const currentUsername = detectGitHubUsername();
+      callback(currentUsername);
     }
   }
 
@@ -103,7 +167,18 @@ function listenForNavigation(callback) {
     setTimeout(check, 50);
   };
 
+  // Intercept replaceState as well for completeness
+  const originalReplaceState = history.replaceState?.bind(history);
+  if (originalReplaceState) {
+    history.replaceState = function (...args) {
+      originalReplaceState(...args);
+      setTimeout(check, 50);
+    };
+  }
+
   window.addEventListener("popstate", check);
+  document.addEventListener("turbo:load", check);
+  document.addEventListener("turbo:render", check);
 
   // MutationObserver on document.title as a belt-and-suspenders fallback
   // for any navigation that doesn't go through pushState
@@ -116,10 +191,19 @@ function listenForNavigation(callback) {
 
   return function cleanup() {
     history.pushState = originalPushState;
+    if (originalReplaceState) history.replaceState = originalReplaceState;
     window.removeEventListener("popstate", check);
+    document.removeEventListener("turbo:load", check);
+    document.removeEventListener("turbo:render", check);
     titleObserver.disconnect();
   };
 }
 
 // Expose on window so both scripts loaded via manifest content_scripts can share
-window.__gtmDetect = { detectGitHubUsername, listenForNavigation, extractUsername };
+window.__gtmDetect = {
+  detectGitHubUsername,
+  detectGitHubRepo,
+  listenForNavigation,
+  extractUsername,
+  extractRepo,
+};

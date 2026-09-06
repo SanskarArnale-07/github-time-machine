@@ -37,7 +37,7 @@ export const ReplayBackground = memo(function ReplayBackground({
       <SpaceBackground 
         theme={effectiveTheme} 
         variant="absolute" 
-        starMultiplier={0.4}
+        starMultiplier={0.25}
         isPaused={isPaused}
         className="z-0"
       />
