@@ -55,6 +55,7 @@ interface TimelineReplayProps {
   profile?: GitHubUserProfile | null;
   contributions?: ContributionWeek[];
   isSingleRepo?: boolean;
+  isPublic?: boolean;
 }
 
 interface ReplayMilestoneCardProps {
@@ -319,7 +320,14 @@ function ReplayMilestoneCard({
   );
 }
 
-export function TimelineReplay({ commits, repos = [], profile = null, contributions = [], isSingleRepo }: TimelineReplayProps) {
+export function TimelineReplay({
+  commits,
+  repos = [],
+  profile = null,
+  contributions = [],
+  isSingleRepo,
+  isPublic = false,
+}: TimelineReplayProps) {
   const username = profile?.name || profile?.login || "Developer";
   const engine = useReplayEngine(commits, repos, username);
   const theaterRef = useRef<HTMLDivElement>(null);
@@ -576,7 +584,11 @@ export function TimelineReplay({ commits, repos = [], profile = null, contributi
 
   const copyReplayLink = useCallback(async () => {
     const { copyShareableReplayLink } = await import("@/lib/github/export-utils");
-    const result = await copyShareableReplayLink(username, engine.currentIndex);
+    const result = await copyShareableReplayLink(
+      profile?.login || username,
+      engine.currentIndex,
+      isPublic
+    );
     if (result.success) {
       setCopiedLink(true);
       window.setTimeout(() => setCopiedLink(false), 2200);
@@ -726,13 +738,21 @@ export function TimelineReplay({ commits, repos = [], profile = null, contributi
       </div>
       <div className={`replay-safe-frame absolute inset-0 flex flex-col items-center justify-center overflow-hidden bg-transparent ${!isHUDVisible && isFullscreen ? 'cursor-none' : ''}`}>
         <header className={`absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 sm:px-8 pt-4 pb-0 transition-all duration-300 ease-in-out ${isHUDVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full pointer-events-none"} ${isFullscreen ? 'hidden' : ''}`}>
-          <a
-            href="/dashboard"
-            className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/60 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-400 backdrop-blur-md transition-colors hover:border-white/20 hover:text-white"
-          >
-            <ChevronLeft className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Exit</span>
-          </a>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <a
+              href={isPublic ? "/" : "/dashboard"}
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/60 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-400 backdrop-blur-md transition-colors hover:border-white/20 hover:text-white"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">{isPublic ? "Home" : "Exit"}</span>
+            </a>
+            {isPublic && (
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/25 bg-black/60 px-2.5 sm:px-3 py-1.5 font-mono text-[9px] sm:text-[10px] uppercase tracking-[0.18em] text-amber-300/90 backdrop-blur-md">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+                <span>Public Documentary</span>
+              </div>
+            )}
+          </div>
 
           <div className="flex items-center gap-2 relative">
             {/* Export Button */}

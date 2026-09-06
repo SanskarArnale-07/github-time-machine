@@ -2,18 +2,19 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { GitHubCommit, GitHubRepo } from "@/lib/github/types";
-import { ReplayBackground } from "@/components/replay/replay-background";
 import { RepoDocumentaryReplay } from "@/components/replay/repo-documentary-replay";
 import { CinematicLoadingOverlay } from "@/components/cinematic/cinematic-loading-overlay";
 
 interface RepoDocumentaryPageProps {
   initialUsername: string;
   repoFullName: string; // e.g. "owner/repo"
+  isPublic?: boolean;
 }
 
 export function RepoDocumentaryPage({
   initialUsername,
   repoFullName,
+  isPublic = false,
 }: RepoDocumentaryPageProps) {
   const [repo, setRepo] = useState<GitHubRepo | null>(null);
   const [commits, setCommits] = useState<GitHubCommit[]>([]);
@@ -35,18 +36,34 @@ export function RepoDocumentaryPage({
     return () => clearInterval(interval);
   }, [backoffUntil]);
 
-  const cacheKey = `gtm_cache_${initialUsername.toLowerCase()}`;
+  const cacheKey = isPublic
+    ? `gtm_public_repo_${repoFullName.toLowerCase().replace(/[^a-z0-9]/g, "_")}`
+    : `gtm_cache_${initialUsername.toLowerCase()}`;
 
   const applyReplayData = useCallback((data: {
+    repo?: GitHubRepo;
     repos?: GitHubRepo[];
     commits?: GitHubCommit[];
   }) => {
-    if (data.repos) {
-      const foundRepo = data.repos.find(r => r.full_name === repoFullName);
+    if (data.repo) {
+      setRepo(data.repo);
+    } else if (data.repos) {
+      const foundRepo = data.repos.find(
+        (r) => r.full_name.toLowerCase() === repoFullName.toLowerCase()
+      );
       if (foundRepo) setRepo(foundRepo);
     }
+
     if (data.commits) {
-      setCommits(data.commits.filter(c => c.repoFullName === repoFullName));
+      if (data.repo) {
+        setCommits(data.commits);
+      } else {
+        setCommits(
+          data.commits.filter(
+            (c) => c.repoFullName?.toLowerCase() === repoFullName.toLowerCase()
+          )
+        );
+      }
     }
   }, [repoFullName]);
 
@@ -56,8 +73,17 @@ export function RepoDocumentaryPage({
     setError(null);
 
     try {
-      const response = await fetch("/api/github/commits");
-      if (!response.ok) throw new Error(`Failed to load data (${response.status})`);
+      const parts = repoFullName.split("/");
+      const endpoint =
+        isPublic && parts.length === 2
+          ? `/api/github/public/${encodeURIComponent(parts[0])}/${encodeURIComponent(parts[1])}`
+          : "/api/github/commits";
+
+      const response = await fetch(endpoint);
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.error || `Failed to load data (${response.status})`);
+      }
 
       const data = await response.json();
       applyReplayData(data);
@@ -65,7 +91,7 @@ export function RepoDocumentaryPage({
       try {
         sessionStorage.setItem(cacheKey, JSON.stringify(data));
       } catch {
-        // Cache failure should not interrupt.
+        // Storage failure should not interrupt presentation
       }
 
       setHasLoaded(true);
@@ -76,12 +102,12 @@ export function RepoDocumentaryPage({
       setRetryCount(newCount);
       if (newCount >= 3) {
         setBackoffUntil(Date.now() + 30000);
-        setRetryCount(0); // reset count for next attempt
+        setRetryCount(0);
       }
     } finally {
       setIsLoading(false);
     }
-  }, [applyReplayData, cacheKey, retryCount, backoffUntil]);
+  }, [applyReplayData, cacheKey, isPublic, repoFullName, retryCount, backoffUntil]);
 
   useEffect(() => {
     if (hasAttemptedLoad.current) return;
@@ -90,13 +116,13 @@ export function RepoDocumentaryPage({
     try {
       const cached = sessionStorage.getItem(cacheKey);
       const parsed = cached ? JSON.parse(cached) : null;
-      if (parsed?.commits) {
+      if (parsed && (parsed.repo || parsed.commits)) {
         applyReplayData(parsed);
         setHasLoaded(true);
         return;
       }
     } catch {
-      // Ignore stale cache
+      // Ignore stale or unparseable cache
     }
 
     loadCommitHistory();
@@ -107,7 +133,7 @@ export function RepoDocumentaryPage({
       <div className="relative z-10 h-full w-full">
         {error ? (
           <div className="flex h-full flex-col items-center justify-center gap-4 px-6 text-center">
-            <div className="rounded-xl border border-red-500/30 bg-red-950/20 px-6 py-4 text-sm text-red-300">
+            <div className="rounded-xl border border-red-500/30 bg-red-950/20 px-6 py-4 text-sm text-red-300 max-w-md">
               {error}
             </div>
             {timeRemaining > 0 && (
@@ -124,13 +150,36 @@ export function RepoDocumentaryPage({
         ) : !hasLoaded ? (
           <CinematicLoadingOverlay isLoading={isLoading || !hasLoaded} />
         ) : !repo ? (
-          <div className="flex h-full flex-col items-center justify-center gap-6 text-white">
-            <p>Repository not found in archive.</p>
+          <div className="flex h-full flex-col items-center justify-center gap-4 text-center px-6">
+            <p className="font-display text-xl text-ivory">Repository not found or is private.</p>
+            <p className="font-sans text-sm text-zinc-400 max-w-sm">
+              We couldn&apos;t find public commit activity for {repoFullName}. Make sure the repository exists and is public on GitHub.
+            </p>
+            <a
+              href="/"
+              className="mt-2 rounded-full border border-white/10 bg-white/5 px-5 py-2 font-mono text-xs text-zinc-300 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              Back to Home
+            </a>
+          </div>
+        ) : commits.length === 0 ? (
+          <div className="flex h-full flex-col items-center justify-center gap-4 text-center px-6">
+            <p className="font-display text-xl text-ivory">No public commits found.</p>
+            <p className="font-sans text-sm text-zinc-400 max-w-sm">
+              {repo.name} does not have any recorded commit history on its default branch.
+            </p>
+            <a
+              href="/"
+              className="mt-2 rounded-full border border-white/10 bg-white/5 px-5 py-2 font-mono text-xs text-zinc-300 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              Back to Home
+            </a>
           </div>
         ) : (
           <RepoDocumentaryReplay
             commits={commits}
             repo={repo}
+            isPublic={isPublic}
           />
         )}
       </div>

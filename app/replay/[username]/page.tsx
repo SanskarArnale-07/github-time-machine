@@ -1,10 +1,8 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { fetchGitHubProfile } from "@/lib/github/api";
 import { ReplayPage } from "@/components/replay/replay-page";
-import type { Metadata } from "next";
-
-// Validate GitHub username format
-const VALID_USERNAME = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$/;
+import { isValidGitHubUsername } from "@/lib/github/validation";
 
 interface Props {
   params: Promise<{ username: string }>;
@@ -12,24 +10,36 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { username } = await params;
+  if (!isValidGitHubUsername(username)) {
+    return { title: "GitHub Time Machine" };
+  }
+
+  const token: string | undefined = process.env.GITHUB_TOKEN ?? undefined;
+  let displayName = `@${username}`;
+  try {
+    const profile = await fetchGitHubProfile(username, token);
+    if (profile?.name) {
+      displayName = `${profile.name} (@${username})`;
+    }
+  } catch {
+    // Fallback to @username
+  }
+
   return {
-    title: `@${username} — GitHub Time Machine`,
+    title: `${displayName} — GitHub Time Machine`,
     description: `Replay ${username}'s entire GitHub journey as a cinematic timeline.`,
   };
 }
 
 /**
- * Public (no auth required) replay page.
- * Launched by the browser extension when a user clicks "Replay this GitHub"
- * on any GitHub profile. Uses the server-side GITHUB_TOKEN for data fetching.
- *
- * The existing /replay route (auth-gated, your own data) is completely untouched.
+ * Public (no auth required) profile replay page.
+ * Open to any visitor to view a developer's public GitHub journey.
  */
 export default async function PublicReplayPage({ params }: Props) {
   const { username } = await params;
 
   // Reject malformed usernames before making any API call
-  if (!VALID_USERNAME.test(username)) {
+  if (!isValidGitHubUsername(username)) {
     notFound();
   }
 
@@ -41,7 +51,7 @@ export default async function PublicReplayPage({ params }: Props) {
   try {
     initialProfile = await fetchGitHubProfile(username, token);
   } catch {
-    // If the user doesn't exist, 404. This avoids rendering an empty replay.
+    // If the user doesn't exist, 404
     notFound();
   }
 

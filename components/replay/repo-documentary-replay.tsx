@@ -34,6 +34,7 @@ const IVORY_LIGHT = "#FFF4D6";
 interface RepoDocumentaryReplayProps {
   commits: GitHubCommit[];
   repo: GitHubRepo;
+  isPublic?: boolean;
 }
 
 // ─── Lightweight Cinematic Editorial Repository Block ─────────────────────────
@@ -298,7 +299,7 @@ const RepoDocumentaryInfo = memo(function RepoDocumentaryInfo({
 });
 
 // ─── Main Replay Component ────────────────────────────────────────────────────
-export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayProps) {
+export function RepoDocumentaryReplay({ commits, repo, isPublic = false }: RepoDocumentaryReplayProps) {
   const engine = useRepoDocumentaryEngine(commits, repo);
   const theaterRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -540,14 +541,22 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
       <header
         className={`absolute top-0 left-0 right-0 z-50 flex items-center justify-between p-6 transition-all duration-300 ease-in-out ${isHUDVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full pointer-events-none"} ${isFullscreen ? "hidden" : ""}`}
       >
-        <a
-          href="/dashboard#repos"
-          aria-label="Back to repository archive"
-          className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/60 px-4 py-2 font-mono text-xs uppercase tracking-[0.15em] text-zinc-400 backdrop-blur-md transition-colors hover:border-white/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-        >
-          <ChevronLeft className="h-3.5 w-3.5" />
-          <span>Back to Archive</span>
-        </a>
+        <div className="flex items-center gap-3">
+          <a
+            href={isPublic ? "/" : "/dashboard#repos"}
+            aria-label={isPublic ? "Back to GitHub Time Machine" : "Back to repository archive"}
+            className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/60 px-4 py-2 font-mono text-xs uppercase tracking-[0.15em] text-zinc-400 backdrop-blur-md transition-colors hover:border-white/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+            <span>{isPublic ? "Home" : "Back to Archive"}</span>
+          </a>
+          {isPublic && (
+            <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-black/60 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.18em] text-amber-300/90 backdrop-blur-md shadow-[0_0_15px_rgba(245,158,11,0.08)]">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+              <span>Public Documentary</span>
+            </div>
+          )}
+        </div>
 
         {/* Export Menu */}
         <div ref={exportRef} className="relative">

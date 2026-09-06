@@ -13,12 +13,15 @@ import * as Mp4Muxer from 'mp4-muxer';
  */
 export async function copyShareableReplayLink(
   username: string,
-  currentEventIndex: number = 0
+  currentEventIndex: number = 0,
+  isPublic: boolean = false
 ): Promise<{ success: boolean; url: string }> {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const url = `${origin}/dashboard?user=${encodeURIComponent(
-    username
-  )}&event=${currentEventIndex}&mode=replay`;
+  const url = isPublic
+    ? `${origin}/replay/${encodeURIComponent(username)}`
+    : `${origin}/dashboard?user=${encodeURIComponent(
+        username
+      )}&event=${currentEventIndex}&mode=replay`;
 
   try {
     if (!navigator.clipboard) {
