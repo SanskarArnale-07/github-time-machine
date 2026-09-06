@@ -5,6 +5,7 @@ import {
   ReplayEvent,
   DeveloperInsights,
 } from "./types";
+import { calculateAggregateLanguageStats } from "./language-utils";
 
 export function cleanCommitMessage(msg: string): string {
   if (!msg) return "Update codebase";
@@ -196,8 +197,12 @@ export function filterMeaningfulMilestones(rawEvents: ReplayEvent[]): ReplayEven
     // Clone to avoid mutating original source
     const ev = { ...originalEv };
 
-    // Always keep repo creations & year milestones
-    if (ev.type === "repo_created" || ev.type === "year_milestone") {
+    // Always keep repo creations, year milestones, and month summaries
+    if (
+      ev.type === "repo_created" ||
+      ev.type === "year_milestone" ||
+      ev.type === "month_summary"
+    ) {
       filtered.push(ev);
       continue;
     }
@@ -281,16 +286,14 @@ export function generateChaptersAndStories(
 
   const total = curatedEvents.length;
 
-  const langCount: Record<string, number> = {};
-  for (const r of repos) {
-    if (r.language) {
-      langCount[r.language] = (langCount[r.language] || 0) + 1;
-    }
-  }
-  const topLangs = Object.entries(langCount)
-    .sort((a, b) => b[1] - a[1])
-    .map(([l]) => l);
-  const primaryLang = topLangs[0] || "Code";
+  const commitObjects = events
+    .map((e) => e.commit)
+    .filter((c): c is GitHubCommit => Boolean(c));
+  const aggregateLangStats = calculateAggregateLanguageStats(commitObjects, repos);
+  const primaryLang =
+    aggregateLangStats.mostUsedLanguage !== "N/A"
+      ? aggregateLangStats.mostUsedLanguage
+      : "Code";
 
   const annotatedEvents = [...curatedEvents];
   const seenLanguages = new Set<string>();
@@ -550,7 +553,7 @@ export function generateChaptersAndStories(
   const commitConsistencyScore = Math.min(98, Math.max(50, Math.round(65 + maxStreak * 3 - (maxGap > 45 ? 12 : 0))));
 
   const numRepos = repos.length;
-  const numLangs = Object.keys(langCount).length;
+  const numLangs = new Set(repos.map((r) => r.language).filter(Boolean)).size;
   const explorationScore = Math.min(99, Math.max(40, 50 + (numRepos * 2) + (numLangs * 5)));
   
   // Craftsmanship heuristic: higher if they have high commits relative to repos

@@ -8,8 +8,9 @@ import {
   Chapter,
   ReplayStats,
 } from "./types";
-import { generateChaptersAndStories } from "./story-generator";
+import { generateChaptersAndStories, getLanguageColor } from "./story-generator";
 import { buildRepoDocumentaryEvents } from "./documentary-engine";
+import { buildRepoLanguageMap } from "./language-utils";
 
 const ERA_COLORS: Record<number, { accent: string; glow: string; border: string }> = {
   0: { accent: "#D8B56C", glow: "rgba(216,181,108,0.15)", border: "rgba(216,181,108,0.38)" }, // Muted gold
@@ -29,12 +30,17 @@ export function buildNormalizedReplayEvents(
   username: string = "Developer"
 ): { events: ReplayEvent[]; chapters: Chapter[] } {
   const rawEvents: ReplayEvent[] = [];
+  const repoLangMap = buildRepoLanguageMap(repos);
 
   // 1. Add commits
   for (const commit of commits) {
     const d = new Date(commit.date);
     const ts = d.getTime();
     if (isNaN(ts)) continue;
+
+    const commitLang =
+      (commit.repoFullName && repoLangMap.get(commit.repoFullName.toLowerCase())) ||
+      (commit.repoName && repoLangMap.get(commit.repoName.toLowerCase()));
 
     rawEvents.push({
       id: `commit-${commit.sha}`,
@@ -52,6 +58,8 @@ export function buildNormalizedReplayEvents(
       authorName: commit.authorName,
       authorAvatar: commit.authorAvatar,
       commit,
+      language: commitLang,
+      languageColor: getLanguageColor(commitLang),
     });
   }
 

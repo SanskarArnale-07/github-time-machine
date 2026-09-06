@@ -38,6 +38,11 @@ import { Button } from "@/components/ui/button";
 import { ReplayBackground } from "@/components/replay/replay-background";
 import { SpaceTheme } from "@/components/space-background";
 import { cleanCommitMessage } from "@/lib/github/story-generator";
+import {
+  calculateAggregateLanguageStats,
+  getSingleRepoLanguage,
+  type LanguageMixItem,
+} from "@/lib/github/language-utils";
 
 // ─── Theme Colors ─────────────────────────────────────────────────────────────
 const IVORY_DARK = "#F5F0E8";
@@ -49,6 +54,7 @@ interface TimelineReplayProps {
   repos?: GitHubRepo[];
   profile?: GitHubUserProfile | null;
   contributions?: ContributionWeek[];
+  isSingleRepo?: boolean;
 }
 
 interface ReplayMilestoneCardProps {
@@ -60,6 +66,9 @@ interface ReplayMilestoneCardProps {
   yearsSpan: number;
   chapterIndex: number;
   chapterName: string;
+  languageLabel?: string;
+  languageValue?: string;
+  languageMix?: LanguageMixItem[];
   topLanguage?: string;
   mostActiveMonth?: string;
 }
@@ -73,6 +82,9 @@ function ReplayMilestoneCard({
   yearsSpan,
   chapterIndex,
   chapterName,
+  languageLabel = "Most Used Language",
+  languageValue,
+  languageMix,
   topLanguage,
   mostActiveMonth,
 }: ReplayMilestoneCardProps) {
@@ -112,7 +124,7 @@ function ReplayMilestoneCard({
           className="mt-12 grid grid-cols-2 md:grid-cols-5 gap-6 text-left max-w-4xl mx-auto border-t border-white/10 pt-8"
         >
           <div className="flex flex-col gap-1">
-            <span className="text-[11px] uppercase tracking-wider text-zinc-400 font-medium">Contributions</span>
+            <span className="text-[11px] uppercase tracking-wider text-zinc-400 font-medium">Tracked Activity</span>
             <span className="font-mono text-2xl font-bold text-white">{commitsReplayed}</span>
           </div>
           <div className="flex flex-col gap-1">
@@ -120,18 +132,41 @@ function ReplayMilestoneCard({
             <span className="font-mono text-2xl font-bold text-white">{repoCount}</span>
           </div>
           <div className="flex flex-col gap-1">
-            <span className="text-[11px] uppercase tracking-wider text-zinc-400 font-medium">Active Years</span>
+            <span className="text-[11px] uppercase tracking-wider text-zinc-400 font-medium">Year Span</span>
             <span className="font-mono text-2xl font-bold text-white">{yearsSpan}</span>
           </div>
           <div className="flex flex-col gap-1">
-            <span className="text-[11px] uppercase tracking-wider text-zinc-400 font-medium">Primary Language</span>
-            <span className="font-mono text-xl font-bold text-white pt-1 truncate">{topLanguage || "N/A"}</span>
+            <span className="text-[11px] uppercase tracking-wider text-zinc-400 font-medium">{languageLabel}</span>
+            <span className="font-mono text-xl font-bold text-white pt-1 truncate">{languageValue || topLanguage || "N/A"}</span>
           </div>
           <div className="flex flex-col gap-1 col-span-2 md:col-span-1">
             <span className="text-[11px] uppercase tracking-wider text-zinc-400 font-medium">Most Active</span>
             <span className="font-mono text-xl font-bold text-white pt-1">{mostActiveMonth || "Unknown"}</span>
           </div>
         </motion.div>
+
+        {languageMix && languageMix.length > 0 && (
+          <motion.div
+            variants={{
+              initial: { opacity: 0, y: 10 },
+              animate: { opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.6 } },
+              exit: { opacity: 0, transition: { duration: 0.3 } }
+            }}
+            className="mt-8 flex flex-col items-center"
+          >
+            <span className="text-[11px] uppercase tracking-wider text-zinc-400 font-medium mb-3">
+              Activity Mix
+            </span>
+            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 font-mono text-xs">
+              {languageMix.map((lang) => (
+                <div key={lang.name} className="flex items-center gap-2">
+                  <span className="text-zinc-400">{lang.name}</span>
+                  <span className="font-bold text-white tabular-nums">{lang.percentage}%</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
         
         <motion.p
           variants={{
@@ -139,7 +174,7 @@ function ReplayMilestoneCard({
             animate: { opacity: 1, transition: { duration: 1.5, delay: 2.5 } },
             exit: { opacity: 0 }
           }}
-          className="mt-24 font-sans text-2xl text-zinc-600"
+          className={`${languageMix && languageMix.length > 0 ? "mt-12 sm:mt-16" : "mt-24"} font-sans text-2xl text-zinc-600`}
         >
           To be continued...
         </motion.p>
@@ -284,7 +319,7 @@ function ReplayMilestoneCard({
   );
 }
 
-export function TimelineReplay({ commits, repos = [], profile = null, contributions = [] }: TimelineReplayProps) {
+export function TimelineReplay({ commits, repos = [], profile = null, contributions = [], isSingleRepo }: TimelineReplayProps) {
   const username = profile?.name || profile?.login || "Developer";
   const engine = useReplayEngine(commits, repos, username);
   const theaterRef = useRef<HTMLDivElement>(null);
@@ -581,10 +616,24 @@ export function TimelineReplay({ commits, repos = [], profile = null, contributi
   const isFinal = engine.currentIndex >= engine.total - 1;
   const yearsSpan = Math.max(1, engine.endYear - engine.startYear + 1);
 
-  const topLanguage = repos.length ? Object.entries(repos.reduce((acc, r) => {
-    if (r.language) acc[r.language] = (acc[r.language] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>)).sort((a,b) => b[1] - a[1])[0]?.[0] || "N/A" : "N/A";
+  const isSingleRepoDoc = isSingleRepo ?? (profile ? false : repos.length === 1);
+
+  let languageLabel = "Most Used Language";
+  let languageValue = "N/A";
+  let languageMix: LanguageMixItem[] | undefined = undefined;
+
+  if (isSingleRepoDoc) {
+    languageLabel = "Repository Language";
+    languageValue = getSingleRepoLanguage(repos[0], commits);
+    languageMix = undefined;
+  } else {
+    languageLabel = "Most Used Language";
+    const aggregateStats = calculateAggregateLanguageStats(commits, repos);
+    languageValue = aggregateStats.mostUsedLanguage;
+    languageMix = aggregateStats.hasReliablePercentages ? aggregateStats.languageMix : undefined;
+  }
+
+  const topLanguage = languageValue;
 
   const mostActiveMonth = engine.events.filter(e => e.type === "month_summary").sort((a,b) => (b.monthlySummary?.totalCommits || 0) - (a.monthlySummary?.totalCommits || 0))[0]?.monthName || 
     (commits.length > 0 ? new Date(commits[0].date).toLocaleString("default", { month: "short" }) : "N/A");
@@ -874,6 +923,9 @@ export function TimelineReplay({ commits, repos = [], profile = null, contributi
                 yearsSpan={yearsSpan}
                 chapterIndex={chapterIndex}
                 chapterName={engine.currentChapter?.name || "The Developer Journey"}
+                languageLabel={languageLabel}
+                languageValue={languageValue}
+                languageMix={languageMix}
                 topLanguage={topLanguage}
                 mostActiveMonth={mostActiveMonth}
               />

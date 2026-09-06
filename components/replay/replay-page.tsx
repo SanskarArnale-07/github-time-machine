@@ -155,6 +155,7 @@ export function ReplayPage({
             repos={repos}
             profile={profile}
             contributions={contributions}
+            isSingleRepo={Boolean(repoFilter)}
           />
         )}
       </div>
