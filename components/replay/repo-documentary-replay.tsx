@@ -133,12 +133,6 @@ const RepoDocumentaryInfo = memo(function RepoDocumentaryInfo({
               year: "numeric",
             })}
           </span>
-          {event.commit?.sha && (
-            <>
-              <span>·</span>
-              <span>{event.commit.sha.slice(0, 7)}</span>
-            </>
-          )}
         </motion.div>
 
         {/* 6. Milestone Label */}
@@ -267,12 +261,6 @@ const RepoDocumentaryInfo = memo(function RepoDocumentaryInfo({
         )}
         {(event.language || repo.language) && <span>·</span>}
         <span>{metadataDate}</span>
-        {event.commit?.sha && (
-          <>
-            <span>·</span>
-            <span>{event.commit.sha.slice(0, 7)}</span>
-          </>
-        )}
       </motion.div>
 
       {/* 6. Milestone Label (Small Understated Accent) */}
@@ -805,18 +793,19 @@ export function RepoDocumentaryReplay({ commits, repo }: RepoDocumentaryReplayPr
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button
+            <button
+              type="button"
               onClick={engine.togglePlay}
               aria-label={engine.isPlaying ? "Pause" : "Play"}
-              className="group relative flex h-10 w-10 items-center justify-center rounded-full bg-white text-black shadow-md transition-all duration-200 hover:scale-105 hover:bg-zinc-200 active:scale-95"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-zinc-950 shadow-md transition-all duration-200 hover:scale-105 hover:bg-zinc-100 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
               title="Play/Pause (Space)"
             >
               {engine.isPlaying ? (
-                <Pause className="h-4 w-4 fill-black" strokeWidth={1} />
+                <Pause className="h-4 w-4" style={{ fill: "#000000", stroke: "#000000", color: "#000000" }} />
               ) : (
-                <Play className="h-4 w-4 fill-black ml-0.5" strokeWidth={1} />
+                <Play className="h-4 w-4 ml-0.5" style={{ fill: "#000000", stroke: "#000000", color: "#000000" }} />
               )}
-            </Button>
+            </button>
             <Button
               variant="ghost"
               size="icon"

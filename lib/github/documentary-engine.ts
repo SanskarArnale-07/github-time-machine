@@ -148,39 +148,63 @@ export function buildRepoDocumentaryEvents(
     ));
   }
 
-  // 4. The Long Run
-  let maxStreak = 1;
-  let currentStreak = 1;
-  let bestStreakEndCommit = sortedCommits[0];
-  let lastDate = new Date(sortedCommits[0].date);
+  // 4. The Long Run / The Sprint
+  // Calculate genuine calendar-day streaks by deduplicating by YYYY-MM-DD
+  const dayMap = new Map<string, GitHubCommit>();
+  sortedCommits.forEach(c => {
+    const dayKey = new Date(c.date).toISOString().slice(0, 10);
+    dayMap.set(dayKey, c);
+  });
+  const uniqueDays = Array.from(dayMap.keys()).sort();
 
-  for (let i = 1; i < sortedCommits.length; i++) {
-    const d = new Date(sortedCommits[i].date);
-    const diffDays = Math.floor((d.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (diffDays <= 1) {
-      currentStreak++;
-      if (currentStreak > maxStreak) {
-        maxStreak = currentStreak;
-        bestStreakEndCommit = sortedCommits[i];
+  let maxStreakDays = 1;
+  let currentStreakDays = 1;
+  let bestStreakEndCommit: GitHubCommit | null = null;
+
+  for (let i = 1; i < uniqueDays.length; i++) {
+    const prevDate = new Date(uniqueDays[i - 1]);
+    const currDate = new Date(uniqueDays[i]);
+    const diffDays = Math.round((currDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 1) {
+      currentStreakDays++;
+      if (currentStreakDays > maxStreakDays) {
+        maxStreakDays = currentStreakDays;
+        bestStreakEndCommit = dayMap.get(uniqueDays[i]) || null;
       }
     } else {
-      currentStreak = 1;
+      currentStreakDays = 1;
     }
-    lastDate = d;
   }
 
-  if (bestStreakEndCommit && events.length < 4) {
+  // Only show "The Long Run" if there is a genuine multi-day streak (>= 3 consecutive days)
+  if (maxStreakDays >= 3 && bestStreakEndCommit && events.length < 4) {
     const dateLR = new Date(bestStreakEndCommit.date).toLocaleDateString("en-US", { month: "long", year: "numeric" });
     chapters.push(createChapter("scene-4", "The Long Run", events.length, bestStreakEndCommit.date));
     events.push(createEvent(
       bestStreakEndCommit,
       "streak",
       "The Long Run",
-      `${dateLR}. Consistency became a habit. A ${maxStreak}-day streak marked the longest unbroken period of contribution — proof that showing up matters.`,
-      `${maxStreak}-Day Streak`,
+      `${dateLR}. Consistency became a habit. A ${maxStreakDays}-day streak marked the longest unbroken period of contribution — proof that showing up matters.`,
+      `${maxStreakDays}-Day Streak`,
       "scene-4",
       "The Long Run",
+      4,
+      5500
+    ));
+  } else if (events.length < 4 && sortedCommits.length > 3) {
+    // If worked on in a focused, short-term burst, present "The Sprint" accurately
+    const sprintCommit = sortedCommits[Math.floor(sortedCommits.length * 0.45)];
+    const dateSprint = new Date(sprintCommit.date).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    chapters.push(createChapter("scene-4", "The Sprint", events.length, sprintCommit.date));
+    events.push(createEvent(
+      sprintCommit,
+      "volume",
+      "The Sprint",
+      `${dateSprint}. High-velocity execution took hold. Focused iterations and concentrated effort transformed the repository during an intense burst of building.`,
+      "Intensive Sprint",
+      "scene-4",
+      "The Sprint",
       4,
       5500
     ));
