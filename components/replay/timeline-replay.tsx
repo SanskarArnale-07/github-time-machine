@@ -582,23 +582,32 @@ export function TimelineReplay({
     }
   }, [soundEnabled]);
 
-  const copyReplayLink = useCallback(async () => {
-    const { copyShareableReplayLink } = await import("@/lib/github/export-utils");
-    const result = await copyShareableReplayLink(
-      profile?.login || username,
-      engine.currentIndex,
-      isPublic
-    );
-    if (result.success) {
-      setCopiedLink(true);
-      window.setTimeout(() => setCopiedLink(false), 2200);
-      return;
+  const handleShare = useCallback(async () => {
+    if (isPublic) {
+      const { shareDocumentary, getProfileShareData } = await import("@/lib/share");
+      const shareData = getProfileShareData(profile?.login || username, profile?.name);
+      const result = await shareDocumentary(shareData);
+      if (result.method === "clipboard") {
+        setCopiedLink(true);
+        window.setTimeout(() => setCopiedLink(false), 2200);
+      }
+    } else {
+      const { copyShareableReplayLink } = await import("@/lib/github/export-utils");
+      const result = await copyShareableReplayLink(
+        profile?.login || username,
+        engine.currentIndex,
+        false
+      );
+      if (result.success) {
+        setCopiedLink(true);
+        window.setTimeout(() => setCopiedLink(false), 2200);
+        return;
+      }
+      window.prompt("Copy this link:", result.url);
     }
-    // Clipboard write failed silently (insecure context, denied permission,
-    // some in-app browsers) — fall back to a visible prompt so the link is
-    // never just lost with no way to grab it.
-    window.prompt("Copy this link:", result.url);
-  }, [engine.currentIndex, username]);
+  }, [engine.currentIndex, isPublic, profile?.login, profile?.name, username]);
+
+  const copyReplayLink = handleShare;
 
   useEffect(() => {
     if (!engine.currentChapter) return;
@@ -755,6 +764,27 @@ export function TimelineReplay({
           </div>
 
           <div className="flex items-center gap-2 relative">
+            {/* Subtle Share Action */}
+            <button
+              type="button"
+              onClick={handleShare}
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/60 px-3.5 py-2 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-400 backdrop-blur-md transition-colors hover:border-white/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+              aria-label={copiedLink ? "Link copied to clipboard" : "Share Documentary"}
+              title="Share Documentary"
+            >
+              {copiedLink ? (
+                <>
+                  <Check className="h-3.5 w-3.5 text-emerald-400" />
+                  <span className="text-emerald-400">Copied</span>
+                </>
+              ) : (
+                <>
+                  <Share2 className="h-3.5 w-3.5" />
+                  <span>Share</span>
+                </>
+              )}
+            </button>
+
             {/* Export Button */}
             <div ref={exportRef} className="relative">
               <button

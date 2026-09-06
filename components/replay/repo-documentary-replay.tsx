@@ -338,12 +338,28 @@ export function RepoDocumentaryReplay({ commits, repo, isPublic = false }: RepoD
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isExportOpen]);
 
-  const handleCopyLink = useCallback(async () => {
-    const { copyRepoDocumentaryLink } = await import("@/lib/github/export-utils");
-    const result = await copyRepoDocumentaryLink(repo.full_name, engine.currentIndex);
-    setLinkCopied(result.success);
-    setTimeout(() => setLinkCopied(false), 2000);
-  }, [repo.full_name, engine.currentIndex]);
+  const handleShare = useCallback(async () => {
+    const parts = repo.full_name.split("/");
+    const owner = parts[0] || "developer";
+    const repoName = parts[1] || repo.name;
+
+    if (isPublic) {
+      const { shareDocumentary, getRepoShareData } = await import("@/lib/share");
+      const shareData = getRepoShareData(owner, repoName);
+      const result = await shareDocumentary(shareData);
+      if (result.method === "clipboard") {
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 2000);
+      }
+    } else {
+      const { copyRepoDocumentaryLink } = await import("@/lib/github/export-utils");
+      const result = await copyRepoDocumentaryLink(repo.full_name, engine.currentIndex, false);
+      setLinkCopied(result.success);
+      setTimeout(() => setLinkCopied(false), 2000);
+    }
+  }, [engine.currentIndex, isPublic, repo.full_name, repo.name]);
+
+  const handleCopyLink = handleShare;
 
   const handleExportPDF = useCallback(async () => {
     const { downloadRepoDocumentaryPDF } = await import("@/lib/github/export-utils");
@@ -558,8 +574,30 @@ export function RepoDocumentaryReplay({ commits, repo, isPublic = false }: RepoD
           )}
         </div>
 
-        {/* Export Menu */}
-        <div ref={exportRef} className="relative">
+        <div className="flex items-center gap-2 relative">
+          {/* Subtle Share Button */}
+          <button
+            type="button"
+            onClick={handleShare}
+            className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/60 px-3.5 py-2 font-mono text-xs uppercase tracking-[0.15em] text-zinc-400 backdrop-blur-md transition-colors hover:border-white/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+            aria-label={linkCopied ? "Link copied to clipboard" : "Share Documentary"}
+            title="Share Documentary"
+          >
+            {linkCopied ? (
+              <>
+                <Check className="h-3.5 w-3.5 text-emerald-400" />
+                <span className="text-emerald-400">Copied</span>
+              </>
+            ) : (
+              <>
+                <Share2 className="h-3.5 w-3.5" />
+                <span>Share</span>
+              </>
+            )}
+          </button>
+
+          {/* Export Menu */}
+          <div ref={exportRef} className="relative">
           <button
             type="button"
             onClick={() => setIsExportOpen((prev) => !prev)}
@@ -669,7 +707,8 @@ export function RepoDocumentaryReplay({ commits, repo, isPublic = false }: RepoD
             )}
           </AnimatePresence>
         </div>
-      </header>
+      </div>
+    </header>
 
       {/* Main Content Area — Centered in Viewport, Sitting Directly on Space Background */}
       <main

@@ -4,15 +4,61 @@ import { createClient } from "@/lib/supabase/server";
 import { RepoDocumentaryPage } from "@/components/replay/repo-documentary-page";
 import { isValidGitHubOwnerRepo } from "@/lib/github/validation";
 
+import { getCanonicalUrl, getOpenGraphImageUrl } from "@/lib/site-url";
+
 interface Props {
   params: Promise<{ owner: string; repo: string }>;
 }
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
   const { owner, repo } = await props.params;
+  if (!isValidGitHubOwnerRepo(owner, repo)) {
+    return {
+      title: "GitHub Time Machine",
+      robots: { index: false, follow: false },
+    };
+  }
+
+  const title = `${owner}/${repo} — GitHub Time Machine`;
+  const description = `A cinematic replay of the public development history of ${owner}/${repo}.`;
+  const canonicalUrl = getCanonicalUrl(`/repo/${owner}/${repo}/documentary`);
+  const ogImageUrl = getOpenGraphImageUrl({
+    type: "repo",
+    owner,
+    repo,
+  });
+
   return {
-    title: `${owner}/${repo} — GitHub Time Machine`,
-    description: `A cinematic documentary replaying the history and milestones of ${owner}/${repo}.`,
+    title,
+    description,
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title,
+      description,
+      url: canonicalUrl,
+      siteName: "GitHub Time Machine",
+      type: "website",
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: `${owner}/${repo} — GitHub Time Machine`,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImageUrl],
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
   };
 }
 

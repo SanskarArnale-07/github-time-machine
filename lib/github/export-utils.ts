@@ -1525,10 +1525,14 @@ export function exportReplayVideoFormat(
  */
 export async function copyRepoDocumentaryLink(
   repoFullName: string,
-  currentScene: number = 0
+  currentScene: number = 0,
+  isPublic: boolean = false
 ): Promise<{ success: boolean; url: string }> {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const url = `${origin}/repo/${encodeURIComponent(repoFullName)}?scene=${currentScene}`;
+  const parts = repoFullName.split("/");
+  const url = isPublic && parts.length === 2
+    ? `${origin}/repo/${encodeURIComponent(parts[0])}/${encodeURIComponent(parts[1])}/documentary`
+    : `${origin}/repo/${encodeURIComponent(repoFullName)}?scene=${currentScene}`;
 
   try {
     if (!navigator.clipboard) {
