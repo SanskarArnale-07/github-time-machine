@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { RepoDocumentaryPage } from "@/components/replay/repo-documentary-page";
 import { isValidGitHubOwnerRepo } from "@/lib/github/validation";
+import { fetchSingleRepo } from "@/lib/github/api";
 
 import { getCanonicalUrl, getOpenGraphImageUrl } from "@/lib/site-url";
 
@@ -70,6 +71,18 @@ export default async function RepositoryDocumentaryRoute(props: Props) {
     notFound();
   }
 
+  const token: string | undefined = process.env.GITHUB_TOKEN ?? undefined;
+
+  let initialRepo = null;
+  try {
+    initialRepo = await fetchSingleRepo(owner, repo, token);
+    if (!initialRepo || (initialRepo as any).private === true || (initialRepo as any).visibility === "private") {
+      notFound();
+    }
+  } catch {
+    notFound();
+  }
+
   let username = "developer";
   try {
     const supabase = await createClient();
@@ -97,6 +110,7 @@ export default async function RepositoryDocumentaryRoute(props: Props) {
         initialUsername={username}
         repoFullName={fullRepoName}
         isPublic={true}
+        initialRepo={initialRepo}
       />
     </div>
   );

@@ -13,15 +13,12 @@ import * as Mp4Muxer from 'mp4-muxer';
  */
 export async function copyShareableReplayLink(
   username: string,
-  currentEventIndex: number = 0,
-  isPublic: boolean = false
+  _currentEventIndex: number = 0,
+  _isPublic?: boolean
 ): Promise<{ success: boolean; url: string }> {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const url = isPublic
-    ? `${origin}/replay/${encodeURIComponent(username)}`
-    : `${origin}/dashboard?user=${encodeURIComponent(
-        username
-      )}&event=${currentEventIndex}&mode=replay`;
+  const cleanUsername = username.replace(/^@/, "");
+  const url = `${origin}/replay/${encodeURIComponent(cleanUsername)}`;
 
   try {
     if (!navigator.clipboard) {
@@ -1525,14 +1522,16 @@ export function exportReplayVideoFormat(
  */
 export async function copyRepoDocumentaryLink(
   repoFullName: string,
-  currentScene: number = 0,
-  isPublic: boolean = false
+  _currentScene: number = 0,
+  _isPublic?: boolean
 ): Promise<{ success: boolean; url: string }> {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const parts = repoFullName.split("/");
-  const url = isPublic && parts.length === 2
-    ? `${origin}/repo/${encodeURIComponent(parts[0])}/${encodeURIComponent(parts[1])}/documentary`
-    : `${origin}/repo/${encodeURIComponent(repoFullName)}?scene=${currentScene}`;
+  const owner = parts[0] ? encodeURIComponent(parts[0]) : "";
+  const repo = parts[1] ? encodeURIComponent(parts[1]) : "";
+  const url = parts.length === 2
+    ? `${origin}/repo/${owner}/${repo}/documentary`
+    : `${origin}/repo/${encodeURIComponent(repoFullName)}/documentary`;
 
   try {
     if (!navigator.clipboard) {

@@ -85,7 +85,7 @@ export async function GET(
     // 5. Strict Data Boundary: Never serve private repositories in public mode
     if (!repoData || (repoData as any).private === true || (repoData as any).visibility === "private") {
       return NextResponse.json(
-        { error: `Repository @${username}/${repo} not found or is private.` },
+        { error: `Repository @${username}/${repo} not found or is inaccessible.` },
         { status: 404 }
       );
     }

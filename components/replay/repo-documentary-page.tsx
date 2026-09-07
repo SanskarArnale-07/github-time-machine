@@ -9,14 +9,16 @@ interface RepoDocumentaryPageProps {
   initialUsername: string;
   repoFullName: string; // e.g. "owner/repo"
   isPublic?: boolean;
+  initialRepo?: GitHubRepo | null;
 }
 
 export function RepoDocumentaryPage({
   initialUsername,
   repoFullName,
   isPublic = false,
+  initialRepo = null,
 }: RepoDocumentaryPageProps) {
-  const [repo, setRepo] = useState<GitHubRepo | null>(null);
+  const [repo, setRepo] = useState<GitHubRepo | null>(initialRepo);
   const [commits, setCommits] = useState<GitHubCommit[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);

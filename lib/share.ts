@@ -2,8 +2,8 @@
  * Public Documentary Sharing Utility
  * 
  * Supports Web Share API (native mobile/desktop share sheet) with
- * graceful clipboard copy fallback and accessible feedback.
  */
+import { getSiteUrl } from "./site-url";
 
 export interface ShareData {
   title: string;
@@ -88,7 +88,7 @@ export async function shareDocumentary(data: ShareData): Promise<ShareResult> {
  * Generates the clean public profile share payload.
  */
 export function getProfileShareData(username: string, displayName?: string | null): ShareData {
-  const origin = typeof window !== "undefined" ? window.location.origin : "https://github-time-machine.vercel.app";
+  const origin = typeof window !== "undefined" ? window.location.origin : getSiteUrl();
   const name = displayName?.trim() || username;
   const possessive = username.endsWith("s") || username.endsWith("S") ? `${username}'` : `${username}'s`;
   return {
@@ -102,7 +102,7 @@ export function getProfileShareData(username: string, displayName?: string | nul
  * Generates the clean public repository share payload.
  */
 export function getRepoShareData(owner: string, repo: string): ShareData {
-  const origin = typeof window !== "undefined" ? window.location.origin : "https://github-time-machine.vercel.app";
+  const origin = typeof window !== "undefined" ? window.location.origin : getSiteUrl();
   return {
     title: `${owner}/${repo} — GitHub Time Machine`,
     text: `A cinematic replay of the public development history of ${owner}/${repo}.`,

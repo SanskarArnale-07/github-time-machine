@@ -15,7 +15,7 @@ export function getSiteUrl(): string {
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL.replace(/\/+$/, "")}`;
   }
-  return "https://github-time-machine.vercel.app";
+  return "https://github-time-machine-sage.vercel.app";
 }
 
 export function getCanonicalUrl(path: string): string {
