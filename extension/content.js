@@ -130,7 +130,13 @@ function markRepoDismissed(owner, repo) {
   } catch {}
 }
 
+let _headerObserver = null;
+
 function removeRepoIcon() {
+  if (_headerObserver) {
+    _headerObserver.disconnect();
+    _headerObserver = null;
+  }
   const container = document.getElementById(REPO_CONTAINER_ID);
   if (container) {
     container.remove();
@@ -152,8 +158,21 @@ function injectButton(username) {
   btn.id = BUTTON_ID;
   btn.setAttribute(BUTTON_ATTR, "true");
   btn.setAttribute("aria-label", `Replay ${username}'s GitHub history in GitHub Time Machine`);
+  btn.setAttribute("title", "Replay this GitHub in GitHub Time Machine");
   btn.innerHTML = `
-    <span class="gtm-btn-icon">⏪</span>
+    <span class="gtm-btn-icon-wrap" aria-hidden="true">
+      <svg class="gtm-btn-svg" width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="9.5" stroke="url(#gtm-profile-grad)" stroke-width="1.8" stroke-dasharray="3 2.5"/>
+        <polygon points="11,7.5 5,12 11,16.5" fill="#38bdf8"/>
+        <polygon points="18,7.5 12,12 18,16.5" fill="#818cf8"/>
+        <defs>
+          <linearGradient id="gtm-profile-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#38bdf8"/>
+            <stop offset="100%" stop-color="#818cf8"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    </span>
     <span class="gtm-btn-text">Replay this GitHub</span>
   `;
 
@@ -164,56 +183,91 @@ function injectButton(username) {
     #${BUTTON_ID} {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 6px 14px;
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 6px;
-      background: #0a0a0a;
-      color: #e6edf3;
+      gap: 7px;
+      height: 32px;
+      padding: 0 14px;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 9999px;
+      background: rgba(10, 15, 28, 0.9);
+      color: #f1f5f9;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-      font-size: 13px;
+      font-size: 12.5px;
       font-weight: 500;
-      line-height: 20px;
+      line-height: 1;
+      letter-spacing: 0.01em;
       cursor: pointer;
       text-decoration: none;
       white-space: nowrap;
-      transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35), 0 0 12px rgba(56, 189, 248, 0.12);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: background 150ms ease,
+                  border-color 150ms ease,
+                  box-shadow 150ms ease,
+                  transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
       outline: none;
       vertical-align: middle;
-      letter-spacing: 0.01em;
     }
     #${BUTTON_ID}:hover {
-      background: #161b22;
-      border-color: rgba(255,255,255,0.3);
-      box-shadow: 0 0 0 3px rgba(255,255,255,0.06);
+      background: rgba(15, 23, 42, 0.98);
+      border-color: rgba(56, 189, 248, 0.65);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5), 0 0 16px rgba(56, 189, 248, 0.3);
+      transform: translateY(-1px);
+      color: #ffffff;
     }
     #${BUTTON_ID}:active {
-      background: #0d1117;
-      transform: scale(0.98);
+      background: #090e1a;
+      transform: translateY(0) scale(0.98);
     }
     #${BUTTON_ID}:focus-visible {
-      box-shadow: 0 0 0 3px rgba(88,166,255,0.4);
-      border-color: #58a6ff;
+      outline: 2px solid #38bdf8;
+      outline-offset: 2px;
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.3);
     }
-    .gtm-btn-icon {
-      font-size: 14px;
-      line-height: 1;
-    }
-    .gtm-wrapper {
+    .gtm-btn-icon-wrap {
       display: flex;
       align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .gtm-btn-svg {
+      display: block;
+      filter: drop-shadow(0 0 3px rgba(56, 189, 248, 0.45));
+      transition: filter 150ms ease;
+    }
+    #${BUTTON_ID}:hover .gtm-btn-svg {
+      filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.75));
+    }
+    .gtm-btn-text {
+      font-size: 12.5px;
+      font-weight: 500;
+      color: #f1f5f9;
+    }
+    .gtm-wrapper {
+      display: inline-flex;
+      align-items: center;
       margin-top: 12px;
+      margin-bottom: 8px;
     }
     .gtm-floating-wrapper {
       position: fixed;
       bottom: 24px;
       right: 24px;
       z-index: 9999;
-      animation: gtmSlideIn 300ms ease forwards;
+      animation: gtmSlideIn 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
     @keyframes gtmSlideIn {
       from { opacity: 0; transform: translateY(8px); }
       to   { opacity: 1; transform: translateY(0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #${BUTTON_ID},
+      .gtm-floating-wrapper,
+      .gtm-btn-svg {
+        animation: none !important;
+        transition: none !important;
+        transform: none !important;
+      }
     }
   `;
 
@@ -299,118 +353,138 @@ function injectRepoIcon(owner, repo) {
     style.id = REPO_STYLES_ID;
     style.textContent = `
       #${REPO_CONTAINER_ID}.gtm-companion-wrap {
-        position: fixed;
-        bottom: 28px;
-        right: 28px;
-        z-index: 9998;
-        display: flex;
+        display: inline-flex;
         align-items: center;
-        justify-content: center;
-        animation: gtmCompanionFadeIn 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        position: relative;
+        vertical-align: middle;
+        z-index: 30;
+        flex-shrink: 0;
       }
 
-      @keyframes gtmCompanionFadeIn {
-        from {
-          opacity: 0;
-          transform: translateY(12px) scale(0.9);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0) scale(1);
-        }
+      /* Header placement: inline inside the action buttons container */
+      .gtm-companion-wrap.gtm-in-header {
+        margin-right: 8px;
+        animation: gtmHeaderFadeIn 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+
+      /* Fallback anchored near top header area if DOM elements are delayed (never bottom-right!) */
+      .gtm-companion-wrap.gtm-anchored-header {
+        position: fixed;
+        top: 72px;
+        right: 24px;
+        z-index: 999;
+        animation: gtmHeaderFadeIn 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+
+      @keyframes gtmHeaderFadeIn {
+        from { opacity: 0; transform: scale(0.92); }
+        to   { opacity: 1; transform: scale(1); }
       }
 
       .gtm-companion-btn {
-        width: 46px;
-        height: 46px;
-        border-radius: 50%;
-        background: rgba(10, 15, 26, 0.88);
-        border: 1px solid rgba(56, 189, 248, 0.35);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 14px rgba(56, 189, 248, 0.18);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        display: flex;
+        display: inline-flex;
         align-items: center;
-        justify-content: center;
-        cursor: pointer;
+        height: 32px;
+        width: 32px;
+        min-width: 32px;
+        max-width: 32px;
         padding: 0;
+        border-radius: 9999px;
+        background: rgba(13, 17, 23, 0.92);
+        border: 1px solid rgba(56, 189, 248, 0.35);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35), 0 0 12px rgba(56, 189, 248, 0.16);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        cursor: pointer;
         outline: none;
-        transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-                    border-color 0.2s ease,
-                    box-shadow 0.2s ease,
-                    background 0.2s ease;
+        overflow: hidden;
+        white-space: nowrap;
+        box-sizing: border-box;
+        transition: max-width 240ms cubic-bezier(0.16, 1, 0.3, 1),
+                    width 240ms cubic-bezier(0.16, 1, 0.3, 1),
+                    padding 240ms cubic-bezier(0.16, 1, 0.3, 1),
+                    background 180ms ease,
+                    border-color 180ms ease,
+                    box-shadow 180ms ease,
+                    transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
       }
 
-      .gtm-companion-btn:hover {
-        transform: translateY(-2px) scale(1.06);
-        background: rgba(15, 23, 42, 0.95);
+      .gtm-companion-btn:hover,
+      .gtm-companion-btn:focus-visible {
+        width: auto;
+        min-width: 32px;
+        max-width: 220px;
+        padding: 0 12px 0 7px;
+        background: rgba(15, 23, 42, 0.98);
         border-color: rgba(56, 189, 248, 0.7);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 22px rgba(56, 189, 248, 0.4);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45), 0 0 16px rgba(56, 189, 248, 0.32);
+        transform: translateY(-1px);
       }
 
       .gtm-companion-btn:active {
-        transform: translateY(0) scale(0.96);
-        background: #0b1120;
+        background: #090e1a;
+        transform: translateY(0) scale(0.98);
       }
 
       .gtm-companion-btn:focus-visible {
         outline: 2px solid #38bdf8;
-        outline-offset: 3px;
-        box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.25);
+        outline-offset: 2px;
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.3);
+      }
+
+      .gtm-companion-icon-wrap {
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
       }
 
       .gtm-companion-svg {
         display: block;
         pointer-events: none;
         filter: drop-shadow(0 0 3px rgba(56, 189, 248, 0.5));
-        transition: filter 0.2s ease;
+        transition: filter 0.18s ease;
       }
 
-      .gtm-companion-btn:hover .gtm-companion-svg {
-        filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.8));
+      .gtm-companion-btn:hover .gtm-companion-svg,
+      .gtm-companion-btn:focus-visible .gtm-companion-svg {
+        filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.85));
       }
 
-      .gtm-companion-tooltip {
-        position: absolute;
-        right: calc(100% + 12px);
-        top: 50%;
-        transform: translateY(-50%) translateX(6px);
-        background: rgba(8, 12, 22, 0.94);
-        border: 1px solid rgba(56, 189, 248, 0.3);
-        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5), 0 0 12px rgba(56, 189, 248, 0.15);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        color: #f1f5f9;
+      .gtm-companion-label {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
         font-size: 12px;
         font-weight: 500;
-        letter-spacing: 0.02em;
-        padding: 6px 12px;
-        border-radius: 6px;
-        white-space: nowrap;
-        pointer-events: none;
+        letter-spacing: 0.01em;
+        color: #f1f5f9;
+        margin-left: 5px;
         opacity: 0;
-        transition: opacity 0.18s ease, transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-        z-index: 10000;
+        max-width: 0;
+        pointer-events: none;
+        overflow: hidden;
+        white-space: nowrap;
+        transition: opacity 160ms ease 40ms, max-width 240ms cubic-bezier(0.16, 1, 0.3, 1);
       }
 
-      .gtm-companion-btn:hover ~ .gtm-companion-tooltip,
-      .gtm-companion-btn:focus-visible ~ .gtm-companion-tooltip {
+      .gtm-companion-btn:hover .gtm-companion-label,
+      .gtm-companion-btn:focus-visible .gtm-companion-label {
         opacity: 1;
-        transform: translateY(-50%) translateX(0);
+        max-width: 160px;
       }
 
       .gtm-companion-dismiss {
         position: absolute;
-        top: -5px;
-        right: -5px;
-        width: 18px;
-        height: 18px;
+        top: -4px;
+        right: -4px;
+        width: 16px;
+        height: 16px;
         border-radius: 50%;
         background: rgba(15, 23, 42, 0.95);
         border: 1px solid rgba(56, 189, 248, 0.3);
         color: #94a3b8;
-        font-size: 11px;
+        font-size: 10px;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         font-weight: bold;
         line-height: 1;
@@ -445,10 +519,11 @@ function injectRepoIcon(owner, repo) {
         #${REPO_CONTAINER_ID}.gtm-companion-wrap,
         .gtm-companion-btn,
         .gtm-companion-svg,
-        .gtm-companion-tooltip,
+        .gtm-companion-label,
         .gtm-companion-dismiss {
           animation: none !important;
           transition: none !important;
+          transform: none !important;
         }
       }
     `;
@@ -468,23 +543,21 @@ function injectRepoIcon(owner, repo) {
   btn.setAttribute("title", "Replay this repository");
 
   btn.innerHTML = `
-    <svg class="gtm-companion-svg" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="12" r="9.5" stroke="url(#gtm-repo-grad)" stroke-width="1.5" stroke-dasharray="3 2.5"/>
-      <polygon points="11,7.5 5,12 11,16.5" fill="#38bdf8"/>
-      <polygon points="18,7.5 12,12 18,16.5" fill="#818cf8"/>
-      <defs>
-        <linearGradient id="gtm-repo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#38bdf8"/>
-          <stop offset="100%" stop-color="#818cf8"/>
-        </linearGradient>
-      </defs>
-    </svg>
+    <span class="gtm-companion-icon-wrap" aria-hidden="true">
+      <svg class="gtm-companion-svg" width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="9.5" stroke="url(#gtm-repo-grad)" stroke-width="1.6" stroke-dasharray="3 2.5"/>
+        <polygon points="11,7.5 5,12 11,16.5" fill="#38bdf8"/>
+        <polygon points="18,7.5 12,12 18,16.5" fill="#818cf8"/>
+        <defs>
+          <linearGradient id="gtm-repo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#38bdf8"/>
+            <stop offset="100%" stop-color="#818cf8"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    </span>
+    <span class="gtm-companion-label">Replay this repository</span>
   `;
-
-  const tooltip = document.createElement("div");
-  tooltip.className = "gtm-companion-tooltip";
-  tooltip.setAttribute("role", "tooltip");
-  tooltip.textContent = "Replay this repository";
 
   const dismissBtn = document.createElement("button");
   dismissBtn.className = "gtm-companion-dismiss";
@@ -510,9 +583,101 @@ function injectRepoIcon(owner, repo) {
   });
 
   container.appendChild(btn);
-  container.appendChild(tooltip);
   container.appendChild(dismissBtn);
-  document.body.appendChild(container);
+
+  tryInsertNearRepoHeader(container);
+}
+
+/**
+ * Inserts the repository companion near the GitHub repository header / action buttons area.
+ * Targets in priority order:
+ *  1. Inside #repository-details-container before ul.pagehead-actions
+ *  2. Inside ul.pagehead-actions parent
+ *  3. Adjacent to repo title / badge in #repository-container-header
+ *  4. Top-right header area fallback while DOM elements mount (never in bottom-right corner)
+ */
+function tryInsertNearRepoHeader(container) {
+  if (_headerObserver) {
+    _headerObserver.disconnect();
+    _headerObserver = null;
+  }
+
+  function attemptPlacement() {
+    if (container.parentNode && container.classList.contains("gtm-in-header")) {
+      return true;
+    }
+
+    // 1. Target: Inside #repository-details-container before pagehead-actions
+    const detailsContainer = document.getElementById("repository-details-container");
+    if (detailsContainer) {
+      detailsContainer.style.display = "flex";
+      detailsContainer.style.alignItems = "center";
+      detailsContainer.style.justifyContent = "flex-end";
+      detailsContainer.style.gap = "8px";
+
+      const actions = detailsContainer.querySelector("ul.pagehead-actions, .pagehead-actions");
+      if (actions) {
+        detailsContainer.insertBefore(container, actions);
+      } else {
+        detailsContainer.insertBefore(container, detailsContainer.firstChild);
+      }
+      container.className = "gtm-companion-wrap gtm-in-header";
+      return true;
+    }
+
+    // 2. Target: Directly before ul.pagehead-actions in parent
+    const pageheadActions = document.querySelector("ul.pagehead-actions, .pagehead-actions");
+    if (pageheadActions && pageheadActions.parentNode) {
+      pageheadActions.parentNode.insertBefore(container, pageheadActions);
+      container.className = "gtm-companion-wrap gtm-in-header";
+      return true;
+    }
+
+    // 3. Target: Adjacent to repo title / badge in #repository-container-header
+    const repoHeader = document.getElementById("repository-container-header");
+    if (repoHeader) {
+      const titleArea = repoHeader.querySelector(".wb-break-word, strong[itemprop='name']");
+      if (titleArea && titleArea.parentNode) {
+        titleArea.parentNode.appendChild(container);
+        container.className = "gtm-companion-wrap gtm-in-header";
+        return true;
+      }
+      const flexRow = repoHeader.querySelector(".d-flex") || repoHeader;
+      flexRow.appendChild(container);
+      container.className = "gtm-companion-wrap gtm-in-header";
+      return true;
+    }
+
+    return false;
+  }
+
+  if (attemptPlacement()) {
+    return true;
+  }
+
+  // Fallback while header DOM elements are mounting:
+  // Anchor at the top-right header region (NEVER in bottom-right corner)
+  container.className = "gtm-companion-wrap gtm-anchored-header";
+  if (!container.parentNode) {
+    document.body.appendChild(container);
+  }
+
+  // Observe DOM for header appearance without polling
+  _headerObserver = new MutationObserver(() => {
+    if (attemptPlacement()) {
+      if (_headerObserver) {
+        _headerObserver.disconnect();
+        _headerObserver = null;
+      }
+    }
+  });
+
+  _headerObserver.observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
+
+  return false;
 }
 
 // ─── Main navigation & page handler ──────────────────────────────────────────
@@ -539,9 +704,10 @@ function handlePage() {
   } catch {}
 
   if (repoInfo) {
-    // If still in the same repository and icon is already attached, leave it in place
+    // If still in the same repository and icon is already attached in header, leave it in place
     if (_activeRepo && _activeRepo.owner === repoInfo.owner && _activeRepo.repo === repoInfo.repo) {
-      if (document.getElementById(REPO_CONTAINER_ID)) {
+      const existing = document.getElementById(REPO_CONTAINER_ID);
+      if (existing && existing.classList.contains("gtm-in-header")) {
         return;
       }
     }
@@ -578,6 +744,23 @@ const cleanupNav = window.__gtmDetect.listenForNavigation(() => {
   handlePage();
 });
 
+// Watch for Turbo render events across repository subpages (/issues, /pulls, /commits)
+document.addEventListener("turbo:render", () => {
+  const repoInfo = window.__gtmDetect ? window.__gtmDetect.detectGitHubRepo() : null;
+  if (repoInfo) {
+    const existing = document.getElementById(REPO_CONTAINER_ID);
+    if (!existing || !existing.classList.contains("gtm-in-header")) {
+      handlePage();
+    }
+  }
+});
+
 // Clean up if the content script is somehow unloaded (e.g. extension reload)
-window.addEventListener("unload", cleanupNav);
+window.addEventListener("unload", () => {
+  cleanupNav();
+  if (_headerObserver) {
+    _headerObserver.disconnect();
+    _headerObserver = null;
+  }
+});
 

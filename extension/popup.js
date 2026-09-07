@@ -1,8 +1,8 @@
 /**
  * popup.js — GitHub Time Machine extension popup
  *
- * Detects the GitHub username on the active tab, renders the appropriate
- * state (profile found / not found / loading), and wires up action buttons.
+ * Detects whether the active tab is a supported GitHub profile or repository,
+ * renders the appropriate state, and connects action buttons to existing documentary URLs.
  */
 
 // ─── Constants ────────────────────────────────────────────────────────────
@@ -101,32 +101,52 @@ function replayUrl(baseUrl, username) {
   return `${baseUrl}/replay/${encodeURIComponent(username)}`;
 }
 
+function repoDocumentaryUrl(baseUrl, owner, repo) {
+  return `${baseUrl}/repo/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/documentary`;
+}
+
 // ─── State management ────────────────────────────────────────────────────
 
 function showState(id) {
   ["state-profile", "state-empty", "state-loading"].forEach((s) => {
-    document.getElementById(s).classList.add("hidden");
+    const el = document.getElementById(s);
+    if (el) el.classList.add("hidden");
   });
-  document.getElementById(id).classList.remove("hidden");
+  const target = document.getElementById(id);
+  if (target) target.classList.remove("hidden");
 }
 
-function renderProfile(username, profile) {
+function renderReady(target, profilePreview) {
   showState("state-profile");
 
   const nameEl = document.getElementById("profile-name");
   const usernameEl = document.getElementById("profile-username");
   const avatarEl = document.getElementById("profile-avatar");
+  const repoIconEl = document.getElementById("entity-repo-icon");
+  const userIconEl = document.getElementById("entity-user-icon");
 
-  nameEl.textContent = profile?.name || username;
-  usernameEl.textContent = `@${username}`;
+  if (target.type === "profile") {
+    nameEl.textContent = profilePreview?.name || target.username;
+    usernameEl.textContent = `@${target.username}`;
 
-  if (profile?.avatar_url) {
-    avatarEl.src = profile.avatar_url;
-    avatarEl.alt = `${username}'s avatar`;
-  } else {
-    // Fallback: GitHub's default avatar URL by username hash is unavailable
-    // in an extension context, so use a simple letter avatar approach
-    avatarEl.style.display = "none";
+    if (profilePreview?.avatar_url) {
+      avatarEl.src = profilePreview.avatar_url;
+      avatarEl.alt = `${target.username}'s avatar`;
+      avatarEl.classList.remove("hidden");
+      if (userIconEl) userIconEl.classList.add("hidden");
+      if (repoIconEl) repoIconEl.classList.add("hidden");
+    } else {
+      avatarEl.classList.add("hidden");
+      if (userIconEl) userIconEl.classList.remove("hidden");
+      if (repoIconEl) repoIconEl.classList.add("hidden");
+    }
+  } else if (target.type === "repo") {
+    nameEl.textContent = `${target.owner}/${target.repo}`;
+    usernameEl.textContent = "GitHub Repository";
+
+    avatarEl.classList.add("hidden");
+    if (userIconEl) userIconEl.classList.add("hidden");
+    if (repoIconEl) repoIconEl.classList.remove("hidden");
   }
 }
 
@@ -148,13 +168,8 @@ async function fetchGitHubProfilePreview(username) {
   }
 }
 
-// ─── Username detection ──────────────────────────────────────────────────
+// ─── Target detection (Profile or Repository) ────────────────────────────
 
-/**
- * The same blocklist used in github-detect.js — kept in sync manually.
- * The popup cannot import the content script module, so we duplicate the
- * small constant here rather than introducing a build step.
- */
 const NON_PROFILE_SEGMENTS = new Set([
   "settings", "marketplace", "explore", "notifications", "issues", "pulls",
   "trending", "features", "pricing", "about", "login", "join", "orgs", "apps",
@@ -163,20 +178,25 @@ const NON_PROFILE_SEGMENTS = new Set([
   "enterprise", "readme", "github", "repositories", "signup",
 ]);
 
-const GITHUB_USERNAME_RE = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$/;
+const NON_REPO_SEGMENTS = new Set([
+  "followers", "following", "repositories", "projects", "packages",
+  "stars", "sponsoring", "sponsors", "achievements", "tab",
+]);
 
-/**
- * Parse a github.com URL and return the profile username, or null.
- * Mirrors extractUsername() in github-detect.js.
- */
+const GITHUB_USERNAME_RE = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$/;
+const GITHUB_REPO_RE = /^[a-zA-Z0-9._-]{1,100}$/;
+
 function extractUsernameFromUrl(urlStr) {
+  if (typeof window !== "undefined" && window.__gtmDetect?.extractUsername) {
+    return window.__gtmDetect.extractUsername(urlStr);
+  }
   if (!urlStr || !urlStr.includes("github.com")) return null;
   let url;
   try { url = new URL(urlStr); } catch { return null; }
   if (url.hostname !== "github.com") return null;
 
   const parts = url.pathname.replace(/^\//, "").split("/").filter(Boolean);
-  if (parts.length !== 1) return null;           // must be exactly /username
+  if (parts.length !== 1) return null;
 
   const seg = parts[0];
   if (NON_PROFILE_SEGMENTS.has(seg.toLowerCase())) return null;
@@ -185,36 +205,61 @@ function extractUsernameFromUrl(urlStr) {
   return seg;
 }
 
+function extractRepoFromUrl(urlStr) {
+  if (typeof window !== "undefined" && window.__gtmDetect?.extractRepo) {
+    return window.__gtmDetect.extractRepo(urlStr);
+  }
+  if (!urlStr || !urlStr.includes("github.com")) return null;
+  let url;
+  try { url = new URL(urlStr); } catch { return null; }
+  if (url.hostname !== "github.com") return null;
+
+  const parts = url.pathname.replace(/^\//, "").split("/").filter(Boolean);
+  if (parts.length < 2) return null;
+
+  const owner = parts[0];
+  let repo = parts[1];
+  if (repo.endsWith(".git")) repo = repo.slice(0, -4);
+
+  if (NON_PROFILE_SEGMENTS.has(owner.toLowerCase())) return null;
+  if (NON_REPO_SEGMENTS.has(repo.toLowerCase())) return null;
+
+  if (!GITHUB_USERNAME_RE.test(owner)) return null;
+  if (!GITHUB_REPO_RE.test(repo)) return null;
+  if (repo === "." || repo === "..") return null;
+
+  return { owner, repo };
+}
+
 /**
- * Returns { tabId, url, username } for the active tab.
- * Detection order:
- *   1. Parse tab.url directly (always works when tabs permission is granted)
- *   2. Ask the content script (gives us the runtime-confirmed value)
- *   3. Ask the background cache (covers edge cases like popup opened before CS ran)
+ * Detects whether the active tab is a supported GitHub repository or profile.
+ * Returns { type: 'profile', username } or { type: 'repo', owner, repo } or null.
  */
-async function detectUsernameOnActiveTab() {
+async function detectTargetOnActiveTab() {
   return new Promise((resolve) => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const tab = tabs[0];
-      if (!tab?.id) return resolve(null);
+      if (!tab?.id || !tab?.url) return resolve(null);
 
-      // ── Layer 1: URL parse (instant, no messaging needed) ──────────────
-      const urlUsername = extractUsernameFromUrl(tab.url || "");
-      if (!urlUsername) return resolve(null); // definitely not a profile page
+      // Check repository (handles repo root and subpages like /issues, /commits, etc.)
+      const repo = extractRepoFromUrl(tab.url);
+      if (repo) {
+        return resolve({ type: "repo", owner: repo.owner, repo: repo.repo });
+      }
 
-      // URL says it's a profile. Now try to confirm with the content script
-      // (it may have more context, e.g. if GitHub loaded a different page
-      // client-side without changing the URL — extremely rare but handled).
-      // ── Layer 2: content script query ──────────────────────────────────
-      chrome.tabs.sendMessage(tab.id, { type: "GET_USERNAME" }, (csResponse) => {
-        if (chrome.runtime.lastError) {
-          // Content script not yet injected (extension just installed, or
-          // page loaded before extension was enabled). Fall back to URL value.
-          return resolve(urlUsername);
-        }
-        // Content script responded — use its value if present, otherwise URL
-        resolve(csResponse?.username || urlUsername);
-      });
+      // Check profile page
+      const username = extractUsernameFromUrl(tab.url);
+      if (username) {
+        chrome.tabs.sendMessage(tab.id, { type: "GET_USERNAME" }, (csResponse) => {
+          if (chrome.runtime.lastError || !csResponse?.username) {
+            return resolve({ type: "profile", username });
+          }
+          resolve({ type: "profile", username: csResponse.username });
+        });
+        return;
+      }
+
+      resolve(null);
     });
   });
 }
@@ -227,6 +272,8 @@ function initSettings() {
   const input = document.getElementById("input-base-url");
   const saveBtn = document.getElementById("btn-settings-save");
   const cancelBtn = document.getElementById("btn-settings-cancel");
+
+  if (!toggle || !panel || !input || !saveBtn || !cancelBtn) return;
 
   toggle.addEventListener("click", async () => {
     const isOpen = !panel.classList.contains("hidden");
@@ -243,7 +290,6 @@ function initSettings() {
   });
 
   saveBtn.addEventListener("click", async () => {
-    // Clear any previous error/success indicators
     const existingError = panel.querySelector(".settings-error");
     if (existingError) existingError.remove();
     const existingConfirm = panel.querySelector(".save-confirmation");
@@ -265,7 +311,6 @@ function initSettings() {
     try {
       await setBaseUrl(validation.normalized);
       input.value = validation.normalized;
-      // Show confirmation
       const actionsEl = saveBtn.closest(".settings-actions");
       const confirm = document.createElement("span");
       confirm.className = "save-confirmation";
@@ -294,7 +339,6 @@ function initSettings() {
     toggle.setAttribute("aria-expanded", "false");
   });
 
-  // Allow Enter to save
   input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") saveBtn.click();
     if (e.key === "Escape") cancelBtn.click();
@@ -303,34 +347,43 @@ function initSettings() {
 
 // ─── Action buttons ───────────────────────────────────────────────────────
 
-function wireButtons(username) {
+function wireActions(target) {
   const baseUrlPromise = getBaseUrl();
 
-  document.getElementById("btn-replay").addEventListener("click", async () => {
-    const base = await baseUrlPromise;
-    chrome.tabs.create({ url: replayUrl(base, username) });
-    window.close();
-  });
+  const replayBtn = document.getElementById("btn-replay");
+  if (replayBtn) {
+    replayBtn.addEventListener("click", async () => {
+      const base = await baseUrlPromise;
+      let url = base;
+      if (target.type === "profile") {
+        url = replayUrl(base, target.username);
+      } else if (target.type === "repo") {
+        url = repoDocumentaryUrl(base, target.owner, target.repo);
+      }
+      chrome.tabs.create({ url });
+      window.close();
+    });
+  }
 
-  document.getElementById("btn-new-tab").addEventListener("click", async () => {
-    const base = await baseUrlPromise;
-    chrome.tabs.create({ url: replayUrl(base, username) });
-    window.close();
-  });
-
-  document.getElementById("btn-open-app").addEventListener("click", async () => {
-    const base = await baseUrlPromise;
-    chrome.tabs.create({ url: base });
-    window.close();
-  });
+  const openAppBtn = document.getElementById("btn-open-app");
+  if (openAppBtn) {
+    openAppBtn.addEventListener("click", async () => {
+      const base = await baseUrlPromise;
+      chrome.tabs.create({ url: base });
+      window.close();
+    });
+  }
 }
 
 function wireEmptyButtons() {
-  document.getElementById("btn-open-app-empty").addEventListener("click", async () => {
-    const base = await getBaseUrl();
-    chrome.tabs.create({ url: base });
-    window.close();
-  });
+  const emptyBtn = document.getElementById("btn-open-app-empty");
+  if (emptyBtn) {
+    emptyBtn.addEventListener("click", async () => {
+      const base = await getBaseUrl();
+      chrome.tabs.create({ url: base });
+      window.close();
+    });
+  }
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────
@@ -340,18 +393,20 @@ async function init() {
   initSettings();
   wireEmptyButtons();
 
-  const username = await detectUsernameOnActiveTab();
+  const target = await detectTargetOnActiveTab();
 
-  if (!username) {
+  if (!target) {
     renderEmpty();
     return;
   }
 
-  // Fetch a lightweight profile preview (avatar + name)
-  // so the popup renders something useful before the replay loads
-  const profile = await fetchGitHubProfilePreview(username);
-  renderProfile(username, profile);
-  wireButtons(username);
+  let profilePreview = null;
+  if (target.type === "profile") {
+    profilePreview = await fetchGitHubProfilePreview(target.username);
+  }
+
+  renderReady(target, profilePreview);
+  wireActions(target);
 }
 
 document.addEventListener("DOMContentLoaded", init);
