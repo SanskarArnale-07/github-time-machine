@@ -36,6 +36,15 @@ export const metadata: Metadata = {
     title: "GitHub Time Machine",
     description: "A cinematic replay of your developer journey.",
   },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "32x32" },
+      { url: "/icon.png", sizes: "128x128", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-icon.png", sizes: "128x128", type: "image/png" },
+    ],
+  },
 };
 
 export default function RootLayout({

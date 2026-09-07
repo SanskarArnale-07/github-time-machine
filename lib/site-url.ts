@@ -6,6 +6,9 @@
  */
 
 export function getSiteUrl(): string {
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/+$/, "");
+  }
   if (process.env.NEXT_PUBLIC_SITE_URL) {
     return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/+$/, "");
   }
@@ -24,13 +27,24 @@ export function getCanonicalUrl(path: string): string {
   return `${base}${cleanPath}`;
 }
 
-export function getOpenGraphImageUrl(params: {
+export interface OpenGraphImageParams {
   type: "profile" | "repo";
   username?: string;
   name?: string;
   owner?: string;
   repo?: string;
-}): string {
+  avatar?: string;
+  bio?: string;
+  repos?: number | string;
+  followers?: number | string;
+  joined?: string;
+  desc?: string;
+  stars?: number | string;
+  forks?: number | string;
+  language?: string;
+}
+
+export function getOpenGraphImageUrl(params: OpenGraphImageParams): string {
   const base = getSiteUrl();
   const searchParams = new URLSearchParams();
   searchParams.set("type", params.type);
@@ -38,5 +52,14 @@ export function getOpenGraphImageUrl(params: {
   if (params.name) searchParams.set("name", params.name);
   if (params.owner) searchParams.set("owner", params.owner);
   if (params.repo) searchParams.set("repo", params.repo);
+  if (params.avatar) searchParams.set("avatar", params.avatar);
+  if (params.bio) searchParams.set("bio", params.bio);
+  if (params.repos !== undefined) searchParams.set("repos", String(params.repos));
+  if (params.followers !== undefined) searchParams.set("followers", String(params.followers));
+  if (params.joined) searchParams.set("joined", params.joined);
+  if (params.desc) searchParams.set("desc", params.desc);
+  if (params.stars !== undefined) searchParams.set("stars", String(params.stars));
+  if (params.forks !== undefined) searchParams.set("forks", String(params.forks));
+  if (params.language) searchParams.set("language", params.language);
   return `${base}/api/og?${searchParams.toString()}`;
 }
