@@ -56,6 +56,10 @@ export async function fetchUserRepositories(username: string, token?: string): P
   return repos;
 }
 
+export async function fetchSingleRepo(owner: string, repo: string, token?: string): Promise<GitHubRepo> {
+  return fetchFromGitHub(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`, token, 300);
+}
+
 export async function fetchRepoCommits(owner: string, repo: string, token?: string): Promise<GitHubCommit[]> {
   try {
     // Paginate through commit history with a reasonable ceiling (max 3 pages = 300 commits per repo)

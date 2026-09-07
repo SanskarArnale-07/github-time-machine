@@ -19,11 +19,13 @@ const spaceMono = Space_Mono({
   display: "swap",
 });
 
+import { getSiteUrl } from "@/lib/site-url";
+
 export const metadata: Metadata = {
   title: "GitHub Time Machine — Replay your developer journey",
   description:
     "Turn years of commits, repos, and late-night pushes into a cinematic replay of how you became the developer you are.",
-  metadataBase: new URL("https://github-time-machine.vercel.app"),
+  metadataBase: new URL(getSiteUrl()),
   openGraph: {
     title: "GitHub Time Machine",
     description: "A cinematic replay of your developer journey.",
@@ -33,6 +35,15 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "GitHub Time Machine",
     description: "A cinematic replay of your developer journey.",
+  },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "32x32" },
+      { url: "/icon.png", sizes: "128x128", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-icon.png", sizes: "128x128", type: "image/png" },
+    ],
   },
 };
 

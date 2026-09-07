@@ -1,31 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  fetchGitHubProfile,
-  fetchAllUserCommitHistory,
-  groupCommitsByYearAndMonth,
-  generateContributionData,
-  calculateAnalytics,
-  fetchGitHubContributionsGraphQL,
-} from "@/lib/github/api";
+import { fetchSingleRepo, fetchRepoCommits } from "@/lib/github/api";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limiter";
-import { isValidGitHubUsername } from "@/lib/github/validation";
+import { isValidGitHubOwnerRepo } from "@/lib/github/validation";
 
 // In-memory cache — 10 minutes TTL
 const cacheMap = new Map<string, { data: unknown; expiresAt: number }>();
-const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const CACHE_TTL_MS = 10 * 60 * 1000;
 
-// Track refresh burst timestamps to prevent cache-busting DoS attacks
+// Track refresh burst timestamps to prevent cache-busting DoS
 const refreshTracker = new Map<string, number>();
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ username: string }> }
+  { params }: { params: Promise<{ username: string; repo: string }> }
 ) {
   try {
     const clientIp = getClientIp(request.headers);
 
-    // 1. IP Rate Limiting: Max 20 queries per 5 minutes per IP
-    const rateLimit = checkRateLimit(clientIp, 20, 5 * 60 * 1000);
+    // 1. IP Rate Limiting: Max 25 queries per 5 minutes per IP
+    const rateLimit = checkRateLimit(clientIp, 25, 5 * 60 * 1000);
     if (!rateLimit.allowed) {
       return NextResponse.json(
         { error: "Too many requests. Please wait a few minutes before trying again." },
@@ -33,27 +26,31 @@ export async function GET(
           status: 429,
           headers: {
             "Retry-After": String(rateLimit.resetInSeconds),
-            "X-RateLimit-Limit": "20",
+            "X-RateLimit-Limit": "25",
             "X-RateLimit-Remaining": "0",
           },
         }
       );
     }
 
-    const { username } = await params;
+    const { username, repo } = await params;
 
-    if (!isValidGitHubUsername(username)) {
-      return NextResponse.json({ error: "Invalid GitHub username format." }, { status: 400 });
+    // 2. Strict Input Validation: Prevent traversal, encoded paths, and arbitrary URLs
+    if (!isValidGitHubOwnerRepo(username, repo)) {
+      return NextResponse.json(
+        { error: "Invalid repository identifier format." },
+        { status: 400 }
+      );
     }
 
     const url = new URL(request.url);
     const requestedRefresh = url.searchParams.get("refresh") === "true";
 
-    const cacheKey = `public-${username.toLowerCase()}`;
+    const cacheKey = `public-repo-${username.toLowerCase()}-${repo.toLowerCase()}`;
     const cached = cacheMap.get(cacheKey);
     const now = Date.now();
 
-    // 2. Cache-busting defense: allow refresh at most once every 3 minutes per user/IP
+    // 3. Cache-busting defense: allow refresh at most once every 3 minutes
     let forceRefresh = false;
     if (requestedRefresh) {
       const lastRefresh = refreshTracker.get(`${clientIp}-${cacheKey}`) || 0;
@@ -72,42 +69,37 @@ export async function GET(
       });
     }
 
-    // Server-side GitHub token (never exposed to browser)
     const token: string | undefined = process.env.GITHUB_TOKEN ?? undefined;
 
-    // Validate the username exists before making heavier multi-repo requests
-    let profile;
+    // 4. Fetch repository metadata
+    let repoData;
     try {
-      profile = await fetchGitHubProfile(username, token);
+      repoData = await fetchSingleRepo(username, repo, token);
     } catch {
       return NextResponse.json(
-        { error: `GitHub user @${username} not found or profile is inaccessible.` },
+        { error: `Repository @${username}/${repo} not found or is inaccessible.` },
         { status: 404 }
       );
     }
 
-    const [history, graphqlContributions] = await Promise.all([
-      fetchAllUserCommitHistory(username, token),
-      token
-        ? fetchGitHubContributionsGraphQL(username, token).catch(() => null)
-        : Promise.resolve(null),
-    ]);
+    // 5. Strict Data Boundary: Never serve private repositories in public mode
+    if (!repoData || (repoData as any).private === true || (repoData as any).visibility === "private") {
+      return NextResponse.json(
+        { error: `Repository @${username}/${repo} not found or is inaccessible.` },
+        { status: 404 }
+      );
+    }
 
-    const yearGroups = groupCommitsByYearAndMonth(history.commits);
-    const contributions =
-      graphqlContributions ?? generateContributionData(history.commits);
-    const analytics = calculateAnalytics(history.commits, history.repos);
+    // 6. Fetch repository commit history
+    const commits = await fetchRepoCommits(username, repo, token);
 
     const payload = {
       success: true,
-      username,
-      profile,
-      repos: history.repos,
-      commits: history.commits,
-      yearGroups,
-      contributions,
-      analytics,
-      totalCommits: history.commits.length,
+      owner: username,
+      repoName: repo,
+      repo: repoData,
+      commits,
+      totalCommits: commits.length,
       cachedAt: now,
     };
 
@@ -122,7 +114,6 @@ export async function GET(
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "";
 
-    // Surface rate limits safely without leaking internals
     if (message.includes("403") || message.includes("rate limit")) {
       return NextResponse.json(
         { error: "GitHub API rate limit reached. Please try again in a few minutes." },
@@ -130,9 +121,9 @@ export async function GET(
       );
     }
 
-    console.error("Error fetching public GitHub replay timeline:", message);
+    console.error("Error fetching public repository documentary data:", message);
     return NextResponse.json(
-      { error: "An unexpected error occurred while loading GitHub history." },
+      { error: "An unexpected error occurred while loading repository history." },
       { status: 500 }
     );
   }

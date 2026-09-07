@@ -29,6 +29,11 @@ export interface GitHubRepo {
   default_branch: string;
   private: boolean;
   fork: boolean;
+  owner?: {
+    login: string;
+    avatar_url: string;
+    [key: string]: any;
+  };
 }
 
 export interface GitHubCommit {

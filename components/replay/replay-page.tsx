@@ -156,6 +156,7 @@ export function ReplayPage({
             profile={profile}
             contributions={contributions}
             isSingleRepo={Boolean(repoFilter)}
+            isPublic={Boolean(publicUsername)}
           />
         )}
       </div>
