@@ -610,29 +610,28 @@ export function RepoDocumentaryReplay({
             const rawReturnTo = clientReturnTo || propReturnTo;
             const validatedReturnTo = rawReturnTo ? getSafeReturnUrl(rawReturnTo, "") : "";
 
+            const canonicalRepoUrl = repoOwner
+              ? (repoName
+                  ? `https://github.com/${encodeURIComponent(repoOwner)}/${encodeURIComponent(repoName)}`
+                  : `https://github.com/${encodeURIComponent(repoOwner)}`)
+              : "/";
+
             let publicBackHref: string;
             let publicBackLabel: string;
             let ariaLabel: string;
 
-            if (validatedReturnTo) {
-              // Return to the valid launch context (e.g. original GitHub repository or issues page)
+            if (validatedReturnTo && /^https:\/\/(?:www\.)?github\.com/i.test(validatedReturnTo)) {
+              // Return to the valid GitHub launch context (e.g. original GitHub repository or subpage)
               publicBackHref = validatedReturnTo;
-              publicBackLabel = validatedReturnTo.startsWith("/") ? "Back" : "Exit";
-              ariaLabel = validatedReturnTo.startsWith("/") ? "Back to Dashboard" : "Exit to original GitHub page";
+              publicBackLabel = repoOwner ? `@${repoOwner}` : "Exit";
+              ariaLabel = repoName ? `View ${repoOwner}/${repoName} on GitHub` : "Exit to GitHub";
             } else {
-              // Preserve existing public fallback: repository owner profile replay or "/"
-              if (repoOwner) {
-                if (repoName) {
-                  const returnToInternal = `/repo/${encodeURIComponent(repoOwner)}/${encodeURIComponent(repoName)}/documentary`;
-                  publicBackHref = `/replay/${encodeURIComponent(repoOwner)}?returnTo=${returnToInternal}`;
-                } else {
-                  publicBackHref = `/replay/${encodeURIComponent(repoOwner)}`;
-                }
-              } else {
-                publicBackHref = "/";
-              }
+              // Canonical GitHub repository destination: https://github.com/${owner}/${repo}
+              publicBackHref = canonicalRepoUrl;
               publicBackLabel = repoOwner ? `@${repoOwner}` : "Home";
-              ariaLabel = repoOwner ? `Back to @${repoOwner}'s replay` : "Back to Home";
+              ariaLabel = repoOwner
+                ? (repoName ? `View ${repoOwner}/${repoName} on GitHub` : `View @${repoOwner} on GitHub`)
+                : "Back to Home";
             }
 
             return (
