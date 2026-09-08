@@ -90,13 +90,18 @@ export function DashboardContent({
     }
   };
 
-  // Read tab from hash on mount to support linking directly to a specific tab
+  // Read tab from hash on mount and hash change to support linking directly to a specific tab
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const hash = window.location.hash.replace("#", "");
-      if (["timeline", "repos", "contributions", "analytics", "public"].includes(hash)) {
-        setActiveTab(hash as TabId);
-      }
+      const handleHash = () => {
+        const hash = window.location.hash.replace("#", "");
+        if (["timeline", "repos", "contributions", "analytics", "public"].includes(hash)) {
+          setActiveTab(hash as TabId);
+        }
+      };
+      handleHash();
+      window.addEventListener("hashchange", handleHash);
+      return () => window.removeEventListener("hashchange", handleHash);
     }
   }, []);
 

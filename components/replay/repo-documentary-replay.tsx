@@ -620,11 +620,13 @@ export function RepoDocumentaryReplay({
             let publicBackLabel: string;
             let ariaLabel: string;
 
-            if (validatedReturnTo && /^https:\/\/(?:www\.)?github\.com/i.test(validatedReturnTo)) {
-              // Return to the valid GitHub launch context (e.g. original GitHub repository or subpage)
+            if (validatedReturnTo) {
+              // Return to the valid launch context (e.g. /dashboard#repos, /dashboard#public, or original GitHub URL)
               publicBackHref = validatedReturnTo;
-              publicBackLabel = repoOwner ? `@${repoOwner}` : "Exit";
-              ariaLabel = repoName ? `View ${repoOwner}/${repoName} on GitHub` : "Exit to GitHub";
+              publicBackLabel = validatedReturnTo.startsWith("/") ? "Back" : "Exit";
+              ariaLabel = validatedReturnTo.startsWith("/")
+                ? (validatedReturnTo.includes("repos") ? "Back to Repositories" : "Back to Dashboard")
+                : (repoName ? `View ${repoOwner}/${repoName} on GitHub` : "Exit to original GitHub page");
             } else {
               // Canonical GitHub repository destination: https://github.com/${owner}/${repo}
               publicBackHref = canonicalRepoUrl;
