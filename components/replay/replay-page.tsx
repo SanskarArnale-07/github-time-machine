@@ -17,6 +17,7 @@ interface ReplayPageProps {
   repoFilter?: string; // e.g. "owner/repo"
   /** When set, fetch from the public API (extension-launched replay for any GitHub user). */
   publicUsername?: string;
+  returnTo?: string;
 }
 
 export function ReplayPage({
@@ -26,6 +27,7 @@ export function ReplayPage({
   initialProfile,
   repoFilter,
   publicUsername,
+  returnTo,
 }: ReplayPageProps) {
   const [profile, setProfile] = useState<GitHubUserProfile | null>(initialProfile);
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
@@ -124,13 +126,32 @@ export function ReplayPage({
             <div className="rounded-xl border border-red-500/30 bg-red-950/20 px-6 py-4 text-sm text-red-300">
               {error}
             </div>
-            <button
-              onClick={loadCommitHistory}
-              disabled={isLoading}
-              className="rounded-full border border-brass/30 bg-brass/10 px-5 py-2 font-mono text-xs text-brass-light transition-colors hover:bg-brass/20"
-            >
-              {isLoading ? "Retrying…" : "Try again"}
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={loadCommitHistory}
+                disabled={isLoading}
+                className="rounded-full border border-brass/30 bg-brass/10 px-5 py-2 font-mono text-xs text-brass-light transition-colors hover:bg-brass/20"
+              >
+                {isLoading ? "Retrying…" : "Try again"}
+              </button>
+              <a
+                href={returnTo || "/"}
+                onClick={(e) => {
+                  if (returnTo && /^https:\/\/(?:www\.)?github\.com/i.test(returnTo)) {
+                    e.preventDefault();
+                    try {
+                      window.close();
+                    } catch {}
+                    setTimeout(() => {
+                      window.location.href = returnTo;
+                    }, 150);
+                  }
+                }}
+                className="rounded-full border border-white/10 bg-white/5 px-5 py-2 font-mono text-xs text-zinc-300 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                {returnTo ? (returnTo.startsWith("/") ? "Back" : "Exit to GitHub") : "Back to Home"}
+              </a>
+            </div>
           </div>
         ) : !hasLoaded ? (
           <div className="flex h-full flex-col items-center justify-center gap-6">
@@ -157,6 +178,7 @@ export function ReplayPage({
             contributions={contributions}
             isSingleRepo={Boolean(repoFilter)}
             isPublic={Boolean(publicUsername)}
+            returnTo={returnTo}
           />
         )}
       </div>

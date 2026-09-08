@@ -273,8 +273,9 @@ function injectButton(username) {
 
   btn.addEventListener("click", async () => {
     const baseUrl = await getBaseUrl();
-    const replayUrl = `${baseUrl}/replay/${encodeURIComponent(username)}`;
-    window.open(replayUrl, "_blank", "noopener,noreferrer");
+    const returnTo = window.location.href;
+    const replayUrl = `${baseUrl}/replay/${encodeURIComponent(username)}?returnTo=${encodeURIComponent(returnTo)}`;
+    window.open(replayUrl, "_blank");
   });
 
   // Try inserting near the contribution graph first (most prominent placement)
@@ -567,8 +568,9 @@ function injectRepoIcon(owner, repo) {
 
   btn.addEventListener("click", async () => {
     const baseUrl = await getBaseUrl();
-    const destination = `${baseUrl}/repo/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/documentary`;
-    window.open(destination, "_blank", "noopener,noreferrer");
+    const returnTo = window.location.href;
+    const destination = `${baseUrl}/repo/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/documentary?returnTo=${encodeURIComponent(returnTo)}`;
+    window.open(destination, "_blank");
   });
 
   dismissBtn.addEventListener("click", (e) => {

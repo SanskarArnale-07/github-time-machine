@@ -2,12 +2,13 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { fetchGitHubProfile } from "@/lib/github/api";
 import { ReplayPage } from "@/components/replay/replay-page";
-import { isValidGitHubUsername } from "@/lib/github/validation";
+import { isValidGitHubUsername, getSafeReturnUrl } from "@/lib/github/validation";
 
 import { getCanonicalUrl, getOpenGraphImageUrl, getSiteUrl } from "@/lib/site-url";
 
 interface Props {
   params: Promise<{ username: string }>;
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -99,8 +100,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
  * Public (no auth required) profile replay page.
  * Open to any visitor to view a developer's public GitHub journey.
  */
-export default async function PublicReplayPage({ params }: Props) {
+export default async function PublicReplayPage({ params, searchParams }: Props) {
   const { username } = await params;
+  const rawSearchParams = searchParams ? await searchParams : {};
+  const returnToRaw = typeof rawSearchParams.returnTo === "string" ? rawSearchParams.returnTo : undefined;
+  const safeReturnTo = getSafeReturnUrl(returnToRaw, "/");
 
   // Reject malformed usernames before making any API call
   if (!isValidGitHubUsername(username)) {
@@ -125,6 +129,7 @@ export default async function PublicReplayPage({ params }: Props) {
         initialUsername={username}
         initialProfile={initialProfile}
         publicUsername={username}
+        returnTo={safeReturnTo}
       />
     </div>
   );

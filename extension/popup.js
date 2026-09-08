@@ -97,12 +97,14 @@ async function setBaseUrl(url) {
   });
 }
 
-function replayUrl(baseUrl, username) {
-  return `${baseUrl}/replay/${encodeURIComponent(username)}`;
+function replayUrl(baseUrl, username, returnTo) {
+  const base = `${baseUrl}/replay/${encodeURIComponent(username)}`;
+  return returnTo ? `${base}?returnTo=${encodeURIComponent(returnTo)}` : base;
 }
 
-function repoDocumentaryUrl(baseUrl, owner, repo) {
-  return `${baseUrl}/repo/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/documentary`;
+function repoDocumentaryUrl(baseUrl, owner, repo, returnTo) {
+  const base = `${baseUrl}/repo/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/documentary`;
+  return returnTo ? `${base}?returnTo=${encodeURIComponent(returnTo)}` : base;
 }
 
 // ─── State management ────────────────────────────────────────────────────
@@ -124,8 +126,12 @@ function renderReady(target, profilePreview) {
   const avatarEl = document.getElementById("profile-avatar");
   const repoIconEl = document.getElementById("entity-repo-icon");
   const userIconEl = document.getElementById("entity-user-icon");
+  const replayBtnText =
+    document.getElementById("btn-replay-text") ||
+    document.querySelector("#btn-replay span:last-child");
 
   if (target.type === "profile") {
+    if (replayBtnText) replayBtnText.textContent = "Replay this GitHub";
     nameEl.textContent = profilePreview?.name || target.username;
     usernameEl.textContent = `@${target.username}`;
 
@@ -141,6 +147,7 @@ function renderReady(target, profilePreview) {
       if (repoIconEl) repoIconEl.classList.add("hidden");
     }
   } else if (target.type === "repo") {
+    if (replayBtnText) replayBtnText.textContent = "Replay this repository";
     nameEl.textContent = `${target.owner}/${target.repo}`;
     usernameEl.textContent = "GitHub Repository";
 
@@ -244,7 +251,7 @@ async function detectTargetOnActiveTab() {
       // Check repository (handles repo root and subpages like /issues, /commits, etc.)
       const repo = extractRepoFromUrl(tab.url);
       if (repo) {
-        return resolve({ type: "repo", owner: repo.owner, repo: repo.repo });
+        return resolve({ type: "repo", owner: repo.owner, repo: repo.repo, tabUrl: tab.url });
       }
 
       // Check profile page
@@ -252,9 +259,9 @@ async function detectTargetOnActiveTab() {
       if (username) {
         chrome.tabs.sendMessage(tab.id, { type: "GET_USERNAME" }, (csResponse) => {
           if (chrome.runtime.lastError || !csResponse?.username) {
-            return resolve({ type: "profile", username });
+            return resolve({ type: "profile", username, tabUrl: tab.url });
           }
-          resolve({ type: "profile", username: csResponse.username });
+          resolve({ type: "profile", username: csResponse.username, tabUrl: tab.url });
         });
         return;
       }
@@ -356,9 +363,9 @@ function wireActions(target) {
       const base = await baseUrlPromise;
       let url = base;
       if (target.type === "profile") {
-        url = replayUrl(base, target.username);
+        url = replayUrl(base, target.username, target.tabUrl);
       } else if (target.type === "repo") {
-        url = repoDocumentaryUrl(base, target.owner, target.repo);
+        url = repoDocumentaryUrl(base, target.owner, target.repo, target.tabUrl);
       }
       chrome.tabs.create({ url });
       window.close();

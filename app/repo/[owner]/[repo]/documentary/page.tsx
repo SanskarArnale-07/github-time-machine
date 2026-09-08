@@ -2,13 +2,14 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { RepoDocumentaryPage } from "@/components/replay/repo-documentary-page";
-import { isValidGitHubOwnerRepo } from "@/lib/github/validation";
+import { isValidGitHubOwnerRepo, getSafeReturnUrl } from "@/lib/github/validation";
 import { fetchSingleRepo } from "@/lib/github/api";
 
 import { getCanonicalUrl, getOpenGraphImageUrl, getSiteUrl } from "@/lib/site-url";
 
 interface Props {
   params: Promise<{ owner: string; repo: string }>;
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
@@ -139,6 +140,9 @@ export default async function RepositoryDocumentaryRoute(props: Props) {
   }
 
   const fullRepoName = `${owner}/${repo}`;
+  const rawSearchParams = props.searchParams ? await props.searchParams : {};
+  const returnToRaw = typeof rawSearchParams.returnTo === "string" ? rawSearchParams.returnTo : undefined;
+  const safeReturnTo = returnToRaw ? getSafeReturnUrl(returnToRaw, "") : undefined;
 
   return (
     <div className="h-[100dvh] w-full overflow-hidden">
@@ -147,6 +151,7 @@ export default async function RepositoryDocumentaryRoute(props: Props) {
         repoFullName={fullRepoName}
         isPublic={true}
         initialRepo={initialRepo}
+        returnTo={safeReturnTo}
       />
     </div>
   );

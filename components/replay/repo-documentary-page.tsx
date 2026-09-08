@@ -10,6 +10,7 @@ interface RepoDocumentaryPageProps {
   repoFullName: string; // e.g. "owner/repo"
   isPublic?: boolean;
   initialRepo?: GitHubRepo | null;
+  returnTo?: string;
 }
 
 export function RepoDocumentaryPage({
@@ -17,6 +18,7 @@ export function RepoDocumentaryPage({
   repoFullName,
   isPublic = false,
   initialRepo = null,
+  returnTo,
 }: RepoDocumentaryPageProps) {
   const [repo, setRepo] = useState<GitHubRepo | null>(initialRepo);
   const [commits, setCommits] = useState<GitHubCommit[]>([]);
@@ -158,10 +160,21 @@ export function RepoDocumentaryPage({
               We couldn&apos;t find public commit activity for {repoFullName}. Make sure the repository exists and is public on GitHub.
             </p>
             <a
-              href="/"
+              href={returnTo || "/"}
+              onClick={(e) => {
+                if (returnTo && /^https:\/\/(?:www\.)?github\.com/i.test(returnTo)) {
+                  e.preventDefault();
+                  try {
+                    window.close();
+                  } catch {}
+                  setTimeout(() => {
+                    window.location.href = returnTo;
+                  }, 150);
+                }
+              }}
               className="mt-2 rounded-full border border-white/10 bg-white/5 px-5 py-2 font-mono text-xs text-zinc-300 transition-colors hover:bg-white/10 hover:text-white"
             >
-              Back to Home
+              {returnTo ? (returnTo.startsWith("/") ? "Back" : "Exit to GitHub") : "Back to Home"}
             </a>
           </div>
         ) : commits.length === 0 ? (
@@ -171,10 +184,21 @@ export function RepoDocumentaryPage({
               {repo.name} does not have any recorded commit history on its default branch.
             </p>
             <a
-              href="/"
+              href={returnTo || "/"}
+              onClick={(e) => {
+                if (returnTo && /^https:\/\/(?:www\.)?github\.com/i.test(returnTo)) {
+                  e.preventDefault();
+                  try {
+                    window.close();
+                  } catch {}
+                  setTimeout(() => {
+                    window.location.href = returnTo;
+                  }, 150);
+                }
+              }}
               className="mt-2 rounded-full border border-white/10 bg-white/5 px-5 py-2 font-mono text-xs text-zinc-300 transition-colors hover:bg-white/10 hover:text-white"
             >
-              Back to Home
+              {returnTo ? (returnTo.startsWith("/") ? "Back" : "Exit to GitHub") : "Back to Home"}
             </a>
           </div>
         ) : (
@@ -182,6 +206,7 @@ export function RepoDocumentaryPage({
             commits={commits}
             repo={repo}
             isPublic={isPublic}
+            returnTo={returnTo}
           />
         )}
       </div>

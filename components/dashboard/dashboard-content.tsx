@@ -11,6 +11,7 @@ import {
   RotateCcw,
   Sparkles,
   Grid3X3,
+  Globe,
 } from "lucide-react";
 import type {
   GitHubUserProfile,
@@ -37,8 +38,11 @@ const ContributionReplay = lazy(() =>
 const AnalyticsView = lazy(() =>
   import("./analytics-view").then((mod) => ({ default: mod.AnalyticsView }))
 );
+const PublicTimeMachineView = lazy(() =>
+  import("./public-time-machine-view").then((mod) => ({ default: mod.PublicTimeMachineView }))
+);
 
-type TabId = "timeline" | "repos" | "contributions" | "analytics";
+type TabId = "timeline" | "repos" | "contributions" | "analytics" | "public";
 
 interface DashboardContentProps {
   initialUsername: string;
@@ -90,7 +94,7 @@ export function DashboardContent({
   useEffect(() => {
     if (typeof window !== "undefined") {
       const hash = window.location.hash.replace("#", "");
-      if (["timeline", "repos", "contributions", "analytics"].includes(hash)) {
+      if (["timeline", "repos", "contributions", "analytics", "public"].includes(hash)) {
         setActiveTab(hash as TabId);
       }
     }
@@ -182,6 +186,7 @@ export function DashboardContent({
     { id: "repos", label: "Repositories", icon: FolderGit2 },
     { id: "contributions", label: "Heatmap Bloom", icon: Grid3X3 },
     { id: "analytics", label: "Analytics Suite", icon: BarChart3 },
+    { id: "public", label: "Public Time Machine", icon: Globe },
   ];
 
   const isEmptyState = hasLoaded && repos.length === 0 && commits.length === 0;
@@ -344,11 +349,11 @@ export function DashboardContent({
           </div>
 
           {/* Tab navigation bar */}
-          <div className="mt-0 flex flex-col sm:flex-row items-center justify-between gap-4 py-1">
+          <div className="mt-0 w-full py-1">
             <div
               role="tablist"
               aria-label="Dashboard sections"
-              className="glass-card flex items-center gap-1 p-1.5 overflow-x-auto overflow-y-hidden scrollbar-hide border border-white/5 bg-surface rounded-full"
+              className="glass-card flex w-full items-center gap-1 p-1.5 border border-white/5 bg-surface rounded-full shadow-inner"
             >
               {tabs.map((tab) => (
                 <button
@@ -360,14 +365,14 @@ export function DashboardContent({
                   tabIndex={activeTab === tab.id ? 0 : -1}
                   onClick={() => setActiveTab(tab.id)}
                   onKeyDown={(e) => handleTabKeyDown(e, tab.id)}
-                  className={`flex min-h-[44px] select-none items-center gap-2 rounded-full px-3.5 sm:px-5 py-2 text-xs sm:text-sm font-medium whitespace-nowrap transition-all ${
+                  className={`flex min-h-[44px] flex-1 min-w-0 select-none items-center justify-center gap-1.5 sm:gap-2 rounded-full px-2 sm:px-3 md:px-4 py-2 text-xs sm:text-sm font-medium whitespace-nowrap transition-all ${
                     activeTab === tab.id
                       ? "bg-white text-black shadow-sm"
                       : "text-zinc-400 hover:text-white hover:bg-white/5"
                   }`}
                 >
                   <tab.icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                  <span>{tab.label}</span>
+                  <span className="tracking-tight sm:tracking-normal">{tab.label}</span>
                 </button>
               ))}
             </div>
@@ -399,6 +404,7 @@ export function DashboardContent({
             {activeTab === "analytics" && analytics && (
               <AnalyticsView analytics={analytics} commits={commits} />
             )}
+            {activeTab === "public" && <PublicTimeMachineView />}
             </Suspense>
           </div>
         </div>

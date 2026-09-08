@@ -43,6 +43,7 @@ import {
   getSingleRepoLanguage,
   type LanguageMixItem,
 } from "@/lib/github/language-utils";
+import { getSafeReturnUrl } from "@/lib/github/validation";
 
 // ─── Theme Colors ─────────────────────────────────────────────────────────────
 const IVORY_DARK = "#F5F0E8";
@@ -56,6 +57,7 @@ interface TimelineReplayProps {
   contributions?: ContributionWeek[];
   isSingleRepo?: boolean;
   isPublic?: boolean;
+  returnTo?: string;
 }
 
 interface ReplayMilestoneCardProps {
@@ -327,12 +329,55 @@ export function TimelineReplay({
   contributions = [],
   isSingleRepo,
   isPublic = false,
+  returnTo: propReturnTo,
 }: TimelineReplayProps) {
   const username = profile?.name || profile?.login || "Developer";
   const engine = useReplayEngine(commits, repos, username);
   const theaterRef = useRef<HTMLDivElement>(null);
   const stateWasRestored = useRef(false);
   const replayStateKey = `gtm_replay_state_${username.toLowerCase()}`;
+
+  // Resolve safe return destination for public documentary exit
+  const [clientReturnTo, setClientReturnTo] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const sp = new URLSearchParams(window.location.search);
+      let rt = sp.get("returnTo");
+      if (rt) {
+        // If returnTo is an internal path and the browser has a hash fragment on window.location
+        // (which happens if returnTo=/dashboard#public was unencoded in the URL), preserve it:
+        if (rt.startsWith("/") && !rt.includes("#") && window.location.hash) {
+          rt = `${rt}${window.location.hash}`;
+        }
+        setClientReturnTo(rt);
+      }
+    }
+  }, []);
+
+  const safeReturnUrl = isPublic
+    ? getSafeReturnUrl(clientReturnTo || propReturnTo, "/")
+    : "/dashboard";
+
+  const handleExit = useCallback(
+    (e: React.MouseEvent<HTMLAnchorElement>) => {
+      const isExternalGitHub =
+        isPublic &&
+        typeof safeReturnUrl === "string" &&
+        /^https:\/\/(?:www\.)?github\.com/i.test(safeReturnUrl);
+
+      if (isExternalGitHub) {
+        e.preventDefault();
+        try {
+          window.close();
+        } catch {}
+        setTimeout(() => {
+          window.location.href = safeReturnUrl;
+        }, 150);
+      }
+    },
+    [isPublic, safeReturnUrl]
+  );
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
@@ -749,8 +794,9 @@ export function TimelineReplay({
         <header className={`absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 sm:px-8 pt-4 pb-0 transition-all duration-300 ease-in-out ${isHUDVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full pointer-events-none"} ${isFullscreen ? 'hidden' : ''}`}>
           <div className="flex items-center gap-2 sm:gap-3">
             <a
-              href={isPublic ? "/" : "/dashboard"}
-              aria-label={isPublic ? "Exit to home" : "Exit to dashboard"}
+              href={isPublic ? safeReturnUrl : "/dashboard"}
+              onClick={handleExit}
+              aria-label={isPublic ? (safeReturnUrl.startsWith("http") ? "Exit to GitHub" : safeReturnUrl !== "/" ? "Exit to Dashboard" : "Exit to Home") : "Exit to dashboard"}
               className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/60 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-400 backdrop-blur-md transition-colors hover:border-white/20 hover:text-white"
             >
               <ChevronLeft className="h-3.5 w-3.5" />

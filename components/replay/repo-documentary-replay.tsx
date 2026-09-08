@@ -26,6 +26,7 @@ import { ambientSoundtrack } from "@/lib/audio/ambient-soundtrack";
 import { cleanCommitMessage } from "@/lib/github/story-generator";
 import { Button } from "@/components/ui/button";
 import { ReplayBackground } from "@/components/replay/replay-background";
+import { getSafeReturnUrl } from "@/lib/github/validation";
 
 // ─── Theme Constants ─────────────────────────────────────────────────────────
 const IVORY_DARK = "#FDF8ED";
@@ -35,6 +36,7 @@ interface RepoDocumentaryReplayProps {
   commits: GitHubCommit[];
   repo: GitHubRepo;
   isPublic?: boolean;
+  returnTo?: string;
 }
 
 // ─── Lightweight Cinematic Editorial Repository Block ─────────────────────────
@@ -299,12 +301,53 @@ const RepoDocumentaryInfo = memo(function RepoDocumentaryInfo({
 });
 
 // ─── Main Replay Component ────────────────────────────────────────────────────
-export function RepoDocumentaryReplay({ commits, repo, isPublic = false }: RepoDocumentaryReplayProps) {
+export function RepoDocumentaryReplay({
+  commits,
+  repo,
+  isPublic = false,
+  returnTo: propReturnTo,
+}: RepoDocumentaryReplayProps) {
   const engine = useRepoDocumentaryEngine(commits, repo);
   const theaterRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const shouldReduceMotion = useReducedMotion();
+
+  // Resolve client-side returnTo fallback
+  const [clientReturnTo, setClientReturnTo] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const sp = new URLSearchParams(window.location.search);
+      let rt = sp.get("returnTo");
+      if (rt) {
+        if (rt.startsWith("/") && !rt.includes("#") && window.location.hash) {
+          rt = `${rt}${window.location.hash}`;
+        }
+        setClientReturnTo(rt);
+      }
+    }
+  }, []);
+
+  const handleBackExit = useCallback(
+    (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+      const isExternalGitHub =
+        isPublic &&
+        typeof href === "string" &&
+        /^https:\/\/(?:www\.)?github\.com/i.test(href);
+
+      if (isExternalGitHub) {
+        e.preventDefault();
+        try {
+          window.close();
+        } catch {}
+        setTimeout(() => {
+          window.location.href = href;
+        }, 150);
+      }
+    },
+    [isPublic]
+  );
 
   // HUD Auto-hide state
   const [isHUDVisible, setIsHUDVisible] = useState(true);
@@ -559,14 +602,44 @@ export function RepoDocumentaryReplay({ commits, repo, isPublic = false }: RepoD
       >
         <div className="flex items-center gap-3">
           {(() => {
-            const repoOwner = repo.full_name ? repo.full_name.split("/")[0] : (repo as any).owner?.login;
-            const publicBackHref = repoOwner ? `/replay/${encodeURIComponent(repoOwner)}` : "/";
-            const publicBackLabel = repoOwner ? `@${repoOwner}` : "Home";
+            const repoParts = repo.full_name ? repo.full_name.split("/") : [];
+            const repoOwner = repoParts[0] || (repo as any).owner?.login;
+            const repoName = repoParts[1] || repo.name;
+
+            // Check if returnTo is provided and safe (e.g. extension launched from GitHub repo/issues)
+            const rawReturnTo = clientReturnTo || propReturnTo;
+            const validatedReturnTo = rawReturnTo ? getSafeReturnUrl(rawReturnTo, "") : "";
+
+            let publicBackHref: string;
+            let publicBackLabel: string;
+            let ariaLabel: string;
+
+            if (validatedReturnTo) {
+              // Return to the valid launch context (e.g. original GitHub repository or issues page)
+              publicBackHref = validatedReturnTo;
+              publicBackLabel = validatedReturnTo.startsWith("/") ? "Back" : "Exit";
+              ariaLabel = validatedReturnTo.startsWith("/") ? "Back to Dashboard" : "Exit to original GitHub page";
+            } else {
+              // Preserve existing public fallback: repository owner profile replay or "/"
+              if (repoOwner) {
+                if (repoName) {
+                  const returnToInternal = `/repo/${encodeURIComponent(repoOwner)}/${encodeURIComponent(repoName)}/documentary`;
+                  publicBackHref = `/replay/${encodeURIComponent(repoOwner)}?returnTo=${returnToInternal}`;
+                } else {
+                  publicBackHref = `/replay/${encodeURIComponent(repoOwner)}`;
+                }
+              } else {
+                publicBackHref = "/";
+              }
+              publicBackLabel = repoOwner ? `@${repoOwner}` : "Home";
+              ariaLabel = repoOwner ? `Back to @${repoOwner}'s replay` : "Back to Home";
+            }
 
             return (
               <a
                 href={isPublic ? publicBackHref : "/dashboard#repos"}
-                aria-label={isPublic ? (repoOwner ? `Back to @${repoOwner}'s replay` : "Back to Home") : "Back to repository archive"}
+                onClick={(e) => handleBackExit(e, isPublic ? publicBackHref : "/dashboard#repos")}
+                aria-label={isPublic ? ariaLabel : "Back to repository archive"}
                 className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/60 px-4 py-2 font-mono text-xs uppercase tracking-[0.15em] text-zinc-400 backdrop-blur-md transition-colors hover:border-white/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
               >
                 <ChevronLeft className="h-3.5 w-3.5" />
